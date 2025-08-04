@@ -4,7 +4,7 @@
   
   Controller for product tab integration in AbanteCart admin
   Handles Schema.org configuration per product with AI assistance
-  VERSIÓN CON MANEJO ROBUSTO DE JSON Y ERRORES COMPLETAMENTE CORREGIDA
+  VERSIÓN CON PERSISTENCIA DE DATOS IMPLEMENTADA
 ------------------------------------------------------------------------------*/
 
 if (!defined('DIR_CORE')) {
@@ -513,22 +513,196 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Get current schema settings for product
+     * Get current schema settings for product - IMPLEMENTADO
      */
     private function getSchemaSettings($product_id)
     {
-        // Implementation to retrieve custom schema settings from database
-        // For now, return empty array - would need custom table for per-product settings
-        return array();
+        $this->logDebug("Cargando configuración schema para producto: " . $product_id);
+        
+        try {
+            $query = $this->db->query("
+                SELECT 
+                    custom_description,
+                    faq_content,
+                    howto_content,
+                    review_content,
+                    enable_variants,
+                    enable_faq,
+                    enable_howto,
+                    enable_review,
+                    created_date,
+                    updated_date
+                FROM " . DB_PREFIX . "seo_schema_content 
+                WHERE product_id = " . (int)$product_id . "
+                LIMIT 1
+            ");
+
+            if ($query->num_rows) {
+                $settings = $query->row;
+                
+                // Convertir flags a boolean para compatibilidad
+                $settings['enable_variants'] = (bool)$settings['enable_variants'];
+                $settings['enable_faq'] = (bool)$settings['enable_faq'];
+                $settings['enable_howto'] = (bool)$settings['enable_howto'];
+                $settings['enable_review'] = (bool)$settings['enable_review'];
+                
+                $this->logDebug("Configuración cargada exitosamente. Campos con contenido: " . 
+                    implode(', ', array_filter([
+                        $settings['custom_description'] ? 'description' : null,
+                        $settings['faq_content'] ? 'faq' : null,
+                        $settings['howto_content'] ? 'howto' : null,
+                        $settings['review_content'] ? 'review' : null
+                    ]))
+                );
+                
+                return $settings;
+            } else {
+                $this->logDebug("No se encontró configuración para el producto. Retornando valores por defecto.");
+                
+                // Retornar valores por defecto si no existe configuración
+                return array(
+                    'custom_description' => '',
+                    'faq_content' => '',
+                    'howto_content' => '',
+                    'review_content' => '',
+                    'enable_variants' => true,
+                    'enable_faq' => false,
+                    'enable_howto' => false,
+                    'enable_review' => false
+                );
+            }
+        } catch (Exception $e) {
+            $this->logDebug("Error cargando configuración: " . $e->getMessage());
+            
+            // En caso de error, retornar array vacío para evitar fallos
+            return array(
+                'custom_description' => '',
+                'faq_content' => '',
+                'howto_content' => '',
+                'review_content' => '',
+                'enable_variants' => true,
+                'enable_faq' => false,
+                'enable_howto' => false,
+                'enable_review' => false
+            );
+        }
     }
 
     /**
-     * Save schema settings for product
+     * Save schema settings for product - IMPLEMENTADO
      */
     private function saveSchemaSettings($product_id)
     {
-        // Implementation to save custom schema settings to database
-        // Would need custom table for per-product schema configurations
+        $this->logDebug("=== GUARDANDO CONFIGURACIÓN SCHEMA ===");
+        $this->logDebug("Producto ID: " . $product_id);
+        $this->logDebug("POST data: " . print_r($this->request->post, true));
+        
+        try {
+            // Verificar si ya existe un registro para este producto
+            $query = $this->db->query("
+                SELECT id 
+                FROM " . DB_PREFIX . "seo_schema_content 
+                WHERE product_id = " . (int)$product_id . "
+                LIMIT 1
+            ");
+
+            // Preparar datos para guardar
+            $data = array(
+                'custom_description' => trim($this->request->post['custom_description'] ?? ''),
+                'faq_content' => trim($this->request->post['faq_content'] ?? ''),
+                'howto_content' => trim($this->request->post['howto_content'] ?? ''),
+                'review_content' => trim($this->request->post['review_content'] ?? ''),
+                'enable_variants' => isset($this->request->post['enable_variants']) ? 1 : 0,
+                'enable_faq' => !empty($this->request->post['faq_content']) ? 1 : 0,
+                'enable_howto' => !empty($this->request->post['howto_content']) ? 1 : 0,
+                'enable_review' => !empty($this->request->post['review_content']) ? 1 : 0
+            );
+
+            $this->logDebug("Datos procesados: " . print_r($data, true));
+
+            if ($query->num_rows) {
+                // UPDATE - Actualizar registro existente
+                $this->logDebug("Actualizando registro existente...");
+                
+                $update_sql = "
+                    UPDATE " . DB_PREFIX . "seo_schema_content 
+                    SET 
+                        custom_description = '" . $this->db->escape($data['custom_description']) . "',
+                        faq_content = '" . $this->db->escape($data['faq_content']) . "',
+                        howto_content = '" . $this->db->escape($data['howto_content']) . "',
+                        review_content = '" . $this->db->escape($data['review_content']) . "',
+                        enable_variants = " . (int)$data['enable_variants'] . ",
+                        enable_faq = " . (int)$data['enable_faq'] . ",
+                        enable_howto = " . (int)$data['enable_howto'] . ",
+                        enable_review = " . (int)$data['enable_review'] . ",
+                        updated_date = NOW()
+                    WHERE product_id = " . (int)$product_id
+                ;
+                
+                $this->db->query($update_sql);
+                $this->logDebug("Registro actualizado exitosamente.");
+                
+            } else {
+                // INSERT - Crear nuevo registro
+                $this->logDebug("Creando nuevo registro...");
+                
+                $insert_sql = "
+                    INSERT INTO " . DB_PREFIX . "seo_schema_content 
+                    (
+                        product_id, 
+                        custom_description, 
+                        faq_content, 
+                        howto_content, 
+                        review_content,
+                        enable_variants,
+                        enable_faq,
+                        enable_howto,
+                        enable_review,
+                        created_date,
+                        updated_date
+                    ) VALUES (
+                        " . (int)$product_id . ",
+                        '" . $this->db->escape($data['custom_description']) . "',
+                        '" . $this->db->escape($data['faq_content']) . "',
+                        '" . $this->db->escape($data['howto_content']) . "',
+                        '" . $this->db->escape($data['review_content']) . "',
+                        " . (int)$data['enable_variants'] . ",
+                        " . (int)$data['enable_faq'] . ",
+                        " . (int)$data['enable_howto'] . ",
+                        " . (int)$data['enable_review'] . ",
+                        NOW(),
+                        NOW()
+                    )
+                ";
+                
+                $this->db->query($insert_sql);
+                $this->logDebug("Nuevo registro creado exitosamente.");
+            }
+
+            // Verificar que se guardó correctamente
+            $verify_query = $this->db->query("
+                SELECT 
+                    LENGTH(custom_description) as desc_len,
+                    LENGTH(faq_content) as faq_len,
+                    LENGTH(howto_content) as howto_len,
+                    LENGTH(review_content) as review_len,
+                    updated_date
+                FROM " . DB_PREFIX . "seo_schema_content 
+                WHERE product_id = " . (int)$product_id
+            );
+            
+            if ($verify_query->num_rows) {
+                $verification = $verify_query->row;
+                $this->logDebug("Verificación exitosa - Longitudes: desc={$verification['desc_len']}, faq={$verification['faq_len']}, howto={$verification['howto_len']}, review={$verification['review_len']}, updated={$verification['updated_date']}");
+            }
+
+        } catch (Exception $e) {
+            $this->logDebug("ERROR guardando configuración: " . $e->getMessage());
+            $this->logDebug("SQL Error Info: " . $this->db->error);
+            
+            // Re-lanzar la excepción para que sea manejada por el controlador principal
+            throw new Exception("Error saving schema settings: " . $e->getMessage());
+        }
     }
 
     /**

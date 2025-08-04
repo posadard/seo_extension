@@ -38,7 +38,7 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Hook principal para generar Schema.org en frontend
+     * Hook principal para generar Schema.org en frontend - CON PERSISTENCIA
      */
     public function onControllerPagesProductProduct_UpdateData()
     {
@@ -58,10 +58,15 @@ class ExtensionSmartSeoSchema extends Extension
 
     /**
      * Genera Schema.org completo con hasVariant[], IA y esquemas adicionales
+     * VERSIÓN CON PERSISTENCIA DE DATOS
      */
     private function generateCompleteSchema($that)
     {
         $product_info = $that->data['product_info'];
+        $product_id = $product_info['product_id'];
+        
+        // CARGAR CONTENIDO GUARDADO DE LA BASE DE DATOS
+        $saved_content = $this->getSavedSchemaContent($product_id);
         
         // Schema.org Product base
         $product_snippet = [
@@ -70,8 +75,8 @@ class ExtensionSmartSeoSchema extends Extension
             "name"     => $product_info['name'],
         ];
 
-        // Descripción (con IA opcional)
-        $description = $this->getOptimizedDescription($that, $product_info);
+        // Descripción (PRIORIZAR CONTENIDO GUARDADO)
+        $description = $this->getOptimizedDescription($that, $product_info, $saved_content);
         if ($description) {
             $product_snippet["description"] = $description;
         }
@@ -107,7 +112,8 @@ class ExtensionSmartSeoSchema extends Extension
         }
 
         // hasVariant[] - Sistema nativo de AbanteCart
-        if ($that->config->get('smart_seo_schema_enable_variants')) {
+        if ($that->config->get('smart_seo_schema_enable_variants') && 
+            (!empty($saved_content['enable_variants']) || $saved_content === null)) {
             $variants = $this->getProductVariants($product_info['product_id'], $that);
             if (!empty($variants)) {
                 $product_snippet["hasVariant"] = $variants;
@@ -122,10 +128,55 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        // Esquemas adicionales con IA
-        $additional_schemas = $this->generateAdditionalSchemas($product_info, $that);
+        // Esquemas adicionales con IA (USAR CONTENIDO GUARDADO)
+        $additional_schemas = $this->generateAdditionalSchemas($product_info, $that, $saved_content);
         
         return array_merge([$product_snippet], $additional_schemas);
+    }
+
+    /**
+     * Cargar contenido Schema guardado de la base de datos
+     */
+    private function getSavedSchemaContent($product_id)
+    {
+        try {
+            $db = $this->registry->get('db');
+            
+            $query = $db->query("
+                SELECT 
+                    custom_description,
+                    faq_content,
+                    howto_content,
+                    review_content,
+                    enable_variants,
+                    enable_faq,
+                    enable_howto,
+                    enable_review
+                FROM " . DB_PREFIX . "seo_schema_content 
+                WHERE product_id = " . (int)$product_id . "
+                LIMIT 1
+            ");
+
+            if ($query->num_rows) {
+                $content = $query->row;
+                
+                // Convertir flags a boolean
+                $content['enable_variants'] = (bool)$content['enable_variants'];
+                $content['enable_faq'] = (bool)$content['enable_faq'];
+                $content['enable_howto'] = (bool)$content['enable_howto'];
+                $content['enable_review'] = (bool)$content['enable_review'];
+                
+                return $content;
+            }
+        } catch (Exception $e) {
+            // En caso de error, continuar sin contenido guardado
+            if ($this->registry->get('config')->get('smart_seo_schema_debug_mode')) {
+                $warning = new AWarning('Smart SEO Schema - Error loading saved content: ' . $e->getMessage());
+                $warning->toLog();
+            }
+        }
+        
+        return null; // No hay contenido guardado
     }
 
     /**
@@ -240,13 +291,17 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Descripción optimizada con IA opcional
+     * Descripción optimizada con IA opcional - CON PERSISTENCIA
      */
-    private function getOptimizedDescription($that, $product_info)
+    private function getOptimizedDescription($that, $product_info, $saved_content = null)
     {
-        $description = '';
+        // PRIORIDAD 1: Contenido personalizado guardado
+        if ($saved_content && !empty($saved_content['custom_description'])) {
+            return trim($saved_content['custom_description']);
+        }
 
-        // Lógica original de descripción
+        // PRIORIDAD 2: Lógica original de configuración
+        $description = '';
         if ($that->config->get('smart_seo_schema_description') == 'auto') {
             if ($product_info['blurb']) {
                 $description = strip_tags(html_entity_decode($product_info['blurb']));
@@ -259,8 +314,8 @@ class ExtensionSmartSeoSchema extends Extension
             $description = strip_tags(html_entity_decode($product_info['description']));
         }
 
-        // Mejora con IA si está habilitada
-        if ($that->config->get('smart_seo_schema_ai_auto_generate')) {
+        // PRIORIDAD 3: Mejora con IA si está habilitada (solo si no hay contenido guardado)
+        if ($that->config->get('smart_seo_schema_ai_auto_generate') && !$saved_content) {
             $ai_description = $this->generateAIDescription($product_info, $description, $that);
             if ($ai_description) {
                 $description = $ai_description;
@@ -423,32 +478,35 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Genera esquemas adicionales (FAQ, HowTo, Review, Organization)
+     * Genera esquemas adicionales (FAQ, HowTo, Review, Organization) - CON PERSISTENCIA
      */
-    private function generateAdditionalSchemas($product_info, $that)
+    private function generateAdditionalSchemas($product_info, $that, $saved_content = null)
     {
         $schemas = [];
         $config = $that->config;
 
-        // FAQPage Schema
-        if ($config->get('smart_seo_schema_enable_faq_schema')) {
-            $faq = $this->generateFAQSchema($product_info);
+        // FAQPage Schema - USAR CONTENIDO GUARDADO
+        if (($config->get('smart_seo_schema_enable_faq_schema') && !$saved_content) ||
+            ($saved_content && $saved_content['enable_faq'] && !empty($saved_content['faq_content']))) {
+            $faq = $this->generateFAQSchema($product_info, $saved_content);
             if ($faq) {
                 $schemas[] = $faq;
             }
         }
 
-        // HowTo Schema
-        if ($config->get('smart_seo_schema_enable_howto_schema')) {
-            $howto = $this->generateHowToSchema($product_info);
+        // HowTo Schema - USAR CONTENIDO GUARDADO
+        if (($config->get('smart_seo_schema_enable_howto_schema') && !$saved_content) ||
+            ($saved_content && $saved_content['enable_howto'] && !empty($saved_content['howto_content']))) {
+            $howto = $this->generateHowToSchema($product_info, $saved_content);
             if ($howto) {
                 $schemas[] = $howto;
             }
         }
 
-        // Review Schema
-        if ($config->get('smart_seo_schema_enable_review_schema')) {
-            $review = $this->generateReviewSchema($product_info);
+        // Review Schema - USAR CONTENIDO GUARDADO
+        if (($config->get('smart_seo_schema_enable_review_schema') && !$saved_content) ||
+            ($saved_content && $saved_content['enable_review'] && !empty($saved_content['review_content']))) {
+            $review = $this->generateReviewSchema($product_info, $saved_content);
             if ($review) {
                 $schemas[] = $review;
             }
@@ -466,11 +524,16 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Genera FAQ Schema con IA
+     * Genera FAQ Schema con IA - CON PERSISTENCIA
      */
-    private function generateFAQSchema($product_info)
+    private function generateFAQSchema($product_info, $saved_content = null)
     {
-        // Implementación básica - expandir con IA
+        // USAR CONTENIDO GUARDADO SI EXISTE
+        if ($saved_content && !empty($saved_content['faq_content'])) {
+            return $this->parseFAQContent($saved_content['faq_content']);
+        }
+
+        // Implementación básica - fallback
         return [
             "@type" => "FAQPage",
             "mainEntity" => [
@@ -487,11 +550,16 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Genera HowTo Schema con IA
+     * Genera HowTo Schema con IA - CON PERSISTENCIA
      */
-    private function generateHowToSchema($product_info)
+    private function generateHowToSchema($product_info, $saved_content = null)
     {
-        // Implementación básica - expandir con IA
+        // USAR CONTENIDO GUARDADO SI EXISTE
+        if ($saved_content && !empty($saved_content['howto_content'])) {
+            return $this->parseHowToContent($product_info['name'], $saved_content['howto_content']);
+        }
+
+        // Implementación básica - fallback
         return [
             "@type" => "HowTo",
             "name" => "How to use " . $product_info['name'],
@@ -505,12 +573,20 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Genera Review Schema
+     * Genera Review Schema - CON PERSISTENCIA
      */
-    private function generateReviewSchema($product_info)
+    private function generateReviewSchema($product_info, $saved_content = null)
     {
+        $review_content = "This is a high-quality product with excellent features.";
+        
+        // USAR CONTENIDO GUARDADO SI EXISTE
+        if ($saved_content && !empty($saved_content['review_content'])) {
+            $review_content = trim($saved_content['review_content']);
+        }
+
         return [
             "@type" => "Review",
+            "reviewBody" => $review_content,
             "reviewRating" => [
                 "@type" => "Rating",
                 "ratingValue" => "5",
@@ -520,6 +596,112 @@ class ExtensionSmartSeoSchema extends Extension
                 "@type" => "Person",
                 "name" => "Technical Review"
             ]
+        ];
+    }
+
+    /**
+     * Parsea contenido FAQ guardado y convierte a Schema.org
+     */
+    private function parseFAQContent($faq_content)
+    {
+        $questions = [];
+        $lines = explode("\n", $faq_content);
+        $current_question = null;
+        $current_answer = null;
+        
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+            
+            // Detectar pregunta (Q: o Question:)
+            if (preg_match('/^Q:\s*(.+)$/i', $line, $matches) || 
+                preg_match('/^Question:\s*(.+)$/i', $line, $matches)) {
+                // Guardar pregunta anterior si existe
+                if ($current_question && $current_answer) {
+                    $questions[] = [
+                        "@type" => "Question",
+                        "name" => $current_question,
+                        "acceptedAnswer" => [
+                            "@type" => "Answer",
+                            "text" => $current_answer
+                        ]
+                    ];
+                }
+                $current_question = trim($matches[1]);
+                $current_answer = null;
+            }
+            // Detectar respuesta (A: o Answer:)
+            elseif (preg_match('/^A:\s*(.+)$/i', $line, $matches) || 
+                    preg_match('/^Answer:\s*(.+)$/i', $line, $matches)) {
+                $current_answer = trim($matches[1]);
+            }
+            // Continuar respuesta en múltiples líneas
+            elseif ($current_question && !$current_answer) {
+                $current_answer = $line;
+            }
+            elseif ($current_answer) {
+                $current_answer .= ' ' . $line;
+            }
+        }
+        
+        // Guardar última pregunta
+        if ($current_question && $current_answer) {
+            $questions[] = [
+                "@type" => "Question",
+                "name" => $current_question,
+                "acceptedAnswer" => [
+                    "@type" => "Answer",
+                    "text" => $current_answer
+                ]
+            ];
+        }
+        
+        if (empty($questions)) {
+            return null;
+        }
+        
+        return [
+            "@type" => "FAQPage",
+            "mainEntity" => $questions
+        ];
+    }
+
+    /**
+     * Parsea contenido HowTo guardado y convierte a Schema.org
+     */
+    private function parseHowToContent($product_name, $howto_content)
+    {
+        $steps = [];
+        $lines = explode("\n", $howto_content);
+        
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+            
+            // Detectar paso (Step 1:, 1., etc.)
+            if (preg_match('/^(?:Step\s*)?(\d+)[:.]?\s*(.+)$/i', $line, $matches)) {
+                $steps[] = [
+                    "@type" => "HowToStep",
+                    "name" => "Step " . $matches[1],
+                    "text" => trim($matches[2])
+                ];
+            }
+            // Si no hay numeración, agregar como paso simple
+            elseif (!empty($steps)) {
+                // Agregar al último paso si es continuación
+                $last_key = count($steps) - 1;
+                $steps[$last_key]['text'] .= ' ' . $line;
+            }
+        }
+        
+        if (empty($steps)) {
+            return null;
+        }
+        
+        return [
+            "@type" => "HowTo",
+            "name" => "How to use " . $product_name,
+            "step" => $steps
         ];
     }
 
