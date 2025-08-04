@@ -7,9 +7,12 @@ if (!defined('DIR_CORE')) {
 if (!class_exists('ExtensionSmartSeoSchema')) {
     include_once('core/smart_seo_schema.php');
 }
+
 $controllers = [
     'storefront' => [],
-    'admin'      => [],
+    'admin'      => [
+        'pages/catalog/smart_seo_schema',
+    ],
 ];
 
 $models = [
@@ -21,7 +24,10 @@ $templates = [
     'storefront' => [
         'pages/product/product.post.tpl',
     ],
-    'admin'      => [],
+    'admin'      => [
+        'pages/smart_seo_schema/smart_seo_schema_form.tpl',
+        'pages/smart_seo_schema/tabs.tpl',
+    ],
 ];
 
 $languages = [
@@ -30,4 +36,3 @@ $languages = [
         'english/smart_seo_schema/smart_seo_schema',
     ],
 ];
-
