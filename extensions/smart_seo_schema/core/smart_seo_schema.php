@@ -180,7 +180,7 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Obtiene variantes desde tablas nativas de AbanteCart
+     * Obtiene variantes desde tablas nativas de AbanteCart con cálculo de precios mejorado
      */
     private function getProductVariants($product_id, $that)
     {
@@ -240,16 +240,25 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Calcula precio de variante según prefix (+/-)
+     * Calcula precio de variante según prefix mejorado (% y $)
      */
     private function calculateVariantPrice($basePrice, $variantPrice, $prefix)
     {
         switch ($prefix) {
+            case '%':
+                // Porcentaje: precio_base * (1 + precio_variante)
+                return $basePrice * (1 + $variantPrice);
+            case '$':
+                // Suma fija: precio_base + precio_variante
+                return $basePrice + $variantPrice;
             case '+':
+                // Compatibilidad con sistema anterior
                 return $basePrice + $variantPrice;
             case '-':
+                // Compatibilidad con sistema anterior
                 return $basePrice - $variantPrice;
             default:
+                // Sin modificación
                 return $basePrice;
         }
     }
