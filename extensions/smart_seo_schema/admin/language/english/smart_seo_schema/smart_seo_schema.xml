@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions>
+  <!-- Definiciones básicas existentes -->
   <definition>
     <key>smart_seo_schema_name</key>
     <value><![CDATA[Smart SEO Schema Assistant]]></value>
@@ -47,5 +48,187 @@
   <definition>
     <key>smart_seo_schema_description_description</key>
     <value><![CDATA[Description]]></value>
+  </definition>
+
+  <!-- Definiciones Groq IA -->
+  <definition>
+    <key>smart_seo_schema_groq_api_key</key>
+    <value><![CDATA[Groq API Key:<br /><span class="help">Enter your Groq API key for AI-powered content generation. Get one at <a href="https://groq.com" target="_blank">groq.com</a></span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_groq_model</key>
+    <value><![CDATA[AI Model:<br /><span class="help">Select the Groq AI model for content generation. Llama-3.1-8b-instant is recommended for speed, Llama-3.3-70b-versatile for quality</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_ai_auto_generate</key>
+    <value><![CDATA[Enable AI Auto-Generation:<br /><span class="help">Automatically improve product descriptions using AI when Schema.org markup is generated</span>]]></value>
+  </definition>
+
+  <!-- Definiciones hasVariant[] -->
+  <definition>
+    <key>smart_seo_schema_enable_variants</key>
+    <value><![CDATA[Enable Product Variants (hasVariant):<br /><span class="help">Generate Schema.org hasVariant markup from AbanteCart product options for better SEO</span>]]></value>
+  </definition>
+
+  <!-- Definiciones Esquemas Adicionales -->
+  <definition>
+    <key>smart_seo_schema_enable_faq_schema</key>
+    <value><![CDATA[Enable FAQ Schema:<br /><span class="help">Generate FAQPage structured data for products to enhance search results with FAQ snippets</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_enable_howto_schema</key>
+    <value><![CDATA[Enable HowTo Schema:<br /><span class="help">Generate HowTo structured data for products with usage instructions</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_enable_review_schema</key>
+    <value><![CDATA[Enable Review Schema:<br /><span class="help">Generate Review structured data for enhanced product ratings in search results</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_enable_organization</key>
+    <value><![CDATA[Enable Organization Schema:<br /><span class="help">Include Organization structured data to identify your business in search results</span>]]></value>
+  </definition>
+
+  <!-- Definiciones IA Avanzadas -->
+  <definition>
+    <key>smart_seo_schema_ai_temperature</key>
+    <value><![CDATA[AI Temperature:<br /><span class="help">Controls AI creativity (0.0-1.0). Lower values = more focused, higher values = more creative. Default: 0.7</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_ai_max_tokens</key>
+    <value><![CDATA[Max Tokens:<br /><span class="help">Maximum length of AI-generated content. Default: 200 tokens (~150 words)</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_ai_timeout</key>
+    <value><![CDATA[API Timeout (seconds):<br /><span class="help">Maximum time to wait for AI response. Default: 10 seconds</span>]]></value>
+  </definition>
+
+  <!-- Definiciones FAQ específicas -->
+  <definition>
+    <key>smart_seo_schema_faq_auto_generate</key>
+    <value><![CDATA[Auto-Generate FAQ:<br /><span class="help">Use AI to automatically create FAQ content based on product information</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_faq_count</key>
+    <value><![CDATA[FAQ Questions Count:<br /><span class="help">Number of FAQ questions to generate automatically. Default: 3</span>]]></value>
+  </definition>
+
+  <!-- Definiciones HowTo específicas -->
+  <definition>
+    <key>smart_seo_schema_howto_auto_generate</key>
+    <value><![CDATA[Auto-Generate HowTo:<br /><span class="help">Use AI to create HowTo instructions for product usage</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_howto_steps_count</key>
+    <value><![CDATA[HowTo Steps Count:<br /><span class="help">Number of steps to generate in HowTo instructions. Default: 5</span>]]></value>
+  </definition>
+
+  <!-- Definiciones Review específicas -->
+  <definition>
+    <key>smart_seo_schema_review_auto_generate</key>
+    <value><![CDATA[Auto-Generate Reviews:<br /><span class="help">Create technical reviews using AI for products without existing reviews</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_review_rating_min</key>
+    <value><![CDATA[Minimum Review Rating:<br /><span class="help">Minimum rating for auto-generated reviews (1-5). Default: 4</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_review_rating_max</key>
+    <value><![CDATA[Maximum Review Rating:<br /><span class="help">Maximum rating for auto-generated reviews (1-5). Default: 5</span>]]></value>
+  </definition>
+
+  <!-- Definiciones Organization -->
+  <definition>
+    <key>smart_seo_schema_org_logo_url</key>
+    <value><![CDATA[Organization Logo URL:<br /><span class="help">Full URL to your organization's logo for Schema.org markup</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_org_contact_type</key>
+    <value><![CDATA[Contact Type:<br /><span class="help">Primary contact type for your organization in structured data</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_org_phone</key>
+    <value><![CDATA[Organization Phone:<br /><span class="help">Main phone number for customer contact in international format (+1-555-123-4567)</span>]]></value>
+  </definition>
+
+  <!-- Definiciones Debug/Logging -->
+  <definition>
+    <key>smart_seo_schema_debug_mode</key>
+    <value><![CDATA[Debug Mode:<br /><span class="help">Enable debugging output for Schema.org generation (for developers only)</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_log_ai_calls</key>
+    <value><![CDATA[Log AI API Calls:<br /><span class="help">Log all AI API requests and responses for monitoring and debugging</span>]]></value>
+  </definition>
+
+  <!-- Títulos de secciones para admin -->
+  <definition>
+    <key>text_section_basic</key>
+    <value><![CDATA[Basic Schema Settings]]></value>
+  </definition>
+  <definition>
+    <key>text_section_ai</key>
+    <value><![CDATA[AI Content Generation]]></value>
+  </definition>
+  <definition>
+    <key>text_section_variants</key>
+    <value><![CDATA[Product Variants (hasVariant)]]></value>
+  </definition>
+  <definition>
+    <key>text_section_additional</key>
+    <value><![CDATA[Additional Schema Types]]></value>
+  </definition>
+  <definition>
+    <key>text_section_organization</key>
+    <value><![CDATA[Organization Data]]></value>
+  </definition>
+  <definition>
+    <key>text_section_debug</key>
+    <value><![CDATA[Debug & Monitoring]]></value>
+  </definition>
+
+  <!-- Mensajes de estado -->
+  <definition>
+    <key>text_ai_connection_success</key>
+    <value><![CDATA[AI connection successful! Groq API is working properly.]]></value>
+  </definition>
+  <definition>
+    <key>text_ai_connection_failed</key>
+    <value><![CDATA[AI connection failed. Please check your API key and try again.]]></value>
+  </definition>
+  <definition>
+    <key>text_variants_found</key>
+    <value><![CDATA[Product variants detected and will be included in Schema.org markup.]]></value>
+  </definition>
+  <definition>
+    <key>text_no_variants_found</key>
+    <value><![CDATA[No product variants found. Only main product will be included in schema.]]></value>
+  </definition>
+
+  <!-- Botones y acciones -->
+  <definition>
+    <key>button_test_ai_connection</key>
+    <value><![CDATA[Test AI Connection]]></value>
+  </definition>
+  <definition>
+    <key>button_preview_schema</key>
+    <value><![CDATA[Preview Schema.org]]></value>
+  </definition>
+  <definition>
+    <key>button_validate_schema</key>
+    <value><![CDATA[Validate with Google]]></value>
+  </definition>
+  <definition>
+    <key>button_generate_ai_content</key>
+    <value><![CDATA[Generate AI Content]]></value>
+  </definition>
+
+  <!-- Ayuda contextual -->
+  <definition>
+    <key>help_schema_org</key>
+    <value><![CDATA[Schema.org is a structured data vocabulary that helps search engines understand your content better, leading to enhanced search results and better SEO.]]></value>
+  </definition>
+  <definition>
+    <key>help_groq_ai</key>
+    <value><![CDATA[Groq AI provides fast, high-quality language models for automatic content generation. This helps create better product descriptions, FAQ content, and structured data.]]></value>
   </definition>
 </definitions>
