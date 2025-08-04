@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension>
-	<id>rich_snippets</id>
+	<id>smart_seo_schema</id>
 	<version>1.3.1</version>
 	<type>extension</type>
 	<category>marketing</category>
@@ -10,31 +10,31 @@
 	</cartversions>
 	<priority>10</priority>
 	<settings>
-		<item id="rich_snippets_status">
+		<item id="smart_seo_schema_status">
 			<type>checkbox</type>
 			<default_value>0</default_value>
 		</item>
-		<item id="rich_snippets_show_image">
+		<item id="smart_seo_schema_show_image">
 			<type>checkbox</type>
 			<default_value>1</default_value>
 		</item>
-		<item id="rich_snippets_show_review">
+		<item id="smart_seo_schema_show_review">
 			<type>checkbox</type>
 			<default_value>1</default_value>
 		</item>
-		<item id="rich_snippets_show_sku">
+		<item id="smart_seo_schema_show_sku">
 			<type>checkbox</type>
 			<default_value>1</default_value>
 		</item>
-		<item id="rich_snippets_show_offer">
+		<item id="smart_seo_schema_show_offer">
 			<type>checkbox</type>
 			<default_value>1</default_value>
 		</item>
-		<item id="rich_snippets_show_availability">
+		<item id="smart_seo_schema_show_availability">
 			<type>checkbox</type>
 			<default_value>1</default_value>
 		</item>
-		<item id="rich_snippets_description">
+		<item id="smart_seo_schema_description">
 			<type>selectbox</type>
 			<variants>
 				<item>auto</item>

@@ -1,0 +1,220 @@
+🎯 Resumen Ejecutivo
+📍 Ubicación: h:/smart_seo_schema/
+🗂️ Archivos: 5 archivos principales en 4 carpetas
+🔧 Funciones: Schema.org JSON-LD automático para productos
+
+📊 Arquitectura Funcional
+🏗️ Estructura Modular:
+
+ROOT - Configuración y entrada (2 archivos)
+CORE - Lógica principal (1 archivo, 1 clase)
+ADMIN - Interface administrativo (1 archivo idioma)
+STOREFRONT - Salida frontend (1 template)
+
+🔄 Flujo de Datos:
+
+main.php → Carga la extensión
+config.xml → Define configuraciones
+smart_seo_schema.php → Procesa datos y genera JSON-LD
+product.post.tpl → Renderiza schema invisible
+smart_seo_schema.xml → Traduce interface admin
+
+
+🎪 Capacidades Actuales
+✅ Totalmente Funcional:
+
+Schema.org Product completo
+11 configuraciones administrables
+Hook automático en páginas de producto
+JSON-LD válido invisible al usuario
+Mapeo inteligente de disponibilidad
+Soporte multimoneda automático
+
+🔧 Datos Procesados:
+
+Información básica (nombre, descripción, SKU, modelo)
+Precios (base, final, con descuentos)
+Imágenes principales
+Valoraciones agregadas
+Estado de stock dinámico
+Marca/fabricante
+
+# 🎯 Smart SEO Schema - Estructura Completa
+
+## 📍 **Ubicación Base**
+```
+h:/smart_seo_schema/
+```
+
+## 🗂️ **Estructura de Archivos y Funciones**
+
+### **📁 ROOT**
+
+#### **📄 main.php**
+- **📍 Ubicación:** `h:/smart_seo_schema/main.php`
+- **🎯 Propósito:** Punto de entrada y cargador de configuración
+- **🔧 Funciones:**
+  - Incluir clase principal del core
+  - Definir arrays de controladores, modelos, templates y idiomas
+  - Establecer metadatos de la extensión
+- **🔄 Cambios Clave:**
+  - `include_once('core/smart_seo_schema.php')`
+  - Referencia a clase `ExtensionSmartSeoSchema`
+
+#### **📄 config.xml**
+- **📍 Ubicación:** `h:/smart_seo_schema/config.xml`
+- **🎯 Propósito:** Configuración de extensión y definición de ajustes
+- **🔧 Funciones:**
+  - Definir ID de extensión como 'smart_seo_schema'
+  - Establecer versión, tipo, categoría
+  - Configurar todos los ajustes con prefijo smart_seo_schema_
+- **⚙️ Configuraciones:**
+  - `smart_seo_schema_status`
+  - `smart_seo_schema_show_image`
+  - `smart_seo_schema_show_review`
+  - `smart_seo_schema_show_sku`
+  - `smart_seo_schema_show_offer`
+  - `smart_seo_schema_show_availability`
+  - `smart_seo_schema_description`
+
+---
+
+### **📁 CORE**
+
+#### **📄 smart_seo_schema.php**
+- **📍 Ubicación:** `h:/smart_seo_schema/core/smart_seo_schema.php`
+- **🎯 Propósito:** Lógica principal de extensión y generación Schema.org
+- **🏷️ Clase Principal:** `ExtensionSmartSeoSchema`
+- **🔧 Funciones Principales:**
+  - `onControllerPagesProductProduct_UpdateData()` - Hook principal
+  - Generar markup JSON-LD Schema.org
+  - Procesar datos de producto
+  - Manejar precios y disponibilidad
+  - Gestionar imágenes y reseñas de producto
+- **🪝 Hooks AbanteCart:**
+  - Hook de actualización de datos de página de producto
+- **📊 Datos Procesados:**
+  - Información básica del producto (nombre, descripción, SKU, modelo)
+  - Datos de fabricante/marca
+  - Información de precios (precio base, precio final, descuentos)
+  - Estado de stock y disponibilidad
+  - Imágenes del producto
+  - Valoraciones y reseñas agregadas
+
+---
+
+### **📁 ADMIN**
+
+#### **📄 language/english/smart_seo_schema/smart_seo_schema.xml**
+- **📍 Ubicación:** `h:/smart_seo_schema/admin/language/english/smart_seo_schema/smart_seo_schema.xml`
+- **🎯 Propósito:** Definiciones de idioma para interfaz de administración
+- **🔧 Funciones:**
+  - Definir todas las etiquetas y textos de ayuda del admin
+  - Proporcionar descripciones de configuración
+  - Establecer nombre de visualización de la extensión
+- **🌐 Keys de Idioma (11 claves):**
+  - `smart_seo_schema_name` - "Smart SEO Schema Assistant"
+  - `smart_seo_schema_status` - "Status"
+  - `smart_seo_schema_show_image` - "Show product image"
+  - `smart_seo_schema_show_review` - "Show product review"
+  - `smart_seo_schema_show_sku` - "Show product SKU"
+  - `smart_seo_schema_show_offer` - "Show product price"
+  - `smart_seo_schema_show_availability` - "Show product stock"
+  - `smart_seo_schema_note` - "Testing and validation info"
+  - `smart_seo_schema_description_auto` - "Auto"
+  - `smart_seo_schema_description_blurb` - "Blurb"
+  - `smart_seo_schema_description_description` - "Description"
+
+---
+
+### **📁 STOREFRONT**
+
+#### **📄 view/default/template/pages/product/product.post.tpl**
+- **📍 Ubicación:** `h:/smart_seo_schema/storefront/view/default/template/pages/product/product.post.tpl`
+- **🎯 Propósito:** Template de salida JSON-LD para frontend
+- **🔧 Funciones:**
+  - Generar etiqueta script JSON-LD
+  - Inyectar variable smart_seo_schema_data
+  - Renderizar markup Schema.org invisible para usuarios
+- **📝 Variables Template:**
+  - `$smart_seo_schema_data` - Contiene el JSON-LD generado
+- **🎨 Salida HTML:**
+  ```html
+  <script type="application/ld+json">
+  <?php echo $smart_seo_schema_data; ?>
+  </script>
+  ```
+
+---
+
+## 🔧 **Funcionalidades Técnicas**
+
+### **🎯 Schema.org Generado**
+- **Tipo Principal:** `Product`
+- **Propiedades Incluidas:**
+  - `@context`: "http://schema.org/"
+  - `@type`: "Product"
+  - `name`: Nombre del producto
+  - `description`: Descripción procesada
+  - `image`: URL de imagen principal
+  - `mpn`: Número de modelo/parte
+  - `brand`: Marca/fabricante
+  - `sku`: Código SKU
+  - `offers`: Objeto Offer con precio y disponibilidad
+  - `aggregateRating`: Valoraciones agregadas
+
+### **🔄 Flujo de Procesamiento**
+1. **Hook Trigger:** Página de producto carga
+2. **Data Collection:** Recopilar información del producto
+3. **Schema Generation:** Generar estructura JSON-LD
+4. **Template Injection:** Inyectar en template de producto
+5. **Frontend Output:** Renderizar script invisible
+
+### **⚙️ Configuraciones Disponibles**
+- **Status:** Habilitar/deshabilitar extensión
+- **Image:** Mostrar imagen en schema
+- **Review:** Incluir valoraciones en schema
+- **SKU:** Mostrar código SKU
+- **Offer:** Incluir información de precio
+- **Availability:** Mostrar estado de stock
+- **Description:** Seleccionar fuente de descripción (auto/blurb/description)
+
+### **🎨 Mapeo de Disponibilidad**
+- "in stock" → `https://schema.org/InStock`
+- "out of stock" → `https://schema.org/OutOfStock`
+- "limited" → `https://schema.org/LimitedAvailability`
+- "pre-order" → `https://schema.org/PreOrder`
+
+---
+
+## 🚀 **Estado Actual vs. Objetivo Futuro**
+
+### **✅ Estado Actual (Funcional)**
+- Schema.org básico Product implementado
+- Configuración por admin panel
+- Integración con datos de AbanteCart
+- Salida JSON-LD correcta
+
+### **🎯 Próximas Mejoras Planificadas**
+- Sistema de variantes con `hasVariant[]`
+- Asistente IA integrado
+- Esquemas adicionales (FAQ, HowTo, Review)
+- Interfaz de administración avanzada
+- Base de datos para variantes personalizadas
+
+---
+
+## 🔍 **Puntos de Integración**
+
+### **🪝 Hooks Utilizados**
+- `onControllerPagesProductProduct_UpdateData()` - Procesamiento de datos de producto
+
+### **📊 Datos AbanteCart Accedidos**
+- `$that->data['product_info']` - Información básica del producto
+- `$that->data['image_main']` - Imagen principal
+- `$that->data['average']` - Valoración promedio
+- `$that->data['stock']` - Estado de stock
+- `$that->currency->getCode()` - Código de moneda
+
+### **🎨 Templates Modificados**
+- `pages/product/product.post.tpl` - Inyección de JSON-LD

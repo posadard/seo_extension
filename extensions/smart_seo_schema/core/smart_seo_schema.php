@@ -4,7 +4,7 @@ if (!defined('DIR_CORE')) {
     header('Location: static_pages/');
 }
 
-class ExtensionRichSnippets extends Extension
+class ExtensionSmartSeoSchema extends Extension
 {
     protected $registry;
 
@@ -17,7 +17,7 @@ class ExtensionRichSnippets extends Extension
             "@type"    => "Product",
         ];
         $product_snippet["name"] = $that->data['product_info']['name'];
-        if ($that->config->get('rich_snippets_description') == 'auto') {
+        if ($that->config->get('smart_seo_schema_description') == 'auto') {
             if ($that->data['product_info']['blurb']) {
                 $product_snippet["description"] = strip_tags(
                     html_entity_decode($that->data['product_info']['blurb'])
@@ -28,12 +28,12 @@ class ExtensionRichSnippets extends Extension
                 );
             }
         } else {
-            if ($that->config->get('rich_snippets_description') == 'blurb') {
+            if ($that->config->get('smart_seo_schema_description') == 'blurb') {
                 $product_snippet["description"] = strip_tags(
                     html_entity_decode($that->data['product_info']['blurb'])
                 );
             } else {
-                if ($that->config->get('rich_snippets_description') == 'description') {
+                if ($that->config->get('smart_seo_schema_description') == 'description') {
                     $product_snippet["description"] = strip_tags(
                         html_entity_decode($that->data['product_info']['description'])
                     );
@@ -41,7 +41,7 @@ class ExtensionRichSnippets extends Extension
             }
         }
 
-        if ($that->config->get('rich_snippets_show_image')) {
+        if ($that->config->get('smart_seo_schema_show_image')) {
             $product_snippet["image"] = $that->data['image_main']['thumb_url'];
         }
 
@@ -53,7 +53,7 @@ class ExtensionRichSnippets extends Extension
             $product_snippet["brand"] = $that->data['product_info']['manufacturer'];
         }
 
-        if ($that->config->get('rich_snippets_show_sku') && $that->data['product_info']['sku']) {
+        if ($that->config->get('smart_seo_schema_show_sku') && $that->data['product_info']['sku']) {
             $product_snippet["sku"] = $that->data['product_info']['sku'];
         }
 
@@ -61,7 +61,7 @@ class ExtensionRichSnippets extends Extension
         if ($that->data['product_info']['rating']) {
             $rating = $that->data['product_info']['rating'];
         }
-        if ($that->config->get('rich_snippets_show_review') && $rating) {
+        if ($that->config->get('smart_seo_schema_show_review') && $rating) {
             $total_reviews = $that->model_catalog_review->getTotalReviewsByProductId(
                 $that->data['product_info']['product_id']
             );
@@ -78,7 +78,7 @@ class ExtensionRichSnippets extends Extension
             $price = $that->data['product_info']['final_price'];
         }
 
-        if ($that->config->get('rich_snippets_show_offer') && $price > 0.00) {
+        if ($that->config->get('smart_seo_schema_show_offer') && $price > 0.00) {
             $stockStatuses = [
                 'Discontinued'        => 'Discontinued',
                 'InStock'             => 'InStock',
@@ -125,7 +125,7 @@ class ExtensionRichSnippets extends Extension
                 "priceValidUntil" => $priceValidUntil->format('c'),
                 "url"             => $that->data['product_review_url'],
             ];
-            if ($that->config->get('rich_snippets_show_availability')) {
+            if ($that->config->get('smart_seo_schema_show_availability')) {
                 $product_snippet["offers"]["availability"] = $stockStatus;
             }
         }

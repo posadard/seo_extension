@@ -4,8 +4,8 @@ if (!defined('DIR_CORE')) {
     header('Location: static_pages/');
 }
 
-if (!class_exists('ExtensionRichSnippets')) {
-    include_once('core/rich_snippets.php');
+if (!class_exists('ExtensionSmartSeoSchema')) {
+    include_once('core/smart_seo_schema.php');
 }
 $controllers = [
     'storefront' => [],
@@ -27,7 +27,7 @@ $templates = [
 $languages = [
     'storefront' => [],
     'admin'      => [
-        'english/rich_snippets/rich_snippets',
+        'english/smart_seo_schema/smart_seo_schema',
     ],
 ];
 

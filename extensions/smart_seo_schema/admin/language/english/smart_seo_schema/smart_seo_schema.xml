@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions>
+  <definition>
+    <key>smart_seo_schema_name</key>
+    <value><![CDATA[Smart SEO Schema Assistant]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_status</key>
+    <value><![CDATA[Status]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_show_image</key>
+    <value><![CDATA[Show product image:<br /><span class="help">You can show your product thumb in the SEO schema markup</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_show_review</key>
+    <value><![CDATA[Show product review:<br /><span class="help">You can show your product review in the SEO schema markup</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_show_sku</key>
+    <value><![CDATA[Show product SKU:<br /><span class="help">You can show your product SKU in the SEO schema markup</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_show_offer</key>
+    <value><![CDATA[Show product price:<br /><span class="help">You can show your product price (with discount if any) in the SEO schema markup</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_show_availability</key>
+    <value><![CDATA[Show product stock:<br /><span class="help">You can show your product availability in the SEO schema markup. This will be based on stock status of the product </span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_note</key>
+    <value><![CDATA[After this extension is enabled and configured, you can test your product pages with <a href="https://developers.google.com/structured-data/testing-tool/" target="_new">Schema.org validation tools</a>]]></value>
+  </definition>
+  <definition>
+    <key>text_description_extensions</key>
+    <value><![CDATA[Description:<br /><span class="help">Select a description to use for structural data. Automatic mode will select blurb if available, otherwise, product description will be used</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_description_auto</key>
+    <value><![CDATA[Auto]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_description_blurb</key>
+    <value><![CDATA[Blurb]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_description_description</key>
+    <value><![CDATA[Description]]></value>
+  </definition>
+</definitions>
