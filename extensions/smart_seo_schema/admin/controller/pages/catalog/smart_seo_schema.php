@@ -1,9 +1,10 @@
 <?php
 /*------------------------------------------------------------------------------
-  Smart SEO Schema Assistant - Admin Controller
+  Smart SEO Schema Assistant - Admin Controller CORREGIDO
   
   Controller for product tab integration in AbanteCart admin
   Handles Schema.org configuration per product with AI assistance
+  VERSIÓN CON MANEJO ROBUSTO DE JSON Y ERRORES
 ------------------------------------------------------------------------------*/
 
 if (!defined('DIR_CORE')) {
@@ -77,54 +78,121 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * AJAX endpoint for testing AI connection with enhanced model validation
+     * AJAX endpoint para testing AI connection - CORREGIDO
      */
     public function testAIConnection()
     {
-        $this->loadLanguage('smart_seo_schema/smart_seo_schema');
+        // Limpiar cualquier output previo
+        if (ob_get_level()) {
+            ob_clean();
+        }
         
-        $api_key = $this->config->get('smart_seo_schema_groq_api_key');
-        $model = $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
+        // Forzar JSON headers
+        header('Content-Type: application/json; charset=utf-8');
         
-        $json = array();
-        
-        if (!$api_key) {
-            $json['error'] = true;
-            $json['message'] = 'No API key configured. Please enter your Groq API key.';
-        } else {
-            try {
-                $response = $this->callGroqAPI($api_key, $model, 'Test connection');
+        try {
+            $this->loadLanguage('smart_seo_schema/smart_seo_schema');
+            
+            $api_key = $this->config->get('smart_seo_schema_groq_api_key');
+            $model = $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
+            
+            $json = array();
+            
+            // Log inicial del test
+            $this->logDebug("=== INICIO TEST CONEXIÓN IA ===");
+            $this->logDebug("API Key presente: " . (!empty($api_key) ? 'Sí (' . strlen($api_key) . ' chars)' : 'No'));
+            $this->logDebug("Modelo configurado: " . $model);
+            
+            if (!$api_key) {
+                $json = array(
+                    'error' => true,
+                    'message' => 'No API key configured. Please enter your Groq API key in extension settings.',
+                    'debug' => 'No API key found in configuration'
+                );
+                $this->logDebug("Error: No API key configurado");
+            } else {
+                $this->logDebug("Llamando a Groq API...");
+                $response = $this->callGroqAPI($api_key, $model, 'Test connection - please respond with "Connection successful"');
+                
                 if ($response) {
-                    $json['error'] = false;
-                    $json['message'] = "Connection successful! Model '{$model}' is working properly.";
+                    $json = array(
+                        'error' => false,
+                        'message' => "Connection successful! Model '{$model}' is working properly. Response: " . substr($response, 0, 100) . "...",
+                        'response_length' => strlen($response)
+                    );
+                    $this->logDebug("Éxito: " . $json['message']);
                 } else {
-                    $json['error'] = true;
-                    $json['message'] = "Connection failed. Please verify your API key and model name '{$model}'. Check available models at https://console.groq.com/docs/models";
+                    $json = array(
+                        'error' => true,
+                        'message' => "Connection failed. No response from API. Check your API key and model '{$model}'.",
+                        'debug' => 'Empty response from API'
+                    );
+                    $this->logDebug("Error: Sin respuesta de la API");
                 }
-            } catch (Exception $e) {
-                $json['error'] = true;
-                $json['message'] = "Connection failed with model '{$model}': " . $e->getMessage() . "\n\nPlease verify the model name at https://console.groq.com/docs/models";
             }
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => "Connection failed: " . $e->getMessage(),
+                'debug' => array(
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                )
+            );
+            $this->logDebug("Excepción capturada: " . $e->getMessage());
+        } catch (Error $e) {
+            $json = array(
+                'error' => true,
+                'message' => "Fatal error: " . $e->getMessage(),
+                'debug' => array(
+                    'error' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                )
+            );
+            $this->logDebug("Error fatal: " . $e->getMessage());
         }
 
-        $this->load->library('json');
-        $this->response->setOutput(AJson::encode($json));
+        // Asegurar output JSON válido
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit(); // Importante: terminar aquí para evitar HTML adicional
     }
 
     /**
-     * AJAX endpoint for generating AI content
+     * AJAX endpoint for generating AI content - CORREGIDO
      */
     public function generateAIContent()
     {
-        $product_id = $this->request->get['product_id'];
-        $content_type = $this->request->post['content_type']; // description, faq, howto, review
+        // Limpiar cualquier output previo
+        if (ob_get_level()) {
+            ob_clean();
+        }
         
-        $this->loadModel('catalog/product');
-        $product_info = $this->model_catalog_product->getProduct($product_id);
-        
-        $json = array();
+        // Forzar JSON headers
+        header('Content-Type: application/json; charset=utf-8');
         
         try {
+            $product_id = $this->request->get['product_id'];
+            $content_type = $this->request->post['content_type']; // description, faq, howto, review
+            
+            $this->logDebug("=== GENERANDO CONTENIDO IA ===");
+            $this->logDebug("Tipo: " . $content_type . ", Producto: " . $product_id);
+            
+            // Validación básica
+            if (!$product_id || !$content_type) {
+                throw new Exception('Missing required parameters: product_id or content_type');
+            }
+            
+            $this->loadModel('catalog/product');
+            $product_info = $this->model_catalog_product->getProduct($product_id);
+            
+            if (!$product_info) {
+                throw new Exception('Product not found: ' . $product_id);
+            }
+            
+            $json = array();
+            
             switch ($content_type) {
                 case 'description':
                     $content = $this->generateAIDescription($product_info);
@@ -139,41 +207,140 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                     $content = $this->generateAIReview($product_info);
                     break;
                 default:
-                    throw new Exception('Invalid content type');
+                    throw new Exception('Invalid content type: ' . $content_type);
             }
             
-            $json['error'] = false;
-            $json['content'] = $content;
+            $json = array(
+                'error' => false,
+                'content' => $content,
+                'content_length' => strlen($content),
+                'content_type' => $content_type
+            );
+            $this->logDebug("Contenido generado exitosamente - Longitud: " . strlen($content));
+            
         } catch (Exception $e) {
-            $json['error'] = true;
-            $json['message'] = $e->getMessage();
+            $json = array(
+                'error' => true,
+                'message' => $e->getMessage(),
+                'debug' => array(
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                )
+            );
+            $this->logDebug("Error generando contenido: " . $e->getMessage());
+        } catch (Error $e) {
+            $json = array(
+                'error' => true,
+                'message' => "Fatal error: " . $e->getMessage(),
+                'debug' => array(
+                    'error' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                )
+            );
+            $this->logDebug("Error fatal: " . $e->getMessage());
         }
 
-        $this->load->library('json');
-        $this->response->setOutput(AJson::encode($json));
+        // Asegurar output JSON válido
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit(); // Importante: terminar aquí para evitar HTML adicional
     }
 
     /**
-     * AJAX endpoint for schema preview
+     * AJAX endpoint for variants preview - CORREGIDO
+     */
+    public function getVariants()
+    {
+        // Limpiar cualquier output previo
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        // Forzar JSON headers
+        header('Content-Type: application/json; charset=utf-8');
+        
+        try {
+            $product_id = $this->request->get['product_id'];
+            
+            if (!$product_id) {
+                throw new Exception('Missing product_id parameter');
+            }
+            
+            $variants = $this->getProductVariants($product_id);
+            
+            $json = array(
+                'error' => false,
+                'variants' => $variants,
+                'count' => count($variants)
+            );
+            
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => $e->getMessage()
+            );
+        }
+
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    /**
+     * AJAX endpoint for schema preview - CORREGIDO
      */
     public function previewSchema()
     {
-        $product_id = $this->request->get['product_id'];
+        // Limpiar cualquier output previo
+        if (ob_get_level()) {
+            ob_clean();
+        }
         
-        $this->loadModel('catalog/product');
-        $product_info = $this->model_catalog_product->getProduct($product_id);
+        // Forzar JSON headers
+        header('Content-Type: application/json; charset=utf-8');
         
-        // Generate complete schema using extension logic
-        $extension = new ExtensionSmartSeoSchema();
-        $schema = $extension->generateCompleteSchemaForProduct($product_info);
-        
-        $json = array(
-            'error' => false,
-            'schema' => $schema
-        );
+        try {
+            $product_id = $this->request->get['product_id'];
+            
+            if (!$product_id) {
+                throw new Exception('Missing product_id parameter');
+            }
+            
+            $this->loadModel('catalog/product');
+            $product_info = $this->model_catalog_product->getProduct($product_id);
+            
+            if (!$product_info) {
+                throw new Exception('Product not found: ' . $product_id);
+            }
+            
+            // Generate complete schema using extension logic
+            if (!class_exists('ExtensionSmartSeoSchema')) {
+                throw new Exception('ExtensionSmartSeoSchema class not found. Please check if core extension file exists.');
+            }
+            
+            $extension = new ExtensionSmartSeoSchema();
+            $schema = $extension->generateCompleteSchemaForProduct($product_info);
+            
+            $json = array(
+                'error' => false,
+                'schema' => $schema
+            );
+            
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => 'Schema generation failed: ' . $e->getMessage(),
+                'debug' => array(
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                )
+            );
+            $this->logDebug("Error generando schema: " . $e->getMessage());
+        }
 
-        $this->load->library('json');
-        $this->response->setOutput(AJson::encode($json));
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit();
     }
 
     /**
@@ -188,7 +355,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         ));
 
         $this->data['action'] = $this->html->getSecureURL('catalog/smart_seo_schema', '&product_id=' . $product_id);
+        $this->data['cancel'] = $this->html->getSecureURL('catalog/product/update', '&product_id=' . $product_id);
         $this->data['form_title'] = $this->language->get('smart_seo_schema_name');
+        $this->data['product_id'] = $product_id;
+
+        // Incluir configuraciones para el frontend
+        $this->data['smart_seo_schema_groq_api_key'] = $this->config->get('smart_seo_schema_groq_api_key') ?: '';
 
         $this->data['form']['id'] = 'smart_seo_schema_form';
         $this->data['form']['form_open'] = $form->getFieldHtml(array(
@@ -239,6 +411,19 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
      */
     private function setupSchemaFields($form)
     {
+        // Language entries for form
+        $this->data['entry_custom_description'] = $this->language->get('entry_custom_description') ?: 'Custom Description:';
+        $this->data['entry_enable_variants'] = $this->language->get('entry_enable_variants') ?: 'Enable Product Variants:';
+        $this->data['entry_faq_content'] = $this->language->get('entry_faq_content') ?: 'FAQ Content:';
+        $this->data['entry_howto_content'] = $this->language->get('entry_howto_content') ?: 'HowTo Content:';
+        $this->data['entry_review_content'] = $this->language->get('entry_review_content') ?: 'Review Content:';
+        
+        $this->data['text_section_basic'] = $this->language->get('text_section_basic') ?: 'Basic Settings';
+        $this->data['text_section_ai'] = $this->language->get('text_section_ai') ?: 'AI Content Generation';
+        
+        $this->data['button_test_ai_connection'] = $this->language->get('button_test_ai_connection') ?: 'Test AI Connection';
+        $this->data['button_preview_schema'] = $this->language->get('button_preview_schema') ?: 'Preview Schema';
+
         // Custom description field
         $this->data['form']['fields']['custom_description'] = $form->getFieldHtml(array(
             'type' => 'textarea',
@@ -350,7 +535,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 AND povd.language_id = " . (int)$language_id . "
             WHERE pov.product_id = " . (int)$product_id . "
             ORDER BY pov.product_option_value_id
-            LIMIT 5
+            LIMIT 10
         ";
 
         $query = $db->query($sql);
@@ -403,10 +588,10 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
      */
     private function generateAIDescription($product_info)
     {
-        $prompt = "Create an SEO-optimized product description for: " . $product_info['name'] . ". Focus on key features and benefits.";
+        $prompt = "Create an SEO-optimized product description for: " . $product_info['name'] . ". Focus on key features and benefits. Keep it under 150 words.";
         return $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
-            $this->config->get('smart_seo_schema_groq_model'),
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
             $prompt
         );
     }
@@ -417,10 +602,10 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     private function generateAIFAQ($product_info)
     {
         $count = $this->config->get('smart_seo_schema_faq_count') ?: 3;
-        $prompt = "Create " . $count . " FAQ questions and answers for product: " . $product_info['name'] . ". Format as JSON array.";
+        $prompt = "Create " . $count . " FAQ questions and answers for product: " . $product_info['name'] . ". Format as simple text, one Q&A per line.";
         return $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
-            $this->config->get('smart_seo_schema_groq_model'),
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
             $prompt
         );
     }
@@ -431,10 +616,10 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     private function generateAIHowTo($product_info)
     {
         $steps = $this->config->get('smart_seo_schema_howto_steps_count') ?: 5;
-        $prompt = "Create " . $steps . " step-by-step instructions for using: " . $product_info['name'] . ". Format as JSON array.";
+        $prompt = "Create " . $steps . " step-by-step instructions for using: " . $product_info['name'] . ". Format as numbered list.";
         return $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
-            $this->config->get('smart_seo_schema_groq_model'),
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
             $prompt
         );
     }
@@ -444,20 +629,25 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
      */
     private function generateAIReview($product_info)
     {
-        $prompt = "Create a professional product review for: " . $product_info['name'] . ". Include pros, cons, and rating.";
+        $prompt = "Create a professional product review for: " . $product_info['name'] . ". Include pros, cons, and overall assessment. Keep it objective and informative.";
         return $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
-            $this->config->get('smart_seo_schema_groq_model'),
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
             $prompt
         );
     }
 
     /**
-     * Call Groq API with enhanced error handling for invalid models
+     * Método mejorado para llamar a Groq API con debugging completo
      */
     private function callGroqAPI($api_key, $model, $prompt)
     {
         $url = 'https://api.groq.com/openai/v1/chat/completions';
+        
+        // Verificar que cURL esté disponible
+        if (!function_exists('curl_init')) {
+            throw new Exception('cURL extension is not available on this server');
+        }
         
         $data = [
             'model' => $model,
@@ -468,8 +658,16 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
 
         $headers = [
             'Content-Type: application/json',
-            'Authorization: Bearer ' . $api_key
+            'Authorization: Bearer ' . $api_key,
+            'User-Agent: AbanteCart-SmartSEOSchema/2.0'
         ];
+
+        $this->logDebug("Preparando llamada a API:");
+        $this->logDebug("URL: " . $url);
+        $this->logDebug("Modelo: " . $model);
+        $this->logDebug("Max tokens: " . $data['max_tokens']);
+        $this->logDebug("Temperature: " . $data['temperature']);
+        $this->logDebug("Prompt length: " . strlen($prompt));
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -477,28 +675,134 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, (int)$this->config->get('smart_seo_schema_ai_timeout') ?: 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, (int)$this->config->get('smart_seo_schema_ai_timeout') ?: 15);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
 
         $response = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
+        $curl_info = curl_getinfo($ch);
         curl_close($ch);
+
+        $this->logDebug("Respuesta de cURL:");
+        $this->logDebug("HTTP Code: " . $http_code);
+        $this->logDebug("Response length: " . strlen($response));
+        $this->logDebug("cURL Error: " . ($curl_error ?: 'None'));
+        $this->logDebug("Total time: " . $curl_info['total_time'] . "s");
+        $this->logDebug("Connect time: " . $curl_info['connect_time'] . "s");
+
+        if ($curl_error) {
+            throw new Exception("cURL Error: " . $curl_error);
+        }
+
+        if ($response === false) {
+            throw new Exception("cURL failed to get response");
+        }
+
+        if ($response) {
+            $this->logDebug("Raw response (first 500 chars): " . substr($response, 0, 500));
+        }
 
         if ($http_code == 200 && $response) {
             $decoded = json_decode($response, true);
-            return $decoded['choices'][0]['message']['content'] ?? null;
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception("JSON decode error: " . json_last_error_msg() . ". Response: " . substr($response, 0, 200));
+            }
+            
+            if (isset($decoded['choices'][0]['message']['content'])) {
+                $content = $decoded['choices'][0]['message']['content'];
+                $this->logDebug("Contenido extraído exitosamente: " . strlen($content) . " caracteres");
+                return $content;
+            } else {
+                $this->logDebug("Estructura de respuesta inesperada: " . print_r($decoded, true));
+                throw new Exception("Unexpected response structure from API. Missing choices[0].message.content");
+            }
         }
 
-        // Enhanced error handling with specific HTTP codes
-        if ($http_code == 400) {
-            throw new Exception("Invalid model name '{$model}'. Please check available models at https://console.groq.com/docs/models");
-        } elseif ($http_code == 401) {
-            throw new Exception("Invalid API key. Please verify your Groq API key.");
-        } elseif ($http_code == 429) {
-            throw new Exception("Rate limit exceeded. Please try again later.");
-        } elseif ($http_code == 422) {
-            throw new Exception("Model '{$model}' is not available or requires different parameters. Check https://console.groq.com/docs/models");
-        } else {
-            throw new Exception("API call failed with HTTP code: " . $http_code . ". Please verify model name and API key.");
+        // Enhanced error handling with response details
+        $error_details = null;
+        if ($response) {
+            $error_details = json_decode($response, true);
+        }
+
+        switch ($http_code) {
+            case 400:
+                $error_msg = "Bad Request. Model '{$model}' may not exist or request is malformed.";
+                if ($error_details && isset($error_details['error']['message'])) {
+                    $error_msg .= " API Error: " . $error_details['error']['message'];
+                }
+                $error_msg .= " Check available models at https://console.groq.com/docs/models";
+                throw new Exception($error_msg);
+                
+            case 401:
+                $error_msg = "Unauthorized. Invalid API key.";
+                if ($error_details && isset($error_details['error']['message'])) {
+                    $error_msg .= " API Error: " . $error_details['error']['message'];
+                }
+                throw new Exception($error_msg);
+                
+            case 429:
+                $error_msg = "Rate limit exceeded. Please try again later.";
+                if ($error_details && isset($error_details['error']['message'])) {
+                    $error_msg .= " API Error: " . $error_details['error']['message'];
+                }
+                throw new Exception($error_msg);
+                
+            case 422:
+                $error_msg = "Unprocessable Entity. Model '{$model}' may not be available.";
+                if ($error_details && isset($error_details['error']['message'])) {
+                    $error_msg .= " API Error: " . $error_details['error']['message'];
+                }
+                $error_msg .= " Check https://console.groq.com/docs/models";
+                throw new Exception($error_msg);
+                
+            case 0:
+                throw new Exception("Network error: Could not connect to Groq API. Check internet connection and firewall.");
+                
+            default:
+                $error_msg = "API call failed with HTTP code: " . $http_code;
+                if ($error_details && isset($error_details['error']['message'])) {
+                    $error_msg .= " - " . $error_details['error']['message'];
+                } elseif ($response) {
+                    $error_msg .= " - Response: " . substr($response, 0, 200);
+                }
+                throw new Exception($error_msg);
+        }
+    }
+
+    /**
+     * Método de logging mejorado
+     */
+    private function logDebug($message)
+    {
+        try {
+            // Log a archivo específico
+            $log_file = DIR_LOGS . 'smart_seo_schema_debug.log';
+            $timestamp = date('Y-m-d H:i:s');
+            $log_entry = "[{$timestamp}] {$message}" . PHP_EOL;
+            
+            // Crear directorio si no existe
+            $log_dir = dirname($log_file);
+            if (!is_dir($log_dir)) {
+                mkdir($log_dir, 0755, true);
+            }
+            
+            file_put_contents($log_file, $log_entry, FILE_APPEND | LOCK_EX);
+        } catch (Exception $e) {
+            // Si falla el logging a archivo, intentar con AbanteCart
+            try {
+                if ($this->config && $this->config->get('smart_seo_schema_debug_mode')) {
+                    $warning = new AWarning('Smart SEO Schema Debug: ' . $message);
+                    $warning->toLog();
+                }
+            } catch (Exception $e2) {
+                // Si todo falla, al menos escribir a error_log de PHP
+                error_log("Smart SEO Schema Debug: " . $message);
+            }
         }
     }
 }

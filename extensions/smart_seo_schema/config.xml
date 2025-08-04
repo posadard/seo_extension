@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension>
 	<id>smart_seo_schema</id>
-	<version>2.0.0</version>
+	<version>2.0.1</version>
 	<type>extension</type>
 	<category>marketing</category>
 	<cartversions>
 		<item>1.2</item>
 		<item>1.3</item>
+		<item>1.4</item>
 	</cartversions>
 	<priority>10</priority>
 	<settings>
@@ -45,7 +46,7 @@
 			<default_value>auto</default_value>
 		</item>
 
-		<!-- Configuraciones Groq IA -->
+		<!-- Configuraciones Groq IA CORREGIDAS -->
 		<item id="smart_seo_schema_groq_api_key">
 			<type>password</type>
 			<default_value></default_value>
@@ -57,6 +58,30 @@
 		<item id="smart_seo_schema_ai_auto_generate">
 			<type>checkbox</type>
 			<default_value>0</default_value>
+		</item>
+
+		<!-- Configuraciones IA Avanzadas NUEVAS -->
+		<item id="smart_seo_schema_ai_temperature">
+			<type>input</type>
+			<default_value>0.7</default_value>
+		</item>
+		<item id="smart_seo_schema_ai_max_tokens">
+			<type>input</type>
+			<default_value>200</default_value>
+		</item>
+		<item id="smart_seo_schema_ai_timeout">
+			<type>input</type>
+			<default_value>10</default_value>
+		</item>
+
+		<!-- Configuraciones FAQ específicas NUEVAS -->
+		<item id="smart_seo_schema_faq_count">
+			<type>input</type>
+			<default_value>3</default_value>
+		</item>
+		<item id="smart_seo_schema_howto_steps_count">
+			<type>input</type>
+			<default_value>5</default_value>
 		</item>
 
 		<!-- Configuraciones hasVariant[] -->
@@ -83,82 +108,14 @@
 			<default_value>1</default_value>
 		</item>
 
-		<!-- Configuraciones IA Avanzadas -->
-		<item id="smart_seo_schema_ai_temperature">
-			<type>input</type>
-			<default_value>0.7</default_value>
-		</item>
-		<item id="smart_seo_schema_ai_max_tokens">
-			<type>input</type>
-			<default_value>200</default_value>
-		</item>
-		<item id="smart_seo_schema_ai_timeout">
-			<type>input</type>
-			<default_value>10</default_value>
-		</item>
-
-		<!-- Configuraciones FAQ específicas -->
-		<item id="smart_seo_schema_faq_auto_generate">
-			<type>checkbox</type>
-			<default_value>1</default_value>
-		</item>
-		<item id="smart_seo_schema_faq_count">
-			<type>input</type>
-			<default_value>3</default_value>
-		</item>
-
-		<!-- Configuraciones HowTo específicas -->
-		<item id="smart_seo_schema_howto_auto_generate">
-			<type>checkbox</type>
-			<default_value>1</default_value>
-		</item>
-		<item id="smart_seo_schema_howto_steps_count">
-			<type>input</type>
-			<default_value>5</default_value>
-		</item>
-
-		<!-- Configuraciones Review específicas -->
-		<item id="smart_seo_schema_review_auto_generate">
-			<type>checkbox</type>
-			<default_value>1</default_value>
-		</item>
-		<item id="smart_seo_schema_review_rating_min">
-			<type>input</type>
-			<default_value>4</default_value>
-		</item>
-		<item id="smart_seo_schema_review_rating_max">
-			<type>input</type>
-			<default_value>5</default_value>
-		</item>
-
-		<!-- Configuraciones Organization -->
-		<item id="smart_seo_schema_org_logo_url">
-			<type>input</type>
-			<default_value></default_value>
-		</item>
-		<item id="smart_seo_schema_org_contact_type">
-			<type>selectbox</type>
-			<variants>
-				<item>customer_service</item>
-				<item>technical_support</item>
-				<item>billing_support</item>
-				<item>sales</item>
-			</variants>
-			<default_value>customer_service</default_value>
-		</item>
-		<item id="smart_seo_schema_org_phone">
-			<type>input</type>
-			<default_value></default_value>
-		</item>
-
-		<!-- Configuraciones Debug/Logging -->
+		<!-- Configuraciones Debug/Logging NUEVAS -->
 		<item id="smart_seo_schema_debug_mode">
 			<type>checkbox</type>
-			<default_value>0</default_value>
+			<default_value>1</default_value>
 		</item>
 		<item id="smart_seo_schema_log_ai_calls">
 			<type>checkbox</type>
-			<default_value>0</default_value>
+			<default_value>1</default_value>
 		</item>
 	</settings>
 	<note>true</note>

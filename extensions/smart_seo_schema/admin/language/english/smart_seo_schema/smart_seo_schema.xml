@@ -52,6 +52,28 @@
     <value><![CDATA[Product Description]]></value>
   </definition>
 
+  <!-- DEFINICIONES QUE FALTABAN - CAMPOS DEL FORMULARIO -->
+  <definition>
+    <key>entry_custom_description</key>
+    <value><![CDATA[Custom Description:<br /><span class="help">Override the automatic product description with a custom one for Schema.org markup</span>]]></value>
+  </definition>
+  <definition>
+    <key>entry_enable_variants</key>
+    <value><![CDATA[Enable Product Variants:<br /><span class="help">Include product variants in Schema.org hasVariant markup for better SEO</span>]]></value>
+  </definition>
+  <definition>
+    <key>entry_faq_content</key>
+    <value><![CDATA[FAQ Content:<br /><span class="help">Generate or enter FAQ content for FAQPage structured data</span>]]></value>
+  </definition>
+  <definition>
+    <key>entry_howto_content</key>
+    <value><![CDATA[HowTo Instructions:<br /><span class="help">Generate or enter step-by-step instructions for HowTo structured data</span>]]></value>
+  </definition>
+  <definition>
+    <key>entry_review_content</key>
+    <value><![CDATA[Review Content:<br /><span class="help">Generate or enter review content for Review structured data</span>]]></value>
+  </definition>
+
   <!-- Definiciones Groq IA -->
   <definition>
     <key>smart_seo_schema_groq_api_key</key>
@@ -254,6 +276,40 @@
   <definition>
     <key>button_generate_ai_content</key>
     <value><![CDATA[Generate AI Content]]></value>
+  </definition>
+  <definition>
+    <key>button_save</key>
+    <value><![CDATA[Save]]></value>
+  </definition>
+  <definition>
+    <key>button_cancel</key>
+    <value><![CDATA[Cancel]]></value>
+  </definition>
+
+  <!-- Mensajes del sistema -->
+  <definition>
+    <key>text_success</key>
+    <value><![CDATA[Success: You have modified Smart SEO Schema settings!]]></value>
+  </definition>
+  <definition>
+    <key>text_edit</key>
+    <value><![CDATA[Edit]]></value>
+  </definition>
+  <definition>
+    <key>text_product</key>
+    <value><![CDATA[Product]]></value>
+  </definition>
+  <definition>
+    <key>text_home</key>
+    <value><![CDATA[Home]]></value>
+  </definition>
+  <definition>
+    <key>heading_title</key>
+    <value><![CDATA[Products]]></value>
+  </definition>
+  <definition>
+    <key>error_permission</key>
+    <value><![CDATA[Warning: You do not have permission to modify Smart SEO Schema!]]></value>
   </definition>
 
   <!-- Ayuda contextual -->

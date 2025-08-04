@@ -33,6 +33,13 @@
     <?php echo $form['form_open']; ?>
     <div class="panel-body panel-body-nopadding tab-content col-xs-12">
 
+        <!-- Debug Info -->
+        <div class="alert alert-info">
+            <strong>Debug Info:</strong><br>
+            API Key Status: <?php echo !empty($smart_seo_schema_groq_api_key) ? 'Configured (' . strlen($smart_seo_schema_groq_api_key) . ' chars)' : 'Not configured'; ?><br>
+            Debug Log: <code>/system/logs/smart_seo_schema_debug.log</code>
+        </div>
+
         <!-- AI Status Alert -->
         <div id="ai_status_alert" class="alert alert-info" style="display: none;">
             <i class="fa fa-info-circle fa-fw fa-lg"></i>
@@ -190,6 +197,21 @@
     </div>
 </div>
 
+<!-- Debug Modal -->
+<div class="modal fade" id="debug_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Debug Information</h4>
+            </div>
+            <div class="modal-body">
+                <pre id="debug_content" style="max-height: 400px; overflow-y: auto;"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script type="text/javascript">
 <!--
 
@@ -213,12 +235,14 @@ $(document).ready(function() {
 });
 
 function checkAIStatus() {
-    var aiKey = '<?php echo $smart_seo_schema_groq_api_key; ?>';
-    if (!aiKey || aiKey.length < 10) {
+    var apiKey = '<?php echo addslashes($smart_seo_schema_groq_api_key); ?>';
+    console.log('API Key length:', apiKey.length);
+    
+    if (!apiKey || apiKey.length < 10) {
         showAIStatus('warning', 'AI features require a valid Groq API key. Configure it in extension settings.');
         $('#test_ai_connection, [onclick*="generateAIContent"]').prop('disabled', true);
     } else {
-        showAIStatus('success', 'AI features are available. Test connection to verify.');
+        showAIStatus('success', 'API Key configured. Click "Test AI Connection" to verify.');
     }
 }
 
@@ -229,31 +253,60 @@ function showAIStatus(type, message) {
 }
 
 function testAIConnection() {
-    $('#test_ai_connection').button('loading');
+    console.log('Starting AI connection test...');
+    
+    $('#test_ai_connection').attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Testing...');
     
     $.ajax({
         url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/testAIConnection", "&product_id=" . $product_id); ?>',
         type: 'GET',
         dataType: 'json',
+        timeout: 15000, // 15 seconds timeout
         success: function(response) {
+            console.log('AI test response:', response);
+            
             if (response.error) {
                 showAIStatus('danger', response.message);
                 error_alert(response.message);
+                
+                // Show debug info if available
+                if (response.debug) {
+                    $('#debug_content').text(JSON.stringify(response.debug, null, 2));
+                    $('#debug_modal').modal('show');
+                }
             } else {
                 showAIStatus('success', response.message);
                 success_alert(response.message);
             }
-            $('#test_ai_connection').button('reset');
         },
-        error: function() {
-            showAIStatus('danger', 'Connection test failed. Please try again.');
-            error_alert('Connection test failed. Please try again.');
-            $('#test_ai_connection').button('reset');
+        error: function(xhr, status, error) {
+            console.log('AJAX Error:', {xhr: xhr, status: status, error: error});
+            
+            var errorMsg = 'Connection test failed: ';
+            if (status === 'timeout') {
+                errorMsg += 'Request timeout. API may be slow or unreachable.';
+            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg += xhr.responseJSON.message;
+            } else {
+                errorMsg += error + ' (Status: ' + status + ')';
+            }
+            
+            showAIStatus('danger', errorMsg);
+            error_alert(errorMsg);
+            
+            // Show raw response for debugging
+            $('#debug_content').text('Status: ' + status + '\nError: ' + error + '\nResponse: ' + xhr.responseText);
+            $('#debug_modal').modal('show');
+        },
+        complete: function() {
+            $('#test_ai_connection').attr('disabled', false).html('<i class="fa fa-flask fa-lg"></i> <?php echo $button_test_ai_connection; ?>');
         }
     });
 }
 
 function generateAIContent(contentType) {
+    console.log('Generating AI content:', contentType);
+    
     $('#loading_modal').modal('show');
     
     $.ajax({
@@ -263,6 +316,7 @@ function generateAIContent(contentType) {
             'content_type': contentType
         },
         dataType: 'json',
+        timeout: 30000, // 30 seconds for content generation
         success: function(response) {
             $('#loading_modal').modal('hide');
             
@@ -277,15 +331,18 @@ function generateAIContent(contentType) {
                 }
             }
         },
-        error: function() {
+        error: function(xhr, status, error) {
             $('#loading_modal').modal('hide');
-            error_alert('AI content generation failed. Please try again.');
+            var errorMsg = 'AI content generation failed: ' + (status === 'timeout' ? 'Request timeout' : error);
+            error_alert(errorMsg);
         }
     });
 }
 
 function previewSchema() {
-    $('#preview_schema').button('loading');
+    console.log('Generating schema preview...');
+    
+    $('#preview_schema').attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
     
     $.ajax({
         url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/previewSchema", "&product_id=" . $product_id); ?>',
@@ -303,11 +360,12 @@ function previewSchema() {
                     scrollTop: $("#schema_preview").offset().top - 100
                 }, 500);
             }
-            $('#preview_schema').button('reset');
         },
         error: function() {
             error_alert('Schema preview failed. Please try again.');
-            $('#preview_schema').button('reset');
+        },
+        complete: function() {
+            $('#preview_schema').attr('disabled', false).html('<i class="fa fa-eye fa-lg"></i> <?php echo $button_preview_schema; ?>');
         }
     });
 }
