@@ -33,10 +33,27 @@
     <key>smart_seo_schema_description</key>
     <value><![CDATA[Description source:<br /><span class="help">Choose which product description to use for Schema.org markup</span>]]></value>
   </definition>
-  <definition>
-    <key>smart_seo_schema_note</key>
-    <value><![CDATA[After this extension is enabled and configured, you can test your product pages with <a href="https://developers.google.com/structured-data/testing-tool/" target="_new">Schema.org validation tools</a>]]></value>
-  </definition>
+<definition>
+  <key>smart_seo_schema_note</key>
+  <value><![CDATA[
+    After this extension is enabled and configured, you can test your product pages using the 
+    <a href="https://search.google.com/test/rich-results" target="_blank">Google Rich Results Test</a>.<br><br>
+    To view the list of available AI models, visit the 
+    <a href="https://console.groq.com/docs/models" target="_blank">Groq Model Documentation</a>.<br>
+    To create or manage your API key, go to the 
+    <a href="https://console.groq.com/keys" target="_blank">Groq API Key Console</a>.
+  ]]></value>
+</definition>
+<definition>
+    <key>smart_seo_schema_ai_min_tokens_per_content</key>
+    <value><![CDATA[Minimum Tokens Per Content:<br /><span class="help">Minimum guaranteed tokens for each content type when dividing total tokens. Default: 100</span>]]></value>
+</definition>
+
+<definition>
+    <key>smart_seo_schema_log_token_usage</key>
+    <value><![CDATA[Log Token Usage:<br /><span class="help">Log detailed token consumption for AI API calls to monitor usage and costs</span>]]></value>
+</definition>
+
   
   <!-- Valores para selectbox de descripción -->
   <definition>

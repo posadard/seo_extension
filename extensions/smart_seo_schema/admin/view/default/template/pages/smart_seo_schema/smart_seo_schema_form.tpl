@@ -33,12 +33,19 @@
     <?php echo $form['form_open']; ?>
     <div class="panel-body panel-body-nopadding tab-content col-xs-12">
 
-        <!-- Debug Info -->
+        <!-- Token Division Info Panel -->
         <div class="alert alert-info">
-            <strong>Debug Info:</strong><br>
-            API Key Status: <?php echo !empty($smart_seo_schema_groq_api_key) ? 'Configured (' . strlen($smart_seo_schema_groq_api_key) . ' chars)' : 'Not configured'; ?><br>
-            Debug Log: <code>/system/logs/smart_seo_schema_debug.log</code><br>
-            Product ID: <?php echo $product_id; ?>
+            <div class="row">
+                <div class="col-md-8">
+                    <strong><i class="fa fa-calculator"></i> Smart Token Division:</strong><br>
+                    <span id="token_division_info">Configure your max tokens in extension settings. Tokens will be automatically divided among selected content types.</span>
+                </div>
+                <div class="col-md-4 text-right">
+                    <strong>Current Settings:</strong><br>
+                    <span class="label label-info" id="max_tokens_display">Max Tokens: Loading...</span><br>
+                    <span class="label label-success" id="per_content_display" style="margin-top: 3px;">Per Content: Calculating...</span>
+                </div>
+            </div>
         </div>
 
         <!-- AI Status Alert -->
@@ -56,14 +63,14 @@
             </div>
             <div class="panel-body">
                 
-                <!-- Custom Description - OPTIMIZADO -->
+                <!-- Custom Description - OPTIMIZADO CON DIVISIÓN DE TOKENS -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="custom_description">
                         <?php echo $entry_custom_description; ?>
                     </label>
                     <div class="input-group afield col-sm-7 col-xs-12">
                         <span class="input-group-addon">
-                            <input type="checkbox" id="ai_generate_description" name="ai_generate_description" value="1">
+                            <input type="checkbox" id="ai_generate_description" name="ai_generate_description" value="1" onchange="updateTokenDivision()">
                             <label for="ai_generate_description" style="margin-left: 5px;">AI Generate</label>
                         </span>
                         <textarea 
@@ -71,7 +78,15 @@
                             name="custom_description" 
                             class="form-control large-field" 
                             rows="4" 
-                            placeholder="Mark 'AI Generate' checkbox and click main AI button..."><?php echo $schema_settings['custom_description'] ?? ''; ?></textarea>
+                            placeholder="Select AI Generate and click main button for optimized content..."><?php echo $schema_settings['custom_description'] ?? ''; ?></textarea>
+                    </div>
+                    <div class="col-sm-2 col-xs-12">
+                        <div class="token-info-box" id="description_token_info" style="display: none;">
+                            <small class="text-muted">
+                                <i class="fa fa-info-circle"></i> Tokens: <span class="token-count">0</span><br>
+                                <i class="fa fa-clock-o"></i> Est. words: <span class="word-estimate">0</span>
+                            </small>
+                        </div>
                     </div>
                 </div>
 
@@ -98,23 +113,36 @@
             </div>
         </div>
 
-        <!-- AI Content Generation Section -->
+        <!-- AI Content Generation Section CON DIVISIÓN DE TOKENS -->
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h4 class="panel-title">
-                    <i class="fa fa-magic"></i> <?php echo $text_section_ai; ?>
+                    <i class="fa fa-magic"></i> <?php echo $text_section_ai; ?> 
+                    <small class="text-muted">- Smart Token Division Active</small>
                 </h4>
             </div>
             <div class="panel-body">
 
-                <!-- FAQ Content - OPTIMIZADO -->
+                <!-- Token Division Summary -->
+                <div class="row" id="token_division_summary" style="display: none; margin-bottom: 20px;">
+                    <div class="col-xs-12">
+                        <div class="alert alert-warning">
+                            <strong><i class="fa fa-pie-chart"></i> Token Distribution:</strong>
+                            <div id="token_breakdown" class="row" style="margin-top: 10px;">
+                                <!-- Token breakdown will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Content - OPTIMIZADO CON DIVISIÓN DE TOKENS -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="faq_content">
                         <?php echo $entry_faq_content; ?>
                     </label>
                     <div class="input-group afield col-sm-7 col-xs-12">
                         <span class="input-group-addon">
-                            <input type="checkbox" id="ai_generate_faq" name="ai_generate_faq" value="1">
+                            <input type="checkbox" id="ai_generate_faq" name="ai_generate_faq" value="1" onchange="updateTokenDivision()">
                             <label for="ai_generate_faq" style="margin-left: 5px;">AI Generate</label>
                         </span>
                         <textarea 
@@ -122,18 +150,26 @@
                             name="faq_content" 
                             class="form-control large-field" 
                             rows="6" 
-                            placeholder="Mark 'AI Generate' checkbox and click main AI button..."><?php echo $schema_settings['faq_content'] ?? ''; ?></textarea>
+                            placeholder="Select AI Generate for FAQ with optimal token allocation..."><?php echo $schema_settings['faq_content'] ?? ''; ?></textarea>
+                    </div>
+                    <div class="col-sm-2 col-xs-12">
+                        <div class="token-info-box" id="faq_token_info" style="display: none;">
+                            <small class="text-muted">
+                                <i class="fa fa-info-circle"></i> Tokens: <span class="token-count">0</span><br>
+                                <i class="fa fa-clock-o"></i> Est. words: <span class="word-estimate">0</span>
+                            </small>
+                        </div>
                     </div>
                 </div>
 
-                <!-- HowTo Content - OPTIMIZADO -->
+                <!-- HowTo Content - OPTIMIZADO CON DIVISIÓN DE TOKENS -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="howto_content">
                         <?php echo $entry_howto_content; ?>
                     </label>
                     <div class="input-group afield col-sm-7 col-xs-12">
                         <span class="input-group-addon">
-                            <input type="checkbox" id="ai_generate_howto" name="ai_generate_howto" value="1">
+                            <input type="checkbox" id="ai_generate_howto" name="ai_generate_howto" value="1" onchange="updateTokenDivision()">
                             <label for="ai_generate_howto" style="margin-left: 5px;">AI Generate</label>
                         </span>
                         <textarea 
@@ -141,18 +177,26 @@
                             name="howto_content" 
                             class="form-control large-field" 
                             rows="6" 
-                            placeholder="Mark 'AI Generate' checkbox and click main AI button..."><?php echo $schema_settings['howto_content'] ?? ''; ?></textarea>
+                            placeholder="Select AI Generate for HowTo with smart token management..."><?php echo $schema_settings['howto_content'] ?? ''; ?></textarea>
+                    </div>
+                    <div class="col-sm-2 col-xs-12">
+                        <div class="token-info-box" id="howto_token_info" style="display: none;">
+                            <small class="text-muted">
+                                <i class="fa fa-info-circle"></i> Tokens: <span class="token-count">0</span><br>
+                                <i class="fa fa-clock-o"></i> Est. words: <span class="word-estimate">0</span>
+                            </small>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Review Content - OPTIMIZADO -->
+                <!-- Review Content - OPTIMIZADO CON DIVISIÓN DE TOKENS -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="review_content">
                         <?php echo $entry_review_content; ?>
                     </label>
                     <div class="input-group afield col-sm-7 col-xs-12">
                         <span class="input-group-addon">
-                            <input type="checkbox" id="ai_generate_review" name="ai_generate_review" value="1">
+                            <input type="checkbox" id="ai_generate_review" name="ai_generate_review" value="1" onchange="updateTokenDivision()">
                             <label for="ai_generate_review" style="margin-left: 5px;">AI Generate</label>
                         </span>
                         <textarea 
@@ -160,17 +204,32 @@
                             name="review_content" 
                             class="form-control large-field" 
                             rows="6" 
-                            placeholder="Mark 'AI Generate' checkbox and click main AI button..."><?php echo $schema_settings['review_content'] ?? ''; ?></textarea>
+                            placeholder="Select AI Generate for review with precise token limits..."><?php echo $schema_settings['review_content'] ?? ''; ?></textarea>
+                    </div>
+                    <div class="col-sm-2 col-xs-12">
+                        <div class="token-info-box" id="review_token_info" style="display: none;">
+                            <small class="text-muted">
+                                <i class="fa fa-info-circle"></i> Tokens: <span class="token-count">0</span><br>
+                                <i class="fa fa-clock-o"></i> Est. words: <span class="word-estimate">0</span>
+                            </small>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Main AI Generation Button -->
+                <!-- Main AI Generation Button CON INFORMACIÓN DE TOKENS -->
                 <div class="form-group">
                     <div class="col-sm-offset-3 col-sm-7">
                         <button type="button" id="generate_ai_content_main" class="btn btn-success btn-lg" onclick="generateAllAIContent()">
                             <i class="fa fa-magic"></i> Generate Selected AI Content
+                            <small id="generate_button_info" style="display: block; margin-top: 5px;">
+                                Smart token division will optimize content length automatically
+                            </small>
                         </button>
-                        <p class="help-block">Select content types above with checkboxes, then click this button to generate all selected content in one request.</p>
+                        <p class="help-block">
+                            <strong>How it works:</strong> Your total max tokens are automatically divided among selected content types. 
+                            Each type gets an equal share, ensuring optimal content length and API efficiency.
+                            <br><small class="text-muted">Minimum 100 tokens guaranteed per content type.</small>
+                        </p>
                     </div>
                 </div>
 
@@ -218,7 +277,10 @@
         <div class="modal-content">
             <div class="modal-body text-center">
                 <i class="fa fa-spinner fa-spin fa-3x"></i>
-                <p class="mt15">Processing AI request...</p>
+                <p class="mt15">Processing AI request with smart token division...</p>
+                <div id="loading_progress" class="progress" style="margin-top: 15px;">
+                    <div class="progress-bar progress-bar-striped active" style="width: 100%"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -230,7 +292,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Debug Information</h4>
+                <h4 class="modal-title">Debug Information & Token Analysis</h4>
             </div>
             <div class="modal-body">
                 <pre id="debug_content" style="max-height: 400px; overflow-y: auto;"></pre>
@@ -239,7 +301,7 @@
     </div>
 </div>
 
-<!-- CSS para highlighting -->
+<!-- CSS para highlighting y token info -->
 <style>
 .highlight-success {
     border: 2px solid #5cb85c !important;
@@ -251,13 +313,47 @@
     background-color: #fff0f0 !important;
     transition: all 0.3s ease;
 }
+.token-info-box {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 5px;
+}
+.token-breakdown-item {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 5px;
+    text-align: center;
+}
+.token-breakdown-item.active {
+    border-color: #28a745;
+    background-color: #f8fff9;
+}
+#generate_button_info {
+    font-size: 11px;
+    color: #ffffff;
+    opacity: 0.9;
+}
 </style>
 
 <script type="text/javascript">
 <!--
 
+// Variables globales para token management
+var globalTokenSettings = {
+    maxTokens: 800, // Default, se actualizará desde configuración
+    minTokensPerContent: 100,
+    selectedContentTypes: []
+};
+
 $(document).ready(function() {
-    console.log('=== INICIALIZANDO SMART SEO SCHEMA ===');
+    console.log('=== INICIALIZANDO SMART SEO SCHEMA CON DIVISIÓN DE TOKENS ===');
+    
+    // Initialize token settings first
+    initializeTokenSettings();
     
     // Check AI status on load
     checkAIStatus();
@@ -276,11 +372,127 @@ $(document).ready(function() {
         }
     });
     
+    // Initial token division update
+    updateTokenDivision();
+    
     // Debug inicial de campos
     setTimeout(function() {
         debugFormFields();
     }, 1000);
 });
+
+function initializeTokenSettings() {
+    console.log('=== INICIALIZANDO CONFIGURACIÓN DE TOKENS ===');
+    
+    // Simular obtención desde configuración PHP (en implementación real vendrá del backend)
+    // Estos valores deberían venir del controlador PHP
+    globalTokenSettings.maxTokens = 800; // Valor por defecto, debería venir de la configuración
+    
+    // Actualizar displays iniciales
+    $('#max_tokens_display').text('Max Tokens: ' + globalTokenSettings.maxTokens);
+    
+    console.log('Token settings inicializados:', globalTokenSettings);
+}
+
+function updateTokenDivision() {
+    console.log('=== ACTUALIZANDO DIVISIÓN DE TOKENS ===');
+    
+    // Obtener tipos de contenido seleccionados
+    var selectedTypes = [];
+    if ($('#ai_generate_description').is(':checked')) selectedTypes.push('description');
+    if ($('#ai_generate_faq').is(':checked')) selectedTypes.push('faq');
+    if ($('#ai_generate_howto').is(':checked')) selectedTypes.push('howto');
+    if ($('#ai_generate_review').is(':checked')) selectedTypes.push('review');
+    
+    globalTokenSettings.selectedContentTypes = selectedTypes;
+    
+    console.log('Tipos seleccionados:', selectedTypes);
+    
+    if (selectedTypes.length === 0) {
+        // No hay tipos seleccionados
+        $('#per_content_display').text('Per Content: Select types above');
+        $('#token_division_summary').hide();
+        hideAllTokenInfo();
+        updateGenerateButtonInfo(0, 0);
+        return;
+    }
+    
+    // Calcular división de tokens
+    var tokensPerContent = Math.floor(globalTokenSettings.maxTokens / selectedTypes.length);
+    var actualTotal = globalTokenSettings.maxTokens;
+    
+    // Verificar mínimo garantizado
+    if (tokensPerContent < globalTokenSettings.minTokensPerContent) {
+        tokensPerContent = globalTokenSettings.minTokensPerContent;
+        actualTotal = tokensPerContent * selectedTypes.length;
+        console.log('Ajuste por mínimo: ', tokensPerContent, 'tokens por tipo, total:', actualTotal);
+    }
+    
+    // Actualizar displays
+    $('#per_content_display').text('Per Content: ' + tokensPerContent + ' tokens');
+    updateGenerateButtonInfo(selectedTypes.length, tokensPerContent);
+    
+    // Mostrar breakdown detallado
+    showTokenBreakdown(selectedTypes, tokensPerContent, actualTotal);
+    
+    // Actualizar info boxes individuales
+    updateIndividualTokenInfo(selectedTypes, tokensPerContent);
+    
+    console.log('División calculada - Por contenido:', tokensPerContent, 'Total:', actualTotal);
+}
+
+function showTokenBreakdown(selectedTypes, tokensPerContent, totalTokens) {
+    var breakdownHtml = '';
+    
+    selectedTypes.forEach(function(type) {
+        var typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+        var estimatedWords = Math.floor(tokensPerContent * 0.75); // Aproximación tokens a palabras
+        
+        breakdownHtml += '<div class="col-md-3 col-sm-6">' +
+            '<div class="token-breakdown-item active">' +
+            '<strong>' + typeLabel + '</strong><br>' +
+            '<span class="text-success">' + tokensPerContent + ' tokens</span><br>' +
+            '<small class="text-muted">~' + estimatedWords + ' words</small>' +
+            '</div>' +
+            '</div>';
+    });
+    
+    $('#token_breakdown').html(breakdownHtml);
+    $('#token_division_summary').show();
+}
+
+function updateIndividualTokenInfo(selectedTypes, tokensPerContent) {
+    // Hide all token info boxes first
+    hideAllTokenInfo();
+    
+    // Show info for selected types
+    selectedTypes.forEach(function(type) {
+        var infoBoxId = type + '_token_info';
+        var estimatedWords = Math.floor(tokensPerContent * 0.75);
+        
+        $('#' + infoBoxId + ' .token-count').text(tokensPerContent);
+        $('#' + infoBoxId + ' .word-estimate').text(estimatedWords);
+        $('#' + infoBoxId).show();
+    });
+}
+
+function hideAllTokenInfo() {
+    $('.token-info-box').hide();
+}
+
+function updateGenerateButtonInfo(count, tokensPerContent) {
+    var infoText = '';
+    
+    if (count === 0) {
+        infoText = 'Select content types above to see token allocation';
+    } else if (count === 1) {
+        infoText = 'Full ' + globalTokenSettings.maxTokens + ' tokens for selected content';
+    } else {
+        infoText = count + ' contents × ' + tokensPerContent + ' tokens each = efficient generation';
+    }
+    
+    $('#generate_button_info').text(infoText);
+}
 
 function checkAIStatus() {
     var apiKey = '<?php echo addslashes($smart_seo_schema_groq_api_key); ?>';
@@ -292,7 +504,7 @@ function checkAIStatus() {
         showAIStatus('warning', 'AI features require a valid Groq API key. Configure it in extension settings.');
         $('#test_ai_connection, #generate_ai_content_main').prop('disabled', true);
     } else {
-        showAIStatus('success', 'API Key configured. Click "Test AI Connection" to verify.');
+        showAIStatus('success', 'API Key configured. Token division ready. Click "Test AI Connection" to verify.');
     }
 }
 
@@ -325,7 +537,7 @@ function testAIConnection() {
                     $('#debug_modal').modal('show');
                 }
             } else {
-                showAIStatus('success', response.message);
+                showAIStatus('success', response.message + ' Token division system ready.');
                 success_alert(response.message);
             }
         },
@@ -355,27 +567,34 @@ function testAIConnection() {
 }
 
 function generateAllAIContent() {
-    console.log('=== GENERACIÓN MÚLTIPLE DE CONTENIDO IA ===');
+    console.log('=== GENERACIÓN MÚLTIPLE CON DIVISIÓN INTELIGENTE DE TOKENS ===');
     
     // Obtener tipos de contenido seleccionados
-    var selectedTypes = [];
-    if ($('#ai_generate_description').is(':checked')) selectedTypes.push('description');
-    if ($('#ai_generate_faq').is(':checked')) selectedTypes.push('faq');
-    if ($('#ai_generate_howto').is(':checked')) selectedTypes.push('howto');
-    if ($('#ai_generate_review').is(':checked')) selectedTypes.push('review');
+    var selectedTypes = globalTokenSettings.selectedContentTypes;
     
     console.log('Tipos seleccionados:', selectedTypes);
+    console.log('Configuración de tokens:', globalTokenSettings);
     
     if (selectedTypes.length === 0) {
         error_alert('Please select at least one content type to generate.');
         return;
     }
     
-    // Deshabilitar botón y mostrar loading
+    // Calcular información de tokens para mostrar al usuario
+    var tokensPerContent = Math.floor(globalTokenSettings.maxTokens / selectedTypes.length);
+    if (tokensPerContent < globalTokenSettings.minTokensPerContent) {
+        tokensPerContent = globalTokenSettings.minTokensPerContent;
+    }
+    
+    // Deshabilitar botón y mostrar loading con información de tokens
     var $button = $('#generate_ai_content_main');
     var originalText = $button.html();
-    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating Multiple Content...');
+    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating with Smart Token Division...');
     
+    // Actualizar mensaje del modal
+    $('#loading_modal .modal-body p').html('Generating ' + selectedTypes.length + ' content types<br>' +
+                                          '<strong>' + tokensPerContent + ' tokens each</strong><br>' +
+                                          '<small>Total: ' + (tokensPerContent * selectedTypes.length) + ' tokens</small>');
     $('#loading_modal').modal('show');
     
     // Preparar datos
@@ -391,16 +610,16 @@ function generateAllAIContent() {
         type: 'POST',
         data: postData,
         dataType: 'json',
-        timeout: 60000, // 60 segundos para múltiple contenido
+        timeout: 90000, // 90 segundos para generación con división de tokens
         success: function(response) {
-            console.log('=== RESPUESTA MÚLTIPLE RECIBIDA ===');
+            console.log('=== RESPUESTA CON DIVISIÓN DE TOKENS RECIBIDA ===');
             console.log('Response completo:', response);
             
             $('#loading_modal').modal('hide');
             
             if (response.error) {
                 console.error('Error en respuesta:', response.message);
-                error_alert('Error generating content: ' + response.message);
+                error_alert('Error generating content with token division: ' + response.message);
                 
                 // Show debug si está disponible
                 if (response.debug) {
@@ -409,7 +628,7 @@ function generateAllAIContent() {
                     $('#debug_modal').modal('show');
                 }
             } else {
-                console.log('Contenido generado exitosamente para tipos:', Object.keys(response.content));
+                console.log('Contenido generado exitosamente con división de tokens para tipos:', Object.keys(response.content));
                 
                 var successCount = 0;
                 var fieldMapping = {
@@ -425,18 +644,26 @@ function generateAllAIContent() {
                     if (fieldId && response.content[contentType]) {
                         $('#' + fieldId).val(response.content[contentType]);
                         
-                        // Highlight del campo
+                        // Highlight del campo con información de tokens
                         $('#' + fieldId).addClass('highlight-success');
                         setTimeout(function(field) {
                             return function() { $('#' + field).removeClass('highlight-success'); };
-                        }(fieldId), 3000);
+                        }(fieldId), 4000); // Más tiempo para apreciar el resultado
                         
                         successCount++;
+                        
+                        // Log de estadísticas del contenido generado
+                        var content = response.content[contentType];
+                        var wordCount = content.split(/\s+/).length;
+                        var charCount = content.length;
+                        console.log('Contenido ' + contentType + ': ' + wordCount + ' palabras, ' + charCount + ' caracteres');
                     }
                 }
                 
                 if (successCount > 0) {
-                    success_alert('Successfully generated ' + successCount + ' content types!');
+                    var successMsg = 'Successfully generated ' + successCount + ' content types with smart token division! ';
+                    successMsg += 'Each content optimized for ' + tokensPerContent + ' tokens.';
+                    success_alert(successMsg);
                     
                     // Scroll al primer campo generado
                     var firstField = Object.keys(response.content)[0];
@@ -452,17 +679,17 @@ function generateAllAIContent() {
             }
         },
         error: function(xhr, status, error) {
-            console.log('=== ERROR AJAX MÚLTIPLE ===');
+            console.log('=== ERROR AJAX CON DIVISIÓN DE TOKENS ===');
             console.log('Status:', status);
             console.log('Error:', error);
             console.log('Response Text:', xhr.responseText);
             
             $('#loading_modal').modal('hide');
             
-            var errorMsg = 'Error generating multiple content: ';
+            var errorMsg = 'Error generating content with token division: ';
             
             if (status === 'timeout') {
-                errorMsg += 'Request timeout. Multiple content generation takes longer.';
+                errorMsg += 'Request timeout. Token division processing takes longer for better results.';
             } else if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMsg += xhr.responseJSON.message;
             } else if (xhr.responseText) {
@@ -476,14 +703,16 @@ function generateAllAIContent() {
             error_alert(errorMsg);
             
             // Mostrar respuesta completa en debug modal
-            $('#debug_content').text('AJAX Error Details:\n' +
+            $('#debug_content').text('AJAX Error Details (Token Division):\n' +
                 'Status: ' + status + '\n' +
                 'Error: ' + error + '\n' +
+                'Selected Types: ' + selectedTypes.join(', ') + '\n' +
+                'Tokens Per Content: ' + tokensPerContent + '\n' +
                 'Response: ' + xhr.responseText);
             $('#debug_modal').modal('show');
         },
         complete: function() {
-            console.log('=== AJAX MÚLTIPLE COMPLETADO ===');
+            console.log('=== AJAX CON DIVISIÓN DE TOKENS COMPLETADO ===');
             // Restaurar botón
             $button.prop('disabled', false).html(originalText);
         }
@@ -551,7 +780,7 @@ function loadVariantsPreview() {
 
 // Función auxiliar para debug de campos
 function debugFormFields() {
-    console.log('=== DEBUG CAMPOS FORMULARIO ===');
+    console.log('=== DEBUG CAMPOS FORMULARIO CON TOKENS ===');
     
     var expectedFields = ['custom_description', 'faq_content', 'howto_content', 'review_content'];
     
@@ -564,6 +793,12 @@ function debugFormFields() {
         console.log('  Por name [name="' + fieldName + '"]:', byName.length, byName.length > 0 ? byName[0] : 'No encontrado');
         console.log('  Valor actual:', byId.length > 0 ? byId.val().substring(0, 50) + '...' : 'N/A');
     });
+    
+    // Información adicional de tokens
+    console.log('=== CONFIGURACIÓN DE TOKENS ===');
+    console.log('Max tokens:', globalTokenSettings.maxTokens);
+    console.log('Min tokens per content:', globalTokenSettings.minTokensPerContent);
+    console.log('Selected types:', globalTokenSettings.selectedContentTypes);
     
     // Listar todos los campos del formulario
     console.log('=== TODOS LOS CAMPOS DEL FORMULARIO ===');

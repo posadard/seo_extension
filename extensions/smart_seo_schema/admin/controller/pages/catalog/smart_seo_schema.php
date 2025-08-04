@@ -1,10 +1,10 @@
 <?php
 /*------------------------------------------------------------------------------
-  Smart SEO Schema Assistant - Admin Controller CORREGIDO
+  Smart SEO Schema Assistant - Admin Controller OPTIMIZADO CON DIVISIÓN DE TOKENS
   
   Controller for product tab integration in AbanteCart admin
   Handles Schema.org configuration per product with AI assistance
-  VERSIÓN CON PERSISTENCIA DE DATOS IMPLEMENTADA
+  VERSIÓN CON DIVISIÓN INTELIGENTE DE TOKENS Y PERSISTENCIA DE DATOS
 ------------------------------------------------------------------------------*/
 
 if (!defined('DIR_CORE')) {
@@ -112,7 +112,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 $this->logDebug("Error: No API key configurado");
             } else {
                 $this->logDebug("Llamando a Groq API...");
-                $response = $this->callGroqAPI($api_key, $model, 'Test connection - please respond with "Connection successful"');
+                $response = $this->callGroqAPI($api_key, $model, 'Test connection - please respond with "Connection successful"', 50);
                 
                 if ($response) {
                     $json = array(
@@ -160,7 +160,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * AJAX endpoint para generar múltiple contenido IA en una sola llamada - OPTIMIZADO
+     * AJAX endpoint para generar múltiple contenido IA con DIVISIÓN INTELIGENTE DE TOKENS
      */
     public function generateMultipleAIContent()
     {
@@ -176,7 +176,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $product_id = $this->request->get['product_id'];
             $content_types = $this->request->post['content_types']; // Array de tipos
             
-            $this->logDebug("=== GENERANDO CONTENIDO MÚLTIPLE IA ===");
+            $this->logDebug("=== GENERANDO CONTENIDO MÚLTIPLE IA CON DIVISIÓN DE TOKENS ===");
             $this->logDebug("Tipos solicitados: " . implode(', ', $content_types));
             $this->logDebug("Producto: " . $product_id);
             
@@ -194,8 +194,8 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             
             $this->logDebug("Producto encontrado: " . $product_info['name']);
             
-            // Generar contenido múltiple con una sola llamada a IA
-            $generated_content = $this->generateMultipleAIContentSingle($product_info, $content_types);
+            // Generar contenido múltiple con división inteligente de tokens
+            $generated_content = $this->generateMultipleAIContentWithTokenDivision($product_info, $content_types);
             
             if (empty($generated_content)) {
                 throw new Exception('AI generated empty content for all requested types');
@@ -754,83 +754,156 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Genera múltiple contenido IA con una sola llamada optimizada
+     * Genera múltiple contenido IA con DIVISIÓN INTELIGENTE DE TOKENS - NUEVA IMPLEMENTACIÓN
      */
-    private function generateMultipleAIContentSingle($product_info, $content_types)
+    private function generateMultipleAIContentWithTokenDivision($product_info, $content_types)
     {
-        $this->logDebug("Generando contenido múltiple para: " . $product_info['name']);
+        $this->logDebug("=== INICIO DIVISIÓN INTELIGENTE DE TOKENS ===");
+        $this->logDebug("Producto: " . $product_info['name']);
+        $this->logDebug("Tipos de contenido solicitados: " . implode(', ', $content_types));
         
-        // Crear prompt combinado más eficiente
+        // PASO 1: Obtener configuración de tokens base
+        $base_max_tokens = (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 800;
+        $content_count = count($content_types);
+        
+        $this->logDebug("Tokens base configurados: " . $base_max_tokens);
+        $this->logDebug("Cantidad de tipos de contenido: " . $content_count);
+        
+        // PASO 2: Calcular división con tokens mínimos garantizados
+        $min_tokens_per_content = 100; // Mínimo garantizado por tipo
+        $tokens_per_content = intval($base_max_tokens / $content_count);
+        
+        // Verificar que cada tipo tenga al menos el mínimo
+        if ($tokens_per_content < $min_tokens_per_content) {
+            $tokens_per_content = $min_tokens_per_content;
+            $actual_total_tokens = $tokens_per_content * $content_count;
+            $this->logDebug("AJUSTE: Tokens insuficientes. Subiendo a mínimo de {$min_tokens_per_content} por tipo");
+            $this->logDebug("Total real de tokens que se usarán: " . $actual_total_tokens);
+        } else {
+            $actual_total_tokens = $base_max_tokens;
+            $this->logDebug("División estándar: {$tokens_per_content} tokens por tipo");
+        }
+        
+        // PASO 3: Preparar contexto del producto
         $existing_description = '';
         if (!empty($product_info['description'])) {
             $existing_description = strip_tags($product_info['description']);
-            $existing_description = substr($existing_description, 0, 500); // Más contexto
+            $existing_description = substr($existing_description, 0, 600); // Más contexto
         }
         
-        // Construir prompt único que incluye todos los tipos solicitados
-        $prompt = "For the product: " . $product_info['name'] . "\n\n";
+        // PASO 4: Construir prompt optimizado con límites específicos
+        $prompt = "CRITICAL TOKEN LIMITS - You MUST optimize content to stay within these exact limits:\n\n";
+        $prompt .= "Product: " . $product_info['name'] . "\n";
+        $prompt .= "Model: " . $product_info['model'] . "\n";
         
         if ($existing_description) {
-            $prompt .= "Current product description: " . $existing_description . "\n\n";
+            $prompt .= "Current description: " . $existing_description . "\n\n";
         }
         
-        $prompt .= "Please generate the following content types, clearly separated:\n\n";
+        $prompt .= "Generate EXACTLY these content types with STRICT token limits:\n\n";
         
-        // Agregar instrucciones específicas para cada tipo solicitado
+        // PASO 5: Agregar instrucciones específicas con tokens explícitos
         foreach ($content_types as $type) {
-            switch ($type) {
-                case 'description':
-                    $prompt .= "===DESCRIPTION===\n";
-                    $prompt .= "Create an SEO-optimized product description (100-200 words) that highlights key features, benefits, and technical details.\n\n";
-                    break;
-                case 'faq':
-                    $count = $this->config->get('smart_seo_schema_faq_count') ?: 3;
-                    $prompt .= "===FAQ===\n";
-                    $prompt .= "Create " . $count . " FAQ pairs in format 'Q: [question] A: [answer]' covering specifications, usage, and compatibility.\n\n";
-                    break;
-                case 'howto':
-                    $steps = $this->config->get('smart_seo_schema_howto_steps_count') ?: 5;
-                    $prompt .= "===HOWTO===\n";
-                    $prompt .= "Create " . $steps . " step-by-step instructions in format 'Step 1: [instruction]' for using/installing this product.\n\n";
-                    break;
-                case 'review':
-                    $prompt .= "===REVIEW===\n";
-                    $prompt .= "Write a professional technical review (150-200 words) with pros, cons, use cases, and recommendation.\n\n";
-                    break;
-            }
+            $prompt .= $this->buildOptimizedPromptSection($type, $tokens_per_content);
         }
         
-        $prompt .= "Write only the requested content sections, clearly marked with the === headers above. No additional commentary.";
+        $prompt .= "\nCRITICAL RULES:\n";
+        $prompt .= "- Each section must stay within its {$tokens_per_content} token limit\n";
+        $prompt .= "- Write only the requested sections with === headers\n";
+        $prompt .= "- Be precise and efficient - prioritize key information\n";
+        $prompt .= "- Total response must not exceed {$actual_total_tokens} tokens\n";
         
-        $this->logDebug("Prompt combinado creado - Longitud: " . strlen($prompt));
+        $this->logDebug("Prompt final creado - Longitud: " . strlen($prompt));
+        $this->logDebug("Tokens por sección: " . $tokens_per_content);
+        $this->logDebug("Total máximo permitido: " . $actual_total_tokens);
         
-        // Llamada única a la API con prompt combinado
+        // PASO 6: Llamada a API con límites optimizados
         $response = $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
             $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt
+            $prompt,
+            $actual_total_tokens // Usar el total calculado
         );
         
         if (!$response) {
-            throw new Exception('No response from AI API');
+            throw new Exception('No response from AI API with token division');
         }
         
-        $this->logDebug("Respuesta recibida - Longitud: " . strlen($response));
+        $this->logDebug("Respuesta recibida con división de tokens - Longitud: " . strlen($response));
         
-        // Parsear respuesta combinada en secciones
-        return $this->parseMultipleAIResponse($response, $content_types);
+        // PASO 7: Parsear y validar contenido
+        $parsed_content = $this->parseMultipleAIResponse($response, $content_types);
+        
+        // PASO 8: Log final de resultados
+        $this->logDebug("=== RESULTADO DIVISIÓN DE TOKENS ===");
+        foreach ($parsed_content as $type => $content) {
+            $word_count = str_word_count($content);
+            $char_count = strlen($content);
+            $this->logDebug("Tipo: {$type} | Palabras: {$word_count} | Caracteres: {$char_count}");
+        }
+        
+        return $parsed_content;
     }
 
     /**
-     * Parsea respuesta múltiple de IA en contenidos separados
+     * Construye sección de prompt optimizada para cada tipo de contenido
+     */
+    private function buildOptimizedPromptSection($content_type, $tokens_per_content)
+    {
+        $section = "";
+        
+        switch ($content_type) {
+            case 'description':
+                $section .= "===DESCRIPTION=== (EXACTLY {$tokens_per_content} tokens MAX)\n";
+                $section .= "Create concise SEO-optimized product description. Focus on:\n";
+                $section .= "- Key features and benefits\n";
+                $section .= "- Technical specifications\n";
+                $section .= "- Use cases and target audience\n";
+                $section .= "Keep under {$tokens_per_content} tokens!\n\n";
+                break;
+                
+            case 'faq':
+                $faq_count = $this->config->get('smart_seo_schema_faq_count') ?: 3;
+                $section .= "===FAQ=== (EXACTLY {$tokens_per_content} tokens MAX)\n";
+                $section .= "Create {$faq_count} brief Q&A pairs in format:\n";
+                $section .= "Q: [concise question]\n";
+                $section .= "A: [brief answer]\n";
+                $section .= "Cover: specifications, compatibility, usage\n";
+                $section .= "Total under {$tokens_per_content} tokens!\n\n";
+                break;
+                
+            case 'howto':
+                $steps_count = $this->config->get('smart_seo_schema_howto_steps_count') ?: 5;
+                $section .= "===HOWTO=== (EXACTLY {$tokens_per_content} tokens MAX)\n";
+                $section .= "Create {$steps_count} concise steps in format:\n";
+                $section .= "Step 1: [brief instruction]\n";
+                $section .= "Focus on installation/setup/usage\n";
+                $section .= "Keep total under {$tokens_per_content} tokens!\n\n";
+                break;
+                
+            case 'review':
+                $section .= "===REVIEW=== (EXACTLY {$tokens_per_content} tokens MAX)\n";
+                $section .= "Write brief technical review including:\n";
+                $section .= "- Main pros and cons\n";
+                $section .= "- Performance highlights\n";
+                $section .= "- Recommendation\n";
+                $section .= "Stay under {$tokens_per_content} tokens!\n\n";
+                break;
+        }
+        
+        return $section;
+    }
+
+    /**
+     * Parsea respuesta múltiple de IA en contenidos separados - MEJORADO
      */
     private function parseMultipleAIResponse($response, $content_types)
     {
-        $this->logDebug("Parseando respuesta múltiple...");
+        $this->logDebug("=== PARSEANDO RESPUESTA CON DIVISIÓN DE TOKENS ===");
         
         $parsed_content = array();
         
-        // Dividir por marcadores de sección
+        // Marcadores de sección
         $sections = array(
             'description' => '===DESCRIPTION===',
             'faq' => '===FAQ===',
@@ -840,6 +913,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         foreach ($content_types as $type) {
             if (!isset($sections[$type])) {
+                $this->logDebug("Tipo no reconocido: " . $type);
                 continue;
             }
             
@@ -862,31 +936,48 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 $content = substr($response, $start_pos, $end_pos - $start_pos);
                 $content = trim($content);
                 
+                // Limpiar contenido
+                $content = preg_replace('/^[\r\n]+/', '', $content); // Remover saltos iniciales
+                $content = preg_replace('/[\r\n]+$/', '', $content); // Remover saltos finales
+                
                 if (!empty($content)) {
                     $parsed_content[$type] = $content;
-                    $this->logDebug("Extraído {$type}: " . strlen($content) . " caracteres");
+                    $this->logDebug("Extraído {$type}: " . strlen($content) . " caracteres, " . str_word_count($content) . " palabras");
+                } else {
+                    $this->logDebug("Contenido vacío para: " . $type);
                 }
             } else {
                 $this->logDebug("Marcador no encontrado para: " . $type);
             }
         }
         
-        // Fallback: si no hay marcadores, intentar usar toda la respuesta para el primer tipo
+        // Fallback mejorado
         if (empty($parsed_content) && !empty($content_types)) {
+            $this->logDebug("FALLBACK: Sin marcadores encontrados, intentando división por líneas");
+            
+            // Intentar dividir la respuesta en párrafos y asignar al primer tipo
             $first_type = $content_types[0];
-            $parsed_content[$first_type] = trim($response);
-            $this->logDebug("Fallback: usando toda la respuesta para " . $first_type);
+            $lines = explode("\n", trim($response));
+            $clean_lines = array_filter($lines, function($line) {
+                return !empty(trim($line));
+            });
+            
+            if (!empty($clean_lines)) {
+                $fallback_content = implode("\n", array_slice($clean_lines, 0, 10)); // Primeras 10 líneas
+                $parsed_content[$first_type] = $fallback_content;
+                $this->logDebug("Fallback aplicado para {$first_type}: " . strlen($fallback_content) . " caracteres");
+            }
         }
         
-        $this->logDebug("Contenido parseado exitosamente - Tipos: " . implode(', ', array_keys($parsed_content)));
+        $this->logDebug("Parsing completado - Tipos extraídos: " . implode(', ', array_keys($parsed_content)));
         
         return $parsed_content;
     }
 
     /**
-     * Método mejorado para llamar a Groq API con debugging completo
+     * Método mejorado para llamar a Groq API con control de tokens específico
      */
-    private function callGroqAPI($api_key, $model, $prompt)
+    private function callGroqAPI($api_key, $model, $prompt, $max_tokens = null)
     {
         $url = 'https://api.groq.com/openai/v1/chat/completions';
         
@@ -895,10 +986,13 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             throw new Exception('cURL extension is not available on this server');
         }
         
+        // Usar tokens específicos o configuración por defecto
+        $tokens_to_use = $max_tokens ?: (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 800;
+        
         $data = [
             'model' => $model,
             'messages' => [['role' => 'user', 'content' => $prompt]],
-            'max_tokens' => (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 200,
+            'max_tokens' => $tokens_to_use,
             'temperature' => (float)$this->config->get('smart_seo_schema_ai_temperature') ?: 0.7
         ];
 
@@ -908,12 +1002,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'User-Agent: AbanteCart-SmartSEOSchema/2.0'
         ];
 
-        $this->logDebug("Preparando llamada a API:");
+        $this->logDebug("=== LLAMADA API CON CONTROL DE TOKENS ===");
         $this->logDebug("URL: " . $url);
         $this->logDebug("Modelo: " . $model);
-        $this->logDebug("Max tokens: " . $data['max_tokens']);
+        $this->logDebug("Max tokens (específicos): " . $tokens_to_use);
         $this->logDebug("Temperature: " . $data['temperature']);
-        $this->logDebug("Prompt length: " . strlen($prompt));
+        $this->logDebug("Prompt length: " . strlen($prompt) . " caracteres");
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -921,7 +1015,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, (int)$this->config->get('smart_seo_schema_ai_timeout') ?: 15);
+        curl_setopt($ch, CURLOPT_TIMEOUT, (int)$this->config->get('smart_seo_schema_ai_timeout') ?: 30); // Más tiempo para respuestas largas
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
@@ -934,9 +1028,9 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         $curl_info = curl_getinfo($ch);
         curl_close($ch);
 
-        $this->logDebug("Respuesta de cURL:");
+        $this->logDebug("=== RESPUESTA API ===");
         $this->logDebug("HTTP Code: " . $http_code);
-        $this->logDebug("Response length: " . strlen($response));
+        $this->logDebug("Response length: " . strlen($response) . " caracteres");
         $this->logDebug("cURL Error: " . ($curl_error ?: 'None'));
         $this->logDebug("Total time: " . $curl_info['total_time'] . "s");
         $this->logDebug("Connect time: " . $curl_info['connect_time'] . "s");
@@ -950,7 +1044,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         }
 
         if ($response) {
-            $this->logDebug("Raw response (first 500 chars): " . substr($response, 0, 500));
+            $this->logDebug("Raw response preview: " . substr($response, 0, 300) . "...");
         }
 
         if ($http_code == 200 && $response) {
@@ -962,6 +1056,15 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             if (isset($decoded['choices'][0]['message']['content'])) {
                 $content = $decoded['choices'][0]['message']['content'];
                 $this->logDebug("Contenido extraído exitosamente: " . strlen($content) . " caracteres");
+                
+                // Log de uso de tokens si está disponible
+                if (isset($decoded['usage'])) {
+                    $usage = $decoded['usage'];
+                    $this->logDebug("Tokens utilizados: prompt=" . ($usage['prompt_tokens'] ?? 'N/A') . 
+                                  ", completion=" . ($usage['completion_tokens'] ?? 'N/A') . 
+                                  ", total=" . ($usage['total_tokens'] ?? 'N/A'));
+                }
+                
                 return $content;
             } else {
                 $this->logDebug("Estructura de respuesta inesperada: " . print_r($decoded, true));
