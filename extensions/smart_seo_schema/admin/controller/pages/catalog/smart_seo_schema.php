@@ -4,7 +4,7 @@
   
   Controller for product tab integration in AbanteCart admin
   Handles Schema.org configuration per product with AI assistance
-  VERSIÓN CON MANEJO ROBUSTO DE JSON Y ERRORES
+  VERSIÓN CON MANEJO ROBUSTO DE JSON Y ERRORES COMPLETAMENTE CORREGIDA
 ------------------------------------------------------------------------------*/
 
 if (!defined('DIR_CORE')) {
@@ -160,7 +160,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * AJAX endpoint for generating AI content - CORREGIDO
+     * AJAX endpoint for generating AI content - CORREGIDO COMPLETAMENTE
      */
     public function generateAIContent()
     {
@@ -174,14 +174,15 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         try {
             $product_id = $this->request->get['product_id'];
-            $content_type = $this->request->post['content_type']; // description, faq, howto, review
+            $content_type = $this->request->post['content_type']; // description, custom_description, faq, howto, review
             
             $this->logDebug("=== GENERANDO CONTENIDO IA ===");
             $this->logDebug("Tipo: " . $content_type . ", Producto: " . $product_id);
+            $this->logDebug("POST data: " . print_r($this->request->post, true));
             
             // Validación básica
             if (!$product_id || !$content_type) {
-                throw new Exception('Missing required parameters: product_id or content_type');
+                throw new Exception('Missing required parameters: product_id=' . $product_id . ', content_type=' . $content_type);
             }
             
             $this->loadModel('catalog/product');
@@ -191,10 +192,14 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 throw new Exception('Product not found: ' . $product_id);
             }
             
+            $this->logDebug("Producto encontrado: " . $product_info['name']);
+            
             $json = array();
             
+            // MAPEO CORRECTO DE CONTENT_TYPE
             switch ($content_type) {
                 case 'description':
+                case 'custom_description':
                     $content = $this->generateAIDescription($product_info);
                     break;
                 case 'faq':
@@ -207,16 +212,24 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                     $content = $this->generateAIReview($product_info);
                     break;
                 default:
-                    throw new Exception('Invalid content type: ' . $content_type);
+                    throw new Exception('Invalid content type: ' . $content_type . '. Valid types: description, custom_description, faq, howto, review');
+            }
+            
+            if (empty($content)) {
+                throw new Exception('AI generated empty content. Please try again or check your API configuration.');
             }
             
             $json = array(
                 'error' => false,
                 'content' => $content,
                 'content_length' => strlen($content),
-                'content_type' => $content_type
+                'content_type' => $content_type,
+                'product_name' => $product_info['name'],
+                'timestamp' => date('Y-m-d H:i:s')
             );
+            
             $this->logDebug("Contenido generado exitosamente - Longitud: " . strlen($content));
+            $this->logDebug("Primeros 100 chars: " . substr($content, 0, 100));
             
         } catch (Exception $e) {
             $json = array(
@@ -225,10 +238,13 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 'debug' => array(
                     'exception' => get_class($e),
                     'file' => $e->getFile(),
-                    'line' => $e->getLine()
-                )
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ),
+                'timestamp' => date('Y-m-d H:i:s')
             );
             $this->logDebug("Error generando contenido: " . $e->getMessage());
+            $this->logDebug("Stack trace: " . $e->getTraceAsString());
         } catch (Error $e) {
             $json = array(
                 'error' => true,
@@ -237,13 +253,14 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                     'error' => get_class($e),
                     'file' => $e->getFile(),
                     'line' => $e->getLine()
-                )
+                ),
+                'timestamp' => date('Y-m-d H:i:s')
             );
             $this->logDebug("Error fatal: " . $e->getMessage());
         }
 
         // Asegurar output JSON válido
-        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        echo json_encode($json, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         exit(); // Importante: terminar aquí para evitar HTML adicional
     }
 
@@ -584,11 +601,37 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Generate AI description
+     * Generate AI description - MEJORADO
      */
     private function generateAIDescription($product_info)
     {
-        $prompt = "Create an SEO-optimized product description for: " . $product_info['name'] . ". Focus on key features and benefits. Keep it under 150 words.";
+        $this->logDebug("Generando descripción IA para: " . $product_info['name']);
+        
+        // Crear prompt más específico y detallado
+        $existing_description = '';
+        if (!empty($product_info['description'])) {
+            $existing_description = strip_tags($product_info['description']);
+            $existing_description = substr($existing_description, 0, 300); // Limitar longitud
+        }
+        
+        $prompt = "Create an SEO-optimized product description for the product: " . $product_info['name'] . ". ";
+        
+        if ($existing_description) {
+            $prompt .= "Here's the current description for reference: " . $existing_description . ". ";
+        }
+        
+        $prompt .= "Please create a new, improved description that:
+1. Is SEO-friendly and keyword-rich
+2. Highlights key features and benefits
+3. Is between 100-200 words
+4. Uses professional, clear language
+5. Includes technical details when relevant
+6. Focuses on what makes this product unique
+
+Write only the description, no additional commentary.";
+
+        $this->logDebug("Prompt enviado: " . substr($prompt, 0, 200) . "...");
+        
         return $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
             $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
@@ -597,12 +640,29 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Generate AI FAQ
+     * Generate AI FAQ - MEJORADO
      */
     private function generateAIFAQ($product_info)
     {
+        $this->logDebug("Generando FAQ IA para: " . $product_info['name']);
+        
         $count = $this->config->get('smart_seo_schema_faq_count') ?: 3;
-        $prompt = "Create " . $count . " FAQ questions and answers for product: " . $product_info['name'] . ". Format as simple text, one Q&A per line.";
+        
+        $prompt = "Create " . $count . " frequently asked questions and answers for the product: " . $product_info['name'] . ". 
+
+Format each Q&A as:
+Q: [Question]
+A: [Answer]
+
+Make the questions realistic, practical, and focused on:
+1. Product specifications
+2. Usage instructions
+3. Compatibility/requirements
+4. Benefits and features
+5. Shipping/availability
+
+Keep answers concise but informative (2-3 sentences each). Write only the Q&A pairs, no additional commentary.";
+
         return $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
             $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
@@ -611,12 +671,30 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Generate AI HowTo
+     * Generate AI HowTo - MEJORADO
      */
     private function generateAIHowTo($product_info)
     {
+        $this->logDebug("Generando HowTo IA para: " . $product_info['name']);
+        
         $steps = $this->config->get('smart_seo_schema_howto_steps_count') ?: 5;
-        $prompt = "Create " . $steps . " step-by-step instructions for using: " . $product_info['name'] . ". Format as numbered list.";
+        
+        $prompt = "Create " . $steps . " step-by-step instructions for using/installing/setting up: " . $product_info['name'] . ". 
+
+Format as:
+Step 1: [Instruction]
+Step 2: [Instruction]
+etc.
+
+Make the instructions:
+1. Clear and actionable
+2. Logically ordered
+3. Include safety considerations if relevant
+4. Mention tools/requirements if needed
+5. Be specific and practical
+
+Write only the numbered steps, no additional commentary.";
+
         return $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
             $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
@@ -625,11 +703,24 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Generate AI Review
+     * Generate AI Review - MEJORADO
      */
     private function generateAIReview($product_info)
     {
-        $prompt = "Create a professional product review for: " . $product_info['name'] . ". Include pros, cons, and overall assessment. Keep it objective and informative.";
+        $this->logDebug("Generando Review IA para: " . $product_info['name']);
+        
+        $prompt = "Write a professional, objective product review for: " . $product_info['name'] . ". 
+
+The review should include:
+1. Overall assessment
+2. Key strengths/pros
+3. Any limitations/cons (if relevant)
+4. Best use cases
+5. Value for money consideration
+6. Professional recommendation
+
+Keep it balanced, informative, and around 150-200 words. Write in a professional, third-person style as if from a technical expert. Write only the review text, no additional commentary.";
+
         return $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
             $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
