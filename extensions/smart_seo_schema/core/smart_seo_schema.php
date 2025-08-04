@@ -8,6 +8,11 @@ class ExtensionSmartSeoSchema extends Extension
 {
     protected $registry;
 
+    public function __construct()
+    {
+        $this->registry = Registry::getInstance();
+    }
+
     /**
      * Hook para agregar tab en admin de productos (siguiendo patrón AvaTax)
      */
@@ -93,7 +98,7 @@ class ExtensionSmartSeoSchema extends Extension
             $product_snippet["sku"] = $product_info['sku'];
         }
 
-        // Agregated Rating
+        // Aggregated Rating
         if ($that->config->get('smart_seo_schema_show_review')) {
             $rating = $this->getProductRating($that, $product_info);
             if ($rating) {
@@ -103,7 +108,7 @@ class ExtensionSmartSeoSchema extends Extension
 
         // hasVariant[] - Sistema nativo de AbanteCart
         if ($that->config->get('smart_seo_schema_enable_variants')) {
-            $variants = $this->getProductVariants($product_info['product_id']);
+            $variants = $this->getProductVariants($product_info['product_id'], $that);
             if (!empty($variants)) {
                 $product_snippet["hasVariant"] = $variants;
             }
@@ -118,7 +123,7 @@ class ExtensionSmartSeoSchema extends Extension
         }
 
         // Esquemas adicionales con IA
-        $additional_schemas = $this->generateAdditionalSchemas($product_info);
+        $additional_schemas = $this->generateAdditionalSchemas($product_info, $that);
         
         return array_merge([$product_snippet], $additional_schemas);
     }
@@ -126,11 +131,10 @@ class ExtensionSmartSeoSchema extends Extension
     /**
      * Obtiene variantes desde tablas nativas de AbanteCart
      */
-    private function getProductVariants($product_id)
+    private function getProductVariants($product_id, $that)
     {
-        $db = $this->registry->get('db');
-        $config = $this->registry->get('config');
-        $language_id = $this->getAdminDefaultLanguageId();
+        $db = $that->db;
+        $language_id = $this->getAdminDefaultLanguageId($that);
 
         $sql = "
             SELECT 
@@ -173,7 +177,7 @@ class ExtensionSmartSeoSchema extends Extension
                 "offers" => [
                     "@type"        => "Offer",
                     "price"        => number_format($variant_price, 2, '.', ''),
-                    "priceCurrency" => $this->registry->get('currency')->getCode(),
+                    "priceCurrency" => $that->currency->getCode(),
                     "availability" => $this->getVariantAvailability($row['quantity']),
                 ]
             ];
@@ -214,10 +218,10 @@ class ExtensionSmartSeoSchema extends Extension
     /**
      * Obtiene idioma por defecto del admin
      */
-    private function getAdminDefaultLanguageId()
+    private function getAdminDefaultLanguageId($that)
     {
-        $db = $this->registry->get('db');
-        $config = $this->registry->get('config');
+        $db = $that->db;
+        $config = $that->config;
 
         $query = $db->query("
             SELECT l.language_id 
@@ -257,7 +261,7 @@ class ExtensionSmartSeoSchema extends Extension
 
         // Mejora con IA si está habilitada
         if ($that->config->get('smart_seo_schema_ai_auto_generate')) {
-            $ai_description = $this->generateAIDescription($product_info, $description);
+            $ai_description = $this->generateAIDescription($product_info, $description, $that);
             if ($ai_description) {
                 $description = $ai_description;
             }
@@ -269,10 +273,10 @@ class ExtensionSmartSeoSchema extends Extension
     /**
      * Genera descripción mejorada con Groq IA
      */
-    private function generateAIDescription($product_info, $original_description)
+    private function generateAIDescription($product_info, $original_description, $that)
     {
-        $api_key = $this->registry->get('config')->get('smart_seo_schema_groq_api_key');
-        $model = $this->registry->get('config')->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
+        $api_key = $that->config->get('smart_seo_schema_groq_api_key');
+        $model = $that->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
 
         if (!$api_key) {
             return null;
@@ -281,7 +285,7 @@ class ExtensionSmartSeoSchema extends Extension
         $prompt = "Improve this product description for SEO and Schema.org structured data. Make it concise but informative, focusing on key features and benefits. Original: " . $original_description . " Product name: " . $product_info['name'];
 
         try {
-            $response = $this->callGroqAPI($api_key, $model, $prompt);
+            $response = $this->callGroqAPI($api_key, $model, $prompt, $that);
             return $response ?: $original_description;
         } catch (Exception $e) {
             // Log error y usar descripción original
@@ -292,7 +296,7 @@ class ExtensionSmartSeoSchema extends Extension
     /**
      * Cliente API para Groq
      */
-    private function callGroqAPI($api_key, $model, $prompt)
+    private function callGroqAPI($api_key, $model, $prompt, $that)
     {
         $url = 'https://api.groq.com/openai/v1/chat/completions';
         
@@ -421,10 +425,10 @@ class ExtensionSmartSeoSchema extends Extension
     /**
      * Genera esquemas adicionales (FAQ, HowTo, Review, Organization)
      */
-    private function generateAdditionalSchemas($product_info)
+    private function generateAdditionalSchemas($product_info, $that)
     {
         $schemas = [];
-        $config = $this->registry->get('config');
+        $config = $that->config;
 
         // FAQPage Schema
         if ($config->get('smart_seo_schema_enable_faq_schema')) {
@@ -452,7 +456,7 @@ class ExtensionSmartSeoSchema extends Extension
 
         // Organization Schema
         if ($config->get('smart_seo_schema_enable_organization')) {
-            $organization = $this->generateOrganizationSchema();
+            $organization = $this->generateOrganizationSchema($that);
             if ($organization) {
                 $schemas[] = $organization;
             }
@@ -522,14 +526,30 @@ class ExtensionSmartSeoSchema extends Extension
     /**
      * Genera Organization Schema
      */
-    private function generateOrganizationSchema()
+    private function generateOrganizationSchema($that)
     {
-        $config = $this->registry->get('config');
+        $config = $that->config;
         
         return [
             "@type" => "Organization",
             "name" => $config->get('config_name'),
             "url" => $config->get('config_url')
         ];
+    }
+
+    /**
+     * Método público para generar Schema completo (usado desde admin controller)
+     */
+    public function generateCompleteSchemaForProduct($product_info)
+    {
+        // Mock object para compatibilidad con admin
+        $mock_that = new stdClass();
+        $mock_that->config = Registry::getInstance()->get('config');
+        $mock_that->db = Registry::getInstance()->get('db');
+        $mock_that->currency = Registry::getInstance()->get('currency');
+        $mock_that->language = Registry::getInstance()->get('language');
+        $mock_that->data = ['product_info' => $product_info];
+        
+        return $this->generateCompleteSchema($mock_that);
     }
 }

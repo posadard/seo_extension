@@ -77,7 +77,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * AJAX endpoint for testing AI connection
+     * AJAX endpoint for testing AI connection with enhanced model validation
      */
     public function testAIConnection()
     {
@@ -90,20 +90,20 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         if (!$api_key) {
             $json['error'] = true;
-            $json['message'] = 'No API key configured';
+            $json['message'] = 'No API key configured. Please enter your Groq API key.';
         } else {
             try {
                 $response = $this->callGroqAPI($api_key, $model, 'Test connection');
                 if ($response) {
                     $json['error'] = false;
-                    $json['message'] = $this->language->get('text_ai_connection_success');
+                    $json['message'] = "Connection successful! Model '{$model}' is working properly.";
                 } else {
                     $json['error'] = true;
-                    $json['message'] = $this->language->get('text_ai_connection_failed');
+                    $json['message'] = "Connection failed. Please verify your API key and model name '{$model}'. Check available models at https://console.groq.com/docs/models";
                 }
             } catch (Exception $e) {
                 $json['error'] = true;
-                $json['message'] = $this->language->get('text_ai_connection_failed') . ': ' . $e->getMessage();
+                $json['message'] = "Connection failed with model '{$model}': " . $e->getMessage() . "\n\nPlease verify the model name at https://console.groq.com/docs/models";
             }
         }
 
@@ -453,7 +453,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Call Groq API
+     * Call Groq API with enhanced error handling for invalid models
      */
     private function callGroqAPI($api_key, $model, $prompt)
     {
@@ -488,6 +488,17 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             return $decoded['choices'][0]['message']['content'] ?? null;
         }
 
-        throw new Exception("API call failed with code: " . $http_code);
+        // Enhanced error handling with specific HTTP codes
+        if ($http_code == 400) {
+            throw new Exception("Invalid model name '{$model}'. Please check available models at https://console.groq.com/docs/models");
+        } elseif ($http_code == 401) {
+            throw new Exception("Invalid API key. Please verify your Groq API key.");
+        } elseif ($http_code == 429) {
+            throw new Exception("Rate limit exceeded. Please try again later.");
+        } elseif ($http_code == 422) {
+            throw new Exception("Model '{$model}' is not available or requires different parameters. Check https://console.groq.com/docs/models");
+        } else {
+            throw new Exception("API call failed with HTTP code: " . $http_code . ". Please verify model name and API key.");
+        }
     }
 }

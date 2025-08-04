@@ -7,47 +7,49 @@
   </definition>
   <definition>
     <key>smart_seo_schema_status</key>
-    <value><![CDATA[Status]]></value>
+    <value><![CDATA[Status:<br /><span class="help">Enable or disable the Smart SEO Schema extension</span>]]></value>
   </definition>
   <definition>
     <key>smart_seo_schema_show_image</key>
-    <value><![CDATA[Show product image:<br /><span class="help">You can show your product thumb in the SEO schema markup</span>]]></value>
+    <value><![CDATA[Show product image:<br /><span class="help">Include product images in Schema.org markup for better search results</span>]]></value>
   </definition>
   <definition>
     <key>smart_seo_schema_show_review</key>
-    <value><![CDATA[Show product review:<br /><span class="help">You can show your product review in the SEO schema markup</span>]]></value>
+    <value><![CDATA[Show product review:<br /><span class="help">Include aggregate ratings and reviews in Schema.org markup</span>]]></value>
   </definition>
   <definition>
     <key>smart_seo_schema_show_sku</key>
-    <value><![CDATA[Show product SKU:<br /><span class="help">You can show your product SKU in the SEO schema markup</span>]]></value>
+    <value><![CDATA[Show product SKU:<br /><span class="help">Include product SKU in Schema.org markup for inventory tracking</span>]]></value>
   </definition>
   <definition>
     <key>smart_seo_schema_show_offer</key>
-    <value><![CDATA[Show product price:<br /><span class="help">You can show your product price (with discount if any) in the SEO schema markup</span>]]></value>
+    <value><![CDATA[Show product price:<br /><span class="help">Include pricing information and offers in Schema.org markup</span>]]></value>
   </definition>
   <definition>
     <key>smart_seo_schema_show_availability</key>
-    <value><![CDATA[Show product stock:<br /><span class="help">You can show your product availability in the SEO schema markup. This will be based on stock status of the product </span>]]></value>
+    <value><![CDATA[Show product stock:<br /><span class="help">Include stock availability information in Schema.org markup</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_description</key>
+    <value><![CDATA[Description source:<br /><span class="help">Choose which product description to use for Schema.org markup</span>]]></value>
   </definition>
   <definition>
     <key>smart_seo_schema_note</key>
     <value><![CDATA[After this extension is enabled and configured, you can test your product pages with <a href="https://developers.google.com/structured-data/testing-tool/" target="_new">Schema.org validation tools</a>]]></value>
   </definition>
-  <definition>
-    <key>text_description_extensions</key>
-    <value><![CDATA[Description:<br /><span class="help">Select a description to use for structural data. Automatic mode will select blurb if available, otherwise, product description will be used</span>]]></value>
-  </definition>
+  
+  <!-- Valores para selectbox de descripción -->
   <definition>
     <key>smart_seo_schema_description_auto</key>
-    <value><![CDATA[Auto]]></value>
+    <value><![CDATA[Auto (Blurb if available, otherwise Description)]]></value>
   </definition>
   <definition>
     <key>smart_seo_schema_description_blurb</key>
-    <value><![CDATA[Blurb]]></value>
+    <value><![CDATA[Product Blurb]]></value>
   </definition>
   <definition>
     <key>smart_seo_schema_description_description</key>
-    <value><![CDATA[Description]]></value>
+    <value><![CDATA[Product Description]]></value>
   </definition>
 
   <!-- Definiciones Groq IA -->
@@ -57,11 +59,12 @@
   </definition>
   <definition>
     <key>smart_seo_schema_groq_model</key>
-    <value><![CDATA[AI Model:<br /><span class="help">Select the Groq AI model for content generation. Llama-3.1-8b-instant is recommended for speed, Llama-3.3-70b-versatile for quality</span>]]></value>
+    <value><![CDATA[AI Model:<br /><span class="help">Enter the Groq AI model name (e.g., llama-3.1-8b-instant). For the latest available models, visit <a href="https://console.groq.com/docs/models" target="_blank">Groq Models Documentation</a>. Popular models: llama-3.1-8b-instant (fast), gemma2-9b-it (balanced), llama-3.3-70b-versatile (high quality).</span>]]></value>
   </definition>
+  
   <definition>
     <key>smart_seo_schema_ai_auto_generate</key>
-    <value><![CDATA[Enable AI Auto-Generation:<br /><span class="help">Automatically improve product descriptions using AI when Schema.org markup is generated</span>]]></value>
+    <value><![CDATA[Enable AI Auto-Generation:<br /><span class="help">Automatically improve product descriptions using AI when generating Schema.org markup</span>]]></value>
   </definition>
 
   <!-- Definiciones hasVariant[] -->
@@ -145,6 +148,25 @@
     <key>smart_seo_schema_org_contact_type</key>
     <value><![CDATA[Contact Type:<br /><span class="help">Primary contact type for your organization in structured data</span>]]></value>
   </definition>
+  
+  <!-- Valores para selectbox de contact type -->
+  <definition>
+    <key>smart_seo_schema_org_contact_type_customer_service</key>
+    <value><![CDATA[Customer Service]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_org_contact_type_technical_support</key>
+    <value><![CDATA[Technical Support]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_org_contact_type_billing_support</key>
+    <value><![CDATA[Billing Support]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_org_contact_type_sales</key>
+    <value><![CDATA[Sales]]></value>
+  </definition>
+  
   <definition>
     <key>smart_seo_schema_org_phone</key>
     <value><![CDATA[Organization Phone:<br /><span class="help">Main phone number for customer contact in international format (+1-555-123-4567)</span>]]></value>
@@ -186,14 +208,26 @@
     <value><![CDATA[Debug & Monitoring]]></value>
   </definition>
 
-  <!-- Mensajes de estado -->
+  <!-- Mensajes de estado y errores de IA -->
   <definition>
     <key>text_ai_connection_success</key>
     <value><![CDATA[AI connection successful! Groq API is working properly.]]></value>
   </definition>
   <definition>
     <key>text_ai_connection_failed</key>
-    <value><![CDATA[AI connection failed. Please check your API key and try again.]]></value>
+    <value><![CDATA[AI connection failed. Please check your API key and model name.]]></value>
+  </definition>
+  <definition>
+    <key>text_ai_model_invalid</key>
+    <value><![CDATA[Invalid model name. Please check available models at the Groq documentation.]]></value>
+  </definition>
+  <definition>
+    <key>text_ai_api_key_invalid</key>
+    <value><![CDATA[Invalid API key. Please verify your Groq API key.]]></value>
+  </definition>
+  <definition>
+    <key>text_ai_rate_limit</key>
+    <value><![CDATA[Rate limit exceeded. Please try again later.]]></value>
   </definition>
   <definition>
     <key>text_variants_found</key>

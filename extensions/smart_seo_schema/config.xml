@@ -51,13 +51,7 @@
 			<default_value></default_value>
 		</item>
 		<item id="smart_seo_schema_groq_model">
-			<type>selectbox</type>
-			<variants>
-				<item>llama-3.1-8b-instant</item>
-				<item>gemma2-9b-it</item>
-				<item>llama-3.3-70b-versatile</item>
-				<item>meta-llama/llama-guard-4-12b</item>
-			</variants>
+			<type>input</type>
 			<default_value>llama-3.1-8b-instant</default_value>
 		</item>
 		<item id="smart_seo_schema_ai_auto_generate">
@@ -145,12 +139,12 @@
 		<item id="smart_seo_schema_org_contact_type">
 			<type>selectbox</type>
 			<variants>
-				<item>customer service</item>
-				<item>technical support</item>
-				<item>billing support</item>
+				<item>customer_service</item>
+				<item>technical_support</item>
+				<item>billing_support</item>
 				<item>sales</item>
 			</variants>
-			<default_value>customer service</default_value>
+			<default_value>customer_service</default_value>
 		</item>
 		<item id="smart_seo_schema_org_phone">
 			<type>input</type>
