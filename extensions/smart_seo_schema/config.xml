@@ -118,6 +118,14 @@
 			<default_value>1</default_value>
 		</item>
 	</settings>
+	<install>
+		<sql>install.sql</sql>
+		<trigger>install.php</trigger>
+	</install>
+	<uninstall>
+		<sql>uninstall.sql</sql>
+		<trigger>uninstall.php</trigger>
+	</uninstall>
 	<note>true</note>
 	<help_link><![CDATA[https://developers.google.com/structured-data/rich-snippets/products]]></help_link>
 </extension>

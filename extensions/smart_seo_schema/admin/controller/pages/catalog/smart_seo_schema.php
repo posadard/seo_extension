@@ -160,9 +160,9 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * AJAX endpoint for generating AI content - CORREGIDO COMPLETAMENTE
+     * AJAX endpoint para generar múltiple contenido IA en una sola llamada - OPTIMIZADO
      */
-    public function generateAIContent()
+    public function generateMultipleAIContent()
     {
         // Limpiar cualquier output previo
         if (ob_get_level()) {
@@ -174,15 +174,15 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         try {
             $product_id = $this->request->get['product_id'];
-            $content_type = $this->request->post['content_type']; // description, custom_description, faq, howto, review
+            $content_types = $this->request->post['content_types']; // Array de tipos
             
-            $this->logDebug("=== GENERANDO CONTENIDO IA ===");
-            $this->logDebug("Tipo: " . $content_type . ", Producto: " . $product_id);
-            $this->logDebug("POST data: " . print_r($this->request->post, true));
+            $this->logDebug("=== GENERANDO CONTENIDO MÚLTIPLE IA ===");
+            $this->logDebug("Tipos solicitados: " . implode(', ', $content_types));
+            $this->logDebug("Producto: " . $product_id);
             
             // Validación básica
-            if (!$product_id || !$content_type) {
-                throw new Exception('Missing required parameters: product_id=' . $product_id . ', content_type=' . $content_type);
+            if (!$product_id || !is_array($content_types) || empty($content_types)) {
+                throw new Exception('Missing required parameters or invalid content_types array');
             }
             
             $this->loadModel('catalog/product');
@@ -194,42 +194,22 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             
             $this->logDebug("Producto encontrado: " . $product_info['name']);
             
-            $json = array();
+            // Generar contenido múltiple con una sola llamada a IA
+            $generated_content = $this->generateMultipleAIContentSingle($product_info, $content_types);
             
-            // MAPEO CORRECTO DE CONTENT_TYPE
-            switch ($content_type) {
-                case 'description':
-                case 'custom_description':
-                    $content = $this->generateAIDescription($product_info);
-                    break;
-                case 'faq':
-                    $content = $this->generateAIFAQ($product_info);
-                    break;
-                case 'howto':
-                    $content = $this->generateAIHowTo($product_info);
-                    break;
-                case 'review':
-                    $content = $this->generateAIReview($product_info);
-                    break;
-                default:
-                    throw new Exception('Invalid content type: ' . $content_type . '. Valid types: description, custom_description, faq, howto, review');
-            }
-            
-            if (empty($content)) {
-                throw new Exception('AI generated empty content. Please try again or check your API configuration.');
+            if (empty($generated_content)) {
+                throw new Exception('AI generated empty content for all requested types');
             }
             
             $json = array(
                 'error' => false,
-                'content' => $content,
-                'content_length' => strlen($content),
-                'content_type' => $content_type,
+                'content' => $generated_content,
+                'content_types' => $content_types,
                 'product_name' => $product_info['name'],
                 'timestamp' => date('Y-m-d H:i:s')
             );
             
-            $this->logDebug("Contenido generado exitosamente - Longitud: " . strlen($content));
-            $this->logDebug("Primeros 100 chars: " . substr($content, 0, 100));
+            $this->logDebug("Contenido múltiple generado exitosamente - Tipos: " . implode(', ', array_keys($generated_content)));
             
         } catch (Exception $e) {
             $json = array(
@@ -243,8 +223,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 ),
                 'timestamp' => date('Y-m-d H:i:s')
             );
-            $this->logDebug("Error generando contenido: " . $e->getMessage());
-            $this->logDebug("Stack trace: " . $e->getTraceAsString());
+            $this->logDebug("Error generando contenido múltiple: " . $e->getMessage());
         } catch (Error $e) {
             $json = array(
                 'error' => true,
@@ -775,131 +754,133 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Generate AI description - MEJORADO
+     * Genera múltiple contenido IA con una sola llamada optimizada
      */
-    private function generateAIDescription($product_info)
+    private function generateMultipleAIContentSingle($product_info, $content_types)
     {
-        $this->logDebug("Generando descripción IA para: " . $product_info['name']);
+        $this->logDebug("Generando contenido múltiple para: " . $product_info['name']);
         
-        // Crear prompt más específico y detallado
+        // Crear prompt combinado más eficiente
         $existing_description = '';
         if (!empty($product_info['description'])) {
             $existing_description = strip_tags($product_info['description']);
-            $existing_description = substr($existing_description, 0, 300); // Limitar longitud
+            $existing_description = substr($existing_description, 0, 500); // Más contexto
         }
         
-        $prompt = "Create an SEO-optimized product description for the product: " . $product_info['name'] . ". ";
+        // Construir prompt único que incluye todos los tipos solicitados
+        $prompt = "For the product: " . $product_info['name'] . "\n\n";
         
         if ($existing_description) {
-            $prompt .= "Here's the current description for reference: " . $existing_description . ". ";
+            $prompt .= "Current product description: " . $existing_description . "\n\n";
         }
         
-        $prompt .= "Please create a new, improved description that:
-1. Is SEO-friendly and keyword-rich
-2. Highlights key features and benefits
-3. Is between 100-200 words
-4. Uses professional, clear language
-5. Includes technical details when relevant
-6. Focuses on what makes this product unique
-
-Write only the description, no additional commentary.";
-
-        $this->logDebug("Prompt enviado: " . substr($prompt, 0, 200) . "...");
+        $prompt .= "Please generate the following content types, clearly separated:\n\n";
         
-        return $this->callGroqAPI(
+        // Agregar instrucciones específicas para cada tipo solicitado
+        foreach ($content_types as $type) {
+            switch ($type) {
+                case 'description':
+                    $prompt .= "===DESCRIPTION===\n";
+                    $prompt .= "Create an SEO-optimized product description (100-200 words) that highlights key features, benefits, and technical details.\n\n";
+                    break;
+                case 'faq':
+                    $count = $this->config->get('smart_seo_schema_faq_count') ?: 3;
+                    $prompt .= "===FAQ===\n";
+                    $prompt .= "Create " . $count . " FAQ pairs in format 'Q: [question] A: [answer]' covering specifications, usage, and compatibility.\n\n";
+                    break;
+                case 'howto':
+                    $steps = $this->config->get('smart_seo_schema_howto_steps_count') ?: 5;
+                    $prompt .= "===HOWTO===\n";
+                    $prompt .= "Create " . $steps . " step-by-step instructions in format 'Step 1: [instruction]' for using/installing this product.\n\n";
+                    break;
+                case 'review':
+                    $prompt .= "===REVIEW===\n";
+                    $prompt .= "Write a professional technical review (150-200 words) with pros, cons, use cases, and recommendation.\n\n";
+                    break;
+            }
+        }
+        
+        $prompt .= "Write only the requested content sections, clearly marked with the === headers above. No additional commentary.";
+        
+        $this->logDebug("Prompt combinado creado - Longitud: " . strlen($prompt));
+        
+        // Llamada única a la API con prompt combinado
+        $response = $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
             $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
             $prompt
         );
+        
+        if (!$response) {
+            throw new Exception('No response from AI API');
+        }
+        
+        $this->logDebug("Respuesta recibida - Longitud: " . strlen($response));
+        
+        // Parsear respuesta combinada en secciones
+        return $this->parseMultipleAIResponse($response, $content_types);
     }
 
     /**
-     * Generate AI FAQ - MEJORADO
+     * Parsea respuesta múltiple de IA en contenidos separados
      */
-    private function generateAIFAQ($product_info)
+    private function parseMultipleAIResponse($response, $content_types)
     {
-        $this->logDebug("Generando FAQ IA para: " . $product_info['name']);
+        $this->logDebug("Parseando respuesta múltiple...");
         
-        $count = $this->config->get('smart_seo_schema_faq_count') ?: 3;
+        $parsed_content = array();
         
-        $prompt = "Create " . $count . " frequently asked questions and answers for the product: " . $product_info['name'] . ". 
-
-Format each Q&A as:
-Q: [Question]
-A: [Answer]
-
-Make the questions realistic, practical, and focused on:
-1. Product specifications
-2. Usage instructions
-3. Compatibility/requirements
-4. Benefits and features
-5. Shipping/availability
-
-Keep answers concise but informative (2-3 sentences each). Write only the Q&A pairs, no additional commentary.";
-
-        return $this->callGroqAPI(
-            $this->config->get('smart_seo_schema_groq_api_key'),
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt
+        // Dividir por marcadores de sección
+        $sections = array(
+            'description' => '===DESCRIPTION===',
+            'faq' => '===FAQ===',
+            'howto' => '===HOWTO===',
+            'review' => '===REVIEW==='
         );
-    }
-
-    /**
-     * Generate AI HowTo - MEJORADO
-     */
-    private function generateAIHowTo($product_info)
-    {
-        $this->logDebug("Generando HowTo IA para: " . $product_info['name']);
         
-        $steps = $this->config->get('smart_seo_schema_howto_steps_count') ?: 5;
+        foreach ($content_types as $type) {
+            if (!isset($sections[$type])) {
+                continue;
+            }
+            
+            $marker = $sections[$type];
+            $start_pos = strpos($response, $marker);
+            
+            if ($start_pos !== false) {
+                $start_pos += strlen($marker);
+                
+                // Buscar el siguiente marcador o final de texto
+                $end_pos = strlen($response);
+                foreach ($sections as $other_marker) {
+                    if ($other_marker === $marker) continue;
+                    $next_pos = strpos($response, $other_marker, $start_pos);
+                    if ($next_pos !== false && $next_pos < $end_pos) {
+                        $end_pos = $next_pos;
+                    }
+                }
+                
+                $content = substr($response, $start_pos, $end_pos - $start_pos);
+                $content = trim($content);
+                
+                if (!empty($content)) {
+                    $parsed_content[$type] = $content;
+                    $this->logDebug("Extraído {$type}: " . strlen($content) . " caracteres");
+                }
+            } else {
+                $this->logDebug("Marcador no encontrado para: " . $type);
+            }
+        }
         
-        $prompt = "Create " . $steps . " step-by-step instructions for using/installing/setting up: " . $product_info['name'] . ". 
-
-Format as:
-Step 1: [Instruction]
-Step 2: [Instruction]
-etc.
-
-Make the instructions:
-1. Clear and actionable
-2. Logically ordered
-3. Include safety considerations if relevant
-4. Mention tools/requirements if needed
-5. Be specific and practical
-
-Write only the numbered steps, no additional commentary.";
-
-        return $this->callGroqAPI(
-            $this->config->get('smart_seo_schema_groq_api_key'),
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt
-        );
-    }
-
-    /**
-     * Generate AI Review - MEJORADO
-     */
-    private function generateAIReview($product_info)
-    {
-        $this->logDebug("Generando Review IA para: " . $product_info['name']);
+        // Fallback: si no hay marcadores, intentar usar toda la respuesta para el primer tipo
+        if (empty($parsed_content) && !empty($content_types)) {
+            $first_type = $content_types[0];
+            $parsed_content[$first_type] = trim($response);
+            $this->logDebug("Fallback: usando toda la respuesta para " . $first_type);
+        }
         
-        $prompt = "Write a professional, objective product review for: " . $product_info['name'] . ". 
-
-The review should include:
-1. Overall assessment
-2. Key strengths/pros
-3. Any limitations/cons (if relevant)
-4. Best use cases
-5. Value for money consideration
-6. Professional recommendation
-
-Keep it balanced, informative, and around 150-200 words. Write in a professional, third-person style as if from a technical expert. Write only the review text, no additional commentary.";
-
-        return $this->callGroqAPI(
-            $this->config->get('smart_seo_schema_groq_api_key'),
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt
-        );
+        $this->logDebug("Contenido parseado exitosamente - Tipos: " . implode(', ', array_keys($parsed_content)));
+        
+        return $parsed_content;
     }
 
     /**

@@ -5,7 +5,7 @@ if (!defined('DIR_CORE')) {
 }
 
 if (!class_exists('ExtensionSmartSeoSchema')) {
-    include_once('core/smart_seo_schema.php');
+    require_once(DIR_EXT . 'smart_seo_schema/core/smart_seo_schema.php');
 }
 
 $controllers = [

@@ -56,23 +56,22 @@
             </div>
             <div class="panel-body">
                 
-                <!-- Custom Description - CORREGIDO -->
+                <!-- Custom Description - OPTIMIZADO -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="custom_description">
                         <?php echo $entry_custom_description; ?>
                     </label>
                     <div class="input-group afield col-sm-7 col-xs-12">
-                        <span class="input-group-btn">
-                            <button type="button" class="btn btn-primary" onclick="generateAIContent('custom_description')">
-                                <i class="fa fa-magic"></i> AI Generate
-                            </button>
+                        <span class="input-group-addon">
+                            <input type="checkbox" id="ai_generate_description" name="ai_generate_description" value="1">
+                            <label for="ai_generate_description" style="margin-left: 5px;">AI Generate</label>
                         </span>
                         <textarea 
                             id="custom_description" 
                             name="custom_description" 
                             class="form-control large-field" 
                             rows="4" 
-                            placeholder="Enter custom description or click AI Generate..."><?php echo $schema_settings['custom_description'] ?? ''; ?></textarea>
+                            placeholder="Mark 'AI Generate' checkbox and click main AI button..."><?php echo $schema_settings['custom_description'] ?? ''; ?></textarea>
                     </div>
                 </div>
 
@@ -108,63 +107,70 @@
             </div>
             <div class="panel-body">
 
-                <!-- FAQ Content - CORREGIDO -->
+                <!-- FAQ Content - OPTIMIZADO -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="faq_content">
                         <?php echo $entry_faq_content; ?>
                     </label>
                     <div class="input-group afield col-sm-7 col-xs-12">
-                        <span class="input-group-btn">
-                            <button type="button" class="btn btn-primary" onclick="generateAIContent('faq')">
-                                <i class="fa fa-magic"></i> AI Generate FAQ
-                            </button>
+                        <span class="input-group-addon">
+                            <input type="checkbox" id="ai_generate_faq" name="ai_generate_faq" value="1">
+                            <label for="ai_generate_faq" style="margin-left: 5px;">AI Generate</label>
                         </span>
                         <textarea 
                             id="faq_content" 
                             name="faq_content" 
                             class="form-control large-field" 
                             rows="6" 
-                            placeholder="Enter FAQ content or click AI Generate..."><?php echo $schema_settings['faq_content'] ?? ''; ?></textarea>
+                            placeholder="Mark 'AI Generate' checkbox and click main AI button..."><?php echo $schema_settings['faq_content'] ?? ''; ?></textarea>
                     </div>
                 </div>
 
-                <!-- HowTo Content - CORREGIDO -->
+                <!-- HowTo Content - OPTIMIZADO -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="howto_content">
                         <?php echo $entry_howto_content; ?>
                     </label>
                     <div class="input-group afield col-sm-7 col-xs-12">
-                        <span class="input-group-btn">
-                            <button type="button" class="btn btn-primary" onclick="generateAIContent('howto')">
-                                <i class="fa fa-magic"></i> AI Generate HowTo
-                            </button>
+                        <span class="input-group-addon">
+                            <input type="checkbox" id="ai_generate_howto" name="ai_generate_howto" value="1">
+                            <label for="ai_generate_howto" style="margin-left: 5px;">AI Generate</label>
                         </span>
                         <textarea 
                             id="howto_content" 
                             name="howto_content" 
                             class="form-control large-field" 
                             rows="6" 
-                            placeholder="Enter HowTo instructions or click AI Generate..."><?php echo $schema_settings['howto_content'] ?? ''; ?></textarea>
+                            placeholder="Mark 'AI Generate' checkbox and click main AI button..."><?php echo $schema_settings['howto_content'] ?? ''; ?></textarea>
                     </div>
                 </div>
 
-                <!-- Review Content - CORREGIDO -->
+                <!-- Review Content - OPTIMIZADO -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="review_content">
                         <?php echo $entry_review_content; ?>
                     </label>
                     <div class="input-group afield col-sm-7 col-xs-12">
-                        <span class="input-group-btn">
-                            <button type="button" class="btn btn-primary" onclick="generateAIContent('review')">
-                                <i class="fa fa-magic"></i> AI Generate Review
-                            </button>
+                        <span class="input-group-addon">
+                            <input type="checkbox" id="ai_generate_review" name="ai_generate_review" value="1">
+                            <label for="ai_generate_review" style="margin-left: 5px;">AI Generate</label>
                         </span>
                         <textarea 
                             id="review_content" 
                             name="review_content" 
                             class="form-control large-field" 
                             rows="6" 
-                            placeholder="Enter review content or click AI Generate..."><?php echo $schema_settings['review_content'] ?? ''; ?></textarea>
+                            placeholder="Mark 'AI Generate' checkbox and click main AI button..."><?php echo $schema_settings['review_content'] ?? ''; ?></textarea>
+                    </div>
+                </div>
+
+                <!-- Main AI Generation Button -->
+                <div class="form-group">
+                    <div class="col-sm-offset-3 col-sm-7">
+                        <button type="button" id="generate_ai_content_main" class="btn btn-success btn-lg" onclick="generateAllAIContent()">
+                            <i class="fa fa-magic"></i> Generate Selected AI Content
+                        </button>
+                        <p class="help-block">Select content types above with checkboxes, then click this button to generate all selected content in one request.</p>
                     </div>
                 </div>
 
@@ -284,7 +290,7 @@ function checkAIStatus() {
     
     if (!apiKey || apiKey.length < 10) {
         showAIStatus('warning', 'AI features require a valid Groq API key. Configure it in extension settings.');
-        $('#test_ai_connection, [onclick*="generateAIContent"]').prop('disabled', true);
+        $('#test_ai_connection, #generate_ai_content_main').prop('disabled', true);
     } else {
         showAIStatus('success', 'API Key configured. Click "Test AI Connection" to verify.');
     }
@@ -348,80 +354,53 @@ function testAIConnection() {
     });
 }
 
-function generateAIContent(contentType) {
-    console.log('=== INICIO GENERACIÓN AI ===');
-    console.log('Tipo de contenido:', contentType);
+function generateAllAIContent() {
+    console.log('=== GENERACIÓN MÚLTIPLE DE CONTENIDO IA ===');
     
-    // MAPEO CORRECTO DE CAMPOS
-    var fieldMapping = {
-        'custom_description': 'custom_description',
-        'description': 'custom_description', // Fallback
-        'faq': 'faq_content',
-        'howto': 'howto_content', 
-        'review': 'review_content'
-    };
+    // Obtener tipos de contenido seleccionados
+    var selectedTypes = [];
+    if ($('#ai_generate_description').is(':checked')) selectedTypes.push('description');
+    if ($('#ai_generate_faq').is(':checked')) selectedTypes.push('faq');
+    if ($('#ai_generate_howto').is(':checked')) selectedTypes.push('howto');
+    if ($('#ai_generate_review').is(':checked')) selectedTypes.push('review');
     
-    var targetFieldId = fieldMapping[contentType];
-    if (!targetFieldId) {
-        console.error('Tipo de contenido no válido:', contentType);
-        error_alert('Error: Tipo de contenido no válido: ' + contentType);
-        return;
-    }
+    console.log('Tipos seleccionados:', selectedTypes);
     
-    console.log('Campo objetivo:', targetFieldId);
-    
-    // Verificar que existe el campo de destino
-    var $targetElement = $('#' + targetFieldId);
-    console.log('Elemento encontrado:', $targetElement.length > 0);
-    console.log('Elemento objeto:', $targetElement[0]);
-    
-    if ($targetElement.length === 0) {
-        console.error('Campo no encontrado:', targetFieldId);
-        error_alert('Error: Campo ' + targetFieldId + ' no encontrado en el formulario');
-        debugFormFields(); // Debug automático cuando hay error
+    if (selectedTypes.length === 0) {
+        error_alert('Please select at least one content type to generate.');
         return;
     }
     
     // Deshabilitar botón y mostrar loading
-    var $button = $('button[onclick*="generateAIContent(\'' + contentType + '\')"]');
+    var $button = $('#generate_ai_content_main');
     var originalText = $button.html();
-    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generando...');
+    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating Multiple Content...');
     
     $('#loading_modal').modal('show');
     
     // Preparar datos
     var postData = {
-        'content_type': contentType,
+        'content_types': selectedTypes,
         'product_id': '<?php echo $product_id; ?>'
     };
     
     console.log('Datos a enviar:', postData);
-    console.log('URL:', '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateAIContent", "&product_id=" . $product_id); ?>');
     
     $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateAIContent", "&product_id=" . $product_id); ?>',
+        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateMultipleAIContent", "&product_id=" . $product_id); ?>',
         type: 'POST',
         data: postData,
         dataType: 'json',
-        timeout: 30000,
-        beforeSend: function(xhr) {
-            console.log('Enviando petición AJAX...');
-        },
+        timeout: 60000, // 60 segundos para múltiple contenido
         success: function(response) {
-            console.log('=== RESPUESTA RECIBIDA ===');
+            console.log('=== RESPUESTA MÚLTIPLE RECIBIDA ===');
             console.log('Response completo:', response);
             
             $('#loading_modal').modal('hide');
             
             if (response.error) {
                 console.error('Error en respuesta:', response.message);
-                error_alert('Error generando contenido: ' + response.message);
-                
-                // Highlight error en el campo
-                $targetElement.addClass('highlight-error');
-                setTimeout(function() {
-                    $targetElement.removeClass('highlight-error');
-                }, 3000);
+                error_alert('Error generating content: ' + response.message);
                 
                 // Show debug si está disponible
                 if (response.debug) {
@@ -430,51 +409,63 @@ function generateAIContent(contentType) {
                     $('#debug_modal').modal('show');
                 }
             } else {
-                console.log('Contenido generado:', response.content);
-                console.log('Longitud:', response.content_length);
+                console.log('Contenido generado exitosamente para tipos:', Object.keys(response.content));
                 
-                // INSERTAR CONTENIDO EN EL CAMPO CORRECTO
-                if (response.content) {
-                    $targetElement.val(response.content);
-                    console.log('Contenido insertado en:', targetFieldId);
+                var successCount = 0;
+                var fieldMapping = {
+                    'description': 'custom_description',
+                    'faq': 'faq_content',
+                    'howto': 'howto_content',
+                    'review': 'review_content'
+                };
+                
+                // Llenar campos con contenido generado
+                for (var contentType in response.content) {
+                    var fieldId = fieldMapping[contentType];
+                    if (fieldId && response.content[contentType]) {
+                        $('#' + fieldId).val(response.content[contentType]);
+                        
+                        // Highlight del campo
+                        $('#' + fieldId).addClass('highlight-success');
+                        setTimeout(function(field) {
+                            return function() { $('#' + field).removeClass('highlight-success'); };
+                        }(fieldId), 3000);
+                        
+                        successCount++;
+                    }
+                }
+                
+                if (successCount > 0) {
+                    success_alert('Successfully generated ' + successCount + ' content types!');
                     
-                    // Mostrar éxito
-                    success_alert('Contenido IA generado exitosamente (' + response.content_length + ' caracteres)');
-                    
-                    // Scroll al campo para que el usuario lo vea
-                    $('html, body').animate({
-                        scrollTop: $targetElement.offset().top - 100
-                    }, 500);
-                    
-                    // Highlight del campo
-                    $targetElement.addClass('highlight-success');
-                    setTimeout(function() {
-                        $targetElement.removeClass('highlight-success');
-                    }, 3000);
-                    
+                    // Scroll al primer campo generado
+                    var firstField = Object.keys(response.content)[0];
+                    var firstFieldId = fieldMapping[firstField];
+                    if (firstFieldId) {
+                        $('html, body').animate({
+                            scrollTop: $('#' + firstFieldId).offset().top - 100
+                        }, 500);
+                    }
                 } else {
-                    console.warn('Respuesta exitosa pero sin contenido');
-                    error_alert('No se generó contenido. Intenta de nuevo.');
+                    error_alert('No content was generated. Please try again.');
                 }
             }
         },
         error: function(xhr, status, error) {
-            console.log('=== ERROR AJAX ===');
+            console.log('=== ERROR AJAX MÚLTIPLE ===');
             console.log('Status:', status);
             console.log('Error:', error);
             console.log('Response Text:', xhr.responseText);
-            console.log('Response JSON:', xhr.responseJSON);
             
             $('#loading_modal').modal('hide');
             
-            var errorMsg = 'Error en la generación de contenido: ';
+            var errorMsg = 'Error generating multiple content: ';
             
             if (status === 'timeout') {
-                errorMsg += 'Tiempo de espera agotado. La API puede estar lenta.';
+                errorMsg += 'Request timeout. Multiple content generation takes longer.';
             } else if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMsg += xhr.responseJSON.message;
             } else if (xhr.responseText) {
-                // Intentar extraer mensaje de error del HTML
                 var tempDiv = $('<div>').html(xhr.responseText);
                 var errorText = tempDiv.find('.alert-danger').text() || xhr.responseText.substring(0, 200);
                 errorMsg += errorText;
@@ -484,12 +475,6 @@ function generateAIContent(contentType) {
             
             error_alert(errorMsg);
             
-            // Highlight error en el campo
-            $targetElement.addClass('highlight-error');
-            setTimeout(function() {
-                $targetElement.removeClass('highlight-error');
-            }, 3000);
-            
             // Mostrar respuesta completa en debug modal
             $('#debug_content').text('AJAX Error Details:\n' +
                 'Status: ' + status + '\n' +
@@ -498,7 +483,7 @@ function generateAIContent(contentType) {
             $('#debug_modal').modal('show');
         },
         complete: function() {
-            console.log('=== AJAX COMPLETADO ===');
+            console.log('=== AJAX MÚLTIPLE COMPLETADO ===');
             // Restaurar botón
             $button.prop('disabled', false).html(originalText);
         }
