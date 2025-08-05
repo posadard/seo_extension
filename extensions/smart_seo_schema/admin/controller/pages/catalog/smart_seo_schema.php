@@ -1204,6 +1204,74 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return $query->rows;
     }
 
+    /**
+     * Sistema de diversificación de reviews para evitar patrones repetitivos
+     * Implementa múltiples arquetipos de reviewer y variaciones naturales
+     */
+    private function getReviewVariationProfile($product_info)
+    {
+        // Crear semilla determinística basada en el producto para consistencia
+        $seed = crc32($product_info['name'] . $product_info['model']);
+        srand($seed);
+        
+        // Seleccionar arquetipo de reviewer
+        $archetypes = [
+            'satisfied' => [
+                'tone' => 'positive',
+                'focus' => 'general_satisfaction',
+                'structure' => 'simple',
+                'length_preference' => 'medium'
+            ],
+            'detailed' => [
+                'tone' => 'informative',
+                'focus' => 'specific_features',
+                'structure' => 'two_paragraph',
+                'length_preference' => 'long'
+            ],
+            'practical' => [
+                'tone' => 'straightforward',
+                'focus' => 'real_use',
+                'structure' => 'single_paragraph',
+                'length_preference' => 'medium'
+            ],
+            'experienced' => [
+                'tone' => 'knowledgeable',
+                'focus' => 'comparison_context',
+                'structure' => 'two_paragraph',
+                'length_preference' => 'long'
+            ],
+            'brief' => [
+                'tone' => 'direct',
+                'focus' => 'bottom_line',
+                'structure' => 'single_paragraph',
+                'length_preference' => 'short'
+            ]
+        ];
+        
+        $archetype_keys = array_keys($archetypes);
+        $selected_archetype = $archetypes[$archetype_keys[rand(0, count($archetype_keys) - 1)]];
+        
+        // Variaciones naturales sin formateo especial
+        $variations = [
+            'mentions_timeframe' => (rand(1, 3) == 1),  // 33% chance
+            'includes_specifics' => (rand(1, 2) == 1),  // 50% chance
+            'personal_context' => (rand(1, 4) == 1),    // 25% chance
+            'minor_issue' => (rand(1, 5) == 1),         // 20% chance
+            'recommends' => (rand(1, 2) == 1),          // 50% chance
+            'compares' => (rand(1, 4) == 1)             // 25% chance
+        ];
+        
+        // Determinar estructura de párrafos
+        $paragraph_count = ($selected_archetype['structure'] === 'two_paragraph') ? 2 : 1;
+        
+        return [
+            'archetype' => $selected_archetype,
+            'variations' => $variations,
+            'paragraph_count' => $paragraph_count,
+            'seed' => $seed
+        ];
+    }
+
     private function optimizeReviewWithAI($review_text, $product_info)
     {
         $api_key = $this->config->get('smart_seo_schema_groq_api_key');
@@ -1212,21 +1280,16 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             throw new Exception('No API key configured');
         }
         
-        $prompt = "Optimize this product review to be more helpful and detailed while maintaining authenticity and the original rating sentiment:\n\n";
-        $prompt .= "Product: " . $product_info['name'] . "\n";
-        $prompt .= "Original review: " . $review_text . "\n\n";
-        $prompt .= "Please improve the review by:\n";
-        $prompt .= "- Adding more specific details about the product\n";
-        $prompt .= "- Enhancing readability and structure\n";
-        $prompt .= "- Maintaining the original tone and rating sentiment\n";
-        $prompt .= "- Making it more helpful for other customers\n\n";
-        $prompt .= "Return ONLY the improved review text, no additional formatting or explanations:";
+        // Obtener perfil de variación para mantener consistencia
+        $profile = $this->getReviewVariationProfile($product_info);
+        
+        $prompt = $this->buildOptimizationPrompt($review_text, $product_info, $profile);
         
         return $this->callGroqAPI(
             $api_key,
             $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
             $prompt,
-            300
+            350
         );
     }
 
@@ -1239,8 +1302,72 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         }
         
         $rating = rand(3, 5);
+        $profile = $this->getReviewVariationProfile($product_info);
         
-        $prompt = "Generate a realistic product review for this product. Return ONLY valid JSON with no additional text or formatting.\n\n";
+        $prompt = $this->buildGenerationPrompt($product_info, $rating, $profile);
+        
+        $response = $this->callGroqAPI(
+            $api_key,
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
+            $prompt,
+            450
+        );
+        
+        return $this->parseReviewResponse($response, $rating, $product_info['name']);
+    }
+
+    private function buildOptimizationPrompt($review_text, $product_info, $profile)
+    {
+        $archetype = $profile['archetype'];
+        $variations = $profile['variations'];
+        
+        $prompt = "Optimize this product review to sound natural and helpful like a real customer wrote it:\n\n";
+        $prompt .= "Product: " . $product_info['name'] . "\n";
+        $prompt .= "Original review: " . $review_text . "\n\n";
+        
+        $prompt .= "REQUIREMENTS:\n";
+        $prompt .= "• Length: 400-1800 characters total\n";
+        $prompt .= "• Write in " . ($profile['paragraph_count'] == 2 ? '2 paragraphs' : '1 paragraph') . "\n";
+        $prompt .= "• Use simple, natural language like people actually write\n";
+        $prompt .= "• No bullet points, special formatting, or excessive punctuation\n";
+        $prompt .= "• Keep the original rating sentiment\n";
+        $prompt .= "• Sound like " . $archetype['tone'] . " customer focused on " . $archetype['focus'] . "\n";
+        
+        if ($variations['mentions_timeframe']) {
+            $prompt .= "• Mention how long you've used/had the product\n";
+        }
+        
+        if ($variations['includes_specifics']) {
+            $prompt .= "• Include specific details about features or performance\n";
+        }
+        
+        if ($variations['personal_context']) {
+            $prompt .= "• Briefly mention why you needed this product\n";
+        }
+        
+        if ($variations['minor_issue']) {
+            $prompt .= "• Include one small realistic complaint to sound authentic\n";
+        }
+        
+        if ($variations['recommends']) {
+            $prompt .= "• Include whether you'd recommend it\n";
+        }
+        
+        if ($variations['compares']) {
+            $prompt .= "• Briefly compare to other similar products if relevant\n";
+        }
+        
+        $prompt .= "\nWrite naturally like a real person posting an online review. No fancy formatting:";
+        
+        return $prompt;
+    }
+
+    private function buildGenerationPrompt($product_info, $rating, $profile)
+    {
+        $archetype = $profile['archetype'];
+        $variations = $profile['variations'];
+        
+        $prompt = "Generate a realistic product review that sounds like a real customer wrote it:\n\n";
         $prompt .= "Product: " . $product_info['name'] . "\n";
         $prompt .= "Model: " . $product_info['model'] . "\n";
         
@@ -1249,28 +1376,74 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $prompt .= "Description: " . substr($description, 0, 300) . "\n";
         }
         
-        $prompt .= "\nGenerate a " . $rating . "-star review with these exact JSON fields:\n";
-        $prompt .= '{"author": "realistic_name", "text": "detailed_review_100_to_200_words", "rating": ' . $rating . ', "verified_purchase": 1, "status": 1}' . "\n\n";
-        $prompt .= "Make the review sound authentic and helpful for potential buyers. Return ONLY the JSON object:";
+        $prompt .= "\nRating: " . $rating . " stars\n\n";
         
-        $response = $this->callGroqAPI(
-            $api_key,
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt,
-            400
-        );
+        $prompt .= "REQUIREMENTS:\n";
+        $prompt .= "• Length: 400-1800 characters total\n";
+        $prompt .= "• Write in " . ($profile['paragraph_count'] == 2 ? '2 paragraphs' : '1 paragraph') . "\n";
+        $prompt .= "• Use natural everyday language like real customers use\n";
+        $prompt .= "• No bullet points, special symbols, or fancy formatting\n";
+        $prompt .= "• Sound " . $archetype['tone'] . " and focus on " . $archetype['focus'] . "\n";
         
+        if ($variations['mentions_timeframe']) {
+            $prompt .= "• Mention how long you've been using it\n";
+        }
+        
+        if ($variations['includes_specifics']) {
+            $prompt .= "• Include specific details about the product\n";
+        }
+        
+        if ($variations['personal_context']) {
+            $prompt .= "• Briefly explain why you bought this product\n";
+        }
+        
+        if ($variations['minor_issue']) {
+            $prompt .= "• Mention one small realistic issue for authenticity\n";
+        }
+        
+        if ($variations['recommends']) {
+            $prompt .= "• Say whether you'd recommend it to others\n";
+        }
+        
+        if ($variations['compares']) {
+            $prompt .= "• Compare it to similar products you know\n";
+        }
+        
+        // Nombres simples y realistas
+        $simple_names = [
+            'Mike', 'Sarah', 'Dave', 'Lisa', 'Tom', 'Amy', 'Chris', 'Kim', 
+            'Jake', 'Jen', 'Sam', 'Alex', 'Pat', 'Jordan', 'Casey', 'Taylor'
+        ];
+        $selected_name = $simple_names[array_rand($simple_names)];
+        
+        $prompt .= "\nWrite like a normal person posting a review online. Return ONLY valid JSON:\n";
+        $prompt .= '{"author": "' . $selected_name . '", "text": "review_text_here", "rating": ' . $rating . ', "verified_purchase": 1, "status": 1}';
+        
+        return $prompt;
+    }
+
+    private function parseReviewResponse($response, $rating, $product_name)
+    {
         $clean_response = trim($response);
         $clean_response = preg_replace('/^[^{]*/', '', $clean_response);
         $clean_response = preg_replace('/[^}]*$/', '', $clean_response);
         
         $review_data = json_decode($clean_response, true);
+        
         if (!$review_data || !isset($review_data['author']) || !isset($review_data['text']) || !isset($review_data['rating'])) {
             $this->logDebug("Failed to parse JSON response: " . $clean_response);
             
+            // Fallback con variación
+            $fallback_names = ['Verified Customer', 'Product User', 'Customer Review', 'Satisfied Buyer'];
+            $fallback_texts = [
+                "Great product! The " . $product_name . " works exactly as described and meets all my expectations. Good build quality and reliable performance. Used it for several weeks now and very satisfied with the purchase. Would definitely recommend to others looking for this type of product.",
+                "Really impressed with this " . $product_name . ". Easy to use and delivers consistent results. Had it for about a month now and it's been working perfectly. The features are well-designed and practical. Minor complaint would be the packaging could be better, but the product itself is excellent.",
+                "Solid choice for the price point. The " . $product_name . " has all the features I needed and works reliably. Setup was straightforward and it's been performing well in daily use. Would buy again and recommend to friends."
+            ];
+            
             $fallback_data = array(
-                'author' => 'Customer Review',
-                'text' => $this->extractTextFromResponse($response, $product_info['name']),
+                'author' => $fallback_names[array_rand($fallback_names)],
+                'text' => $fallback_texts[array_rand($fallback_texts)],
                 'rating' => $rating,
                 'verified_purchase' => 1,
                 'status' => 1
@@ -1278,11 +1451,67 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             return $fallback_data;
         }
         
+        // Validar y limpiar datos
         $review_data['rating'] = (int)$review_data['rating'];
         $review_data['verified_purchase'] = isset($review_data['verified_purchase']) ? (int)$review_data['verified_purchase'] : 1;
         $review_data['status'] = isset($review_data['status']) ? (int)$review_data['status'] : 1;
         
+        // Validar longitud del texto
+        $text_length = strlen($review_data['text']);
+        if ($text_length < 400 || $text_length > 1800) {
+            $this->logDebug("Review text length out of range: " . $text_length . " characters");
+            // Usar fallback si está fuera del rango óptimo
+            $fallback_data = array(
+                'author' => $review_data['author'],
+                'text' => $this->adjustReviewLength($review_data['text'], $product_name),
+                'rating' => $review_data['rating'],
+                'verified_purchase' => $review_data['verified_purchase'],
+                'status' => $review_data['status']
+            );
+            return $fallback_data;
+        }
+        
         return $review_data;
+    }
+
+    private function adjustReviewLength($text, $product_name)
+    {
+        $current_length = strlen($text);
+        
+        if ($current_length < 100) {
+            // Expandir texto corto
+            $expansions = [
+                " The build quality feels solid and reliable.",
+                " Setup was straightforward and user-friendly.", 
+                " Been using it regularly and very satisfied with performance.",
+                " Would definitely recommend to others.",
+                " Good value for the price point."
+            ];
+            
+            while (strlen($text) < 100 && !empty($expansions)) {
+                $addition = array_shift($expansions);
+                if (strlen($text . $addition) <= 200) {
+                    $text .= $addition;
+                }
+            }
+        } elseif ($current_length > 200) {
+            // Recortar texto largo manteniendo sentido
+            $sentences = preg_split('/[.!?]+/', $text);
+            $shortened = '';
+            
+            foreach ($sentences as $sentence) {
+                $potential = $shortened . trim($sentence) . '.';
+                if (strlen($potential) <= 200) {
+                    $shortened = $potential;
+                } else {
+                    break;
+                }
+            }
+            
+            $text = $shortened ?: substr($text, 0, 197) . '...';
+        }
+        
+        return $text;
     }
 
     private function extractTextFromResponse($response, $product_name)
