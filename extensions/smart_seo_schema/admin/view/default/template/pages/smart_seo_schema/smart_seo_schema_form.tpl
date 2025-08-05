@@ -23,6 +23,12 @@
                     <i class="fa fa-eye fa-lg"></i> <?php echo $button_preview_schema; ?>
                 </button>
 
+                <!-- Generate Others Content Button -->
+                <button type="button" id="generate_others_content" class="btn btn-primary tooltips" 
+                        title="Auto-generate shipping & return policy defaults">
+                    <i class="fa fa-cogs fa-lg"></i> Auto-Generate Defaults
+                </button>
+
                 <?php echo $this->getHookVar('extension_toolbar_buttons'); ?>
             </div>
         </div>
@@ -236,34 +242,43 @@
             </div>
         </div>
 
-        <!-- Others Content Section - NUEVO CAMPO PARA DATOS ADICIONALES -->
+        <!-- Others Content Section - CAMPO EDITABLES PARA shippingDetails y returnPolicy -->
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h4 class="panel-title">
                     <i class="fa fa-code"></i> Additional Schema Properties
-                    <small class="text-muted">- JSON data for enhanced Rich Results</small>
+                    <small class="text-muted">- Editable shipping & return policy defaults</small>
                 </h4>
             </div>
             <div class="panel-body">
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i> <strong>This field contains default shippingDetails and hasMerchantReturnPolicy</strong> 
+                    that apply to ALL product variants. You can customize the shipping rates, delivery times, and return policies here.
+                </div>
+                
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="others_content">
                         Additional Properties:<br>
-                        <span class="help">JSON data for productGroupID, additionalProperty, shippingDetails, etc.</span>
+                        <span class="help">JSON data for shippingDetails, hasMerchantReturnPolicy, productGroupID, etc.</span>
                     </label>
                     <div class="input-group afield col-sm-7 col-xs-12">
                         <textarea 
                             id="others_content" 
                             name="others_content" 
                             class="form-control large-field" 
-                            rows="8" 
-                            placeholder='{"productGroupID": "ABC123", "additionalProperty": [], "isCompatibleWith": []}'><?php echo $schema_settings['others_content'] ?? ''; ?></textarea>
+                            rows="12" 
+                            placeholder='Click "Auto-Generate Defaults" to populate with shipping & return policy defaults'><?php echo $schema_settings['others_content'] ?? ''; ?></textarea>
                     </div>
                     <div class="col-sm-2 col-xs-12">
                         <div class="alert alert-info" style="margin-top: 0; padding: 10px;">
                             <small>
-                                <strong>Examples:</strong><br>
-                                • productGroupID<br>
+                                <strong>Default Fields:</strong><br>
+                                • shippingDetails ($5.99 USD)<br>
+                                • hasMerchantReturnPolicy (30 days)<br>
+                                • productGroupID (main SKU)<br>
                                 • additionalProperty<br>
+                                <hr style="margin: 8px 0;">
+                                <strong>Custom Fields:</strong><br>
                                 • isCompatibleWith<br>
                                 • Custom offers<br>
                                 • Rich snippets data
@@ -272,12 +287,17 @@
                     </div>
                 </div>
                 
-                <!-- JSON Validation Button -->
+                <!-- JSON Validation and Auto-Generate Buttons -->
                 <div class="form-group">
                     <div class="col-sm-offset-3 col-sm-7">
-                        <button type="button" id="validate_json" class="btn btn-warning" onclick="validateOthersContentJSON()">
-                            <i class="fa fa-check-circle"></i> Validate JSON Format
-                        </button>
+                        <div class="btn-group">
+                            <button type="button" id="auto_generate_others" class="btn btn-primary" onclick="autoGenerateOthersContent()">
+                                <i class="fa fa-magic"></i> Auto-Generate Defaults
+                            </button>
+                            <button type="button" id="validate_json" class="btn btn-warning" onclick="validateOthersContentJSON()">
+                                <i class="fa fa-check-circle"></i> Validate JSON Format
+                            </button>
+                        </div>
                         <div id="json_validation_result" class="help-block"></div>
                     </div>
                 </div>
@@ -767,6 +787,49 @@ function generateAllAIContent() {
     });
 }
 
+function autoGenerateOthersContent() {
+    console.log('=== AUTO-GENERANDO OTHERS CONTENT CON DEFAULTS ===');
+    
+    $('#auto_generate_others').attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
+    
+    $.ajax({
+        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateOthersContent", "&product_id=" . $product_id); ?>',
+        type: 'GET',
+        dataType: 'json',
+        timeout: 15000,
+        success: function(response) {
+            console.log('Others content response:', response);
+            
+            if (response.error) {
+                error_alert('Error generating others content: ' + response.message);
+            } else {
+                // Formatear JSON con indentación y llenar el campo
+                var formattedJson = JSON.stringify(response.others_content, null, 2);
+                $('#others_content').val(formattedJson);
+                
+                // Highlight y scroll
+                $('#others_content').addClass('highlight-success');
+                setTimeout(function() {
+                    $('#others_content').removeClass('highlight-success');
+                }, 3000);
+                
+                $('html, body').animate({
+                    scrollTop: $('#others_content').offset().top - 100
+                }, 500);
+                
+                success_alert('Default shipping and return policy content generated successfully!');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.log('Error generating others content:', {xhr: xhr, status: status, error: error});
+            error_alert('Failed to generate others content. Please try again.');
+        },
+        complete: function() {
+            $('#auto_generate_others').attr('disabled', false).html('<i class="fa fa-magic"></i> Auto-Generate Defaults');
+        }
+    });
+}
+
 function previewSchema() {
     console.log('=== GENERATING SCHEMA PREVIEW ===');
     
@@ -886,6 +949,7 @@ function debugFormFields() {
 // Bind click events
 $('#test_ai_connection').click(testAIConnection);
 $('#preview_schema').click(previewSchema);
+$('#generate_others_content').click(autoGenerateOthersContent);
 
 -->
 </script>

@@ -366,7 +366,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 throw new Exception('Product not found: ' . $product_id);
             }
             
-            // Generar others_content con datos técnicos y de Rich Results
+            // Generar others_content con datos técnicos y de Rich Results con defaults mejorados
             $others_content = $this->generateOthersContentData($product_info);
             
             // Guardar en base de datos
@@ -753,11 +753,50 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * NUEVO: Generar others_content con datos automáticos para Rich Results
+     * NUEVO: Generar others_content con datos automáticos para Rich Results con defaults mejorados
      */
     private function generateOthersContentData($product_info)
     {
         $others_data = array();
+        
+        // shippingDetails - DEFAULT REQUERIDO
+        $others_data['shippingDetails'] = array(
+            "@type" => "OfferShippingDetails",
+            "shippingRate" => array(
+                "@type" => "MonetaryAmount",
+                "value" => "5.99",
+                "currency" => "USD"
+            ),
+            "shippingDestination" => array(
+                "@type" => "DefinedRegion",
+                "addressCountry" => "US"
+            ),
+            "deliveryTime" => array(
+                "@type" => "ShippingDeliveryTime",
+                "handlingTime" => array(
+                    "@type" => "QuantitativeValue",
+                    "minValue" => 1,
+                    "maxValue" => 2,
+                    "unitCode" => "d"
+                ),
+                "transitTime" => array(
+                    "@type" => "QuantitativeValue",
+                    "minValue" => 3,
+                    "maxValue" => 5,
+                    "unitCode" => "d"
+                )
+            )
+        );
+        
+        // hasMerchantReturnPolicy - DEFAULT REQUERIDO
+        $others_data['hasMerchantReturnPolicy'] = array(
+            "@type" => "MerchantReturnPolicy",
+            "applicableCountry" => "US",
+            "returnPolicyCategory" => "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays" => 30,
+            "returnMethod" => "https://schema.org/ReturnByMail",
+            "returnFees" => "https://schema.org/FreeReturn"
+        );
         
         // productGroupID - Basado en modelo o categoría
         if (!empty($product_info['model'])) {

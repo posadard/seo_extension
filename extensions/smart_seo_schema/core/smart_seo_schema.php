@@ -152,7 +152,7 @@ class ExtensionSmartSeoSchema extends Extension
         // hasVariant[] - Sistema nativo de AbanteCart
         if ($that->config->get('smart_seo_schema_enable_variants') && 
             (!empty($saved_content['enable_variants']) || $saved_content === null)) {
-            $variants = $this->getProductVariants($product_info['product_id'], $that);
+            $variants = $this->getProductVariants($product_info['product_id'], $that, $saved_content);
             if (!empty($variants)) {
                 $product_snippet["hasVariant"] = $variants;
             }
@@ -160,7 +160,7 @@ class ExtensionSmartSeoSchema extends Extension
 
         // Offer principal (si no hay variantes o como fallback)
         if ($that->config->get('smart_seo_schema_show_offer')) {
-            $offer = $this->getProductOffer($that, $product_info);
+            $offer = $this->getProductOffer($that, $product_info, $saved_content);
             if ($offer && empty($product_snippet["hasVariant"])) {
                 $product_snippet["offers"] = $offer;
             }
@@ -232,9 +232,9 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Obtiene variantes desde tablas nativas de AbanteCart con cálculo de precios mejorado
+     * Obtiene variantes desde tablas nativas de AbanteCart con campos requeridos corregidos
      */
-    private function getProductVariants($product_id, $that)
+    private function getProductVariants($product_id, $that, $saved_content = null)
     {
         $db = $that->db;
         $language_id = $this->getAdminDefaultLanguageId($that);
@@ -261,13 +261,22 @@ class ExtensionSmartSeoSchema extends Extension
             return [];
         }
 
-        // Obtener precio base del producto
-        $base_price_query = $db->query("
-            SELECT price 
+        // Obtener precio base del producto y SKU principal
+        $base_product_query = $db->query("
+            SELECT price, sku 
             FROM " . DB_PREFIX . "products 
             WHERE product_id = " . (int)$product_id
         );
-        $base_price = $base_price_query->row['price'] ?? 0;
+        $base_price = $base_product_query->row['price'] ?? 0;
+        $main_sku = $base_product_query->row['sku'] ?? '';
+
+        // Obtener imagen principal y descripción por defecto
+        $main_image = $this->getProductMainImage($that, $product_id);
+        $main_description = $this->getProductDescription($that, $product_id);
+        
+        // Extraer shippingDetails y returnPolicy de others_content
+        $shipping_details = $this->getShippingDetailsFromOthers($saved_content);
+        $return_policy = $this->getReturnPolicyFromOthers($saved_content);
 
         $variants = [];
         foreach ($query->rows as $row) {
@@ -277,6 +286,9 @@ class ExtensionSmartSeoSchema extends Extension
                 "@type" => "Product",
                 "name"  => $row['variant_name'],
                 "sku"   => $row['sku'] ?: "VAR-" . $row['product_option_value_id'],
+                "image" => $main_image, // Usar imagen principal para todas las variantes
+                "description" => $main_description, // Usar descripción principal para todas las variantes
+                "productGroupID" => $main_sku, // Usar SKU principal como productGroupID
                 "offers" => [
                     "@type"        => "Offer",
                     "price"        => number_format($variant_price, 2, '.', ''),
@@ -285,10 +297,146 @@ class ExtensionSmartSeoSchema extends Extension
                 ]
             ];
 
+            // Agregar shippingDetails si existe en others_content
+            if ($shipping_details) {
+                $variant["offers"]["shippingDetails"] = $shipping_details;
+            }
+
+            // Agregar returnPolicy si existe en others_content
+            if ($return_policy) {
+                $variant["offers"]["hasMerchantReturnPolicy"] = $return_policy;
+            }
+
             $variants[] = $variant;
         }
 
         return $variants;
+    }
+
+    /**
+     * Obtiene la imagen principal del producto
+     */
+    private function getProductMainImage($that, $product_id)
+    {
+        $db = $that->db;
+        $config = $that->config;
+        
+        // Obtener primera imagen del producto
+        $imageQuery = "SELECT rd.resource_path 
+                      FROM " . DB_PREFIX . "resource_map rm 
+                      JOIN " . DB_PREFIX . "resource_descriptions rd ON rm.resource_id = rd.resource_id
+                      WHERE rm.object_name = 'products' AND rm.object_id = " . (int)$product_id . " 
+                      ORDER BY rm.sort_order ASC
+                      LIMIT 1";
+        $imageStmt = $db->query($imageQuery);
+        
+        if ($imageStmt->num_rows) {
+            $storeUrl = rtrim($config->get('config_ssl_url') ?: $config->get('config_url'), '/');
+            return $storeUrl . '/resources/image/' . $imageStmt->row['resource_path'];
+        }
+        
+        // Fallback: imagen por defecto
+        $storeUrl = rtrim($config->get('config_ssl_url') ?: $config->get('config_url'), '/');
+        return $storeUrl . '/image/no_image.jpg';
+    }
+
+    /**
+     * Obtiene la descripción principal del producto
+     */
+    private function getProductDescription($that, $product_id)
+    {
+        $db = $that->db;
+        $language_id = $this->getAdminDefaultLanguageId($that);
+        
+        $query = $db->query("
+            SELECT description, blurb 
+            FROM " . DB_PREFIX . "product_descriptions 
+            WHERE product_id = " . (int)$product_id . " 
+            AND language_id = " . (int)$language_id . "
+            LIMIT 1
+        ");
+        
+        if ($query->num_rows) {
+            $row = $query->row;
+            
+            // Priorizar blurb si está disponible, sino usar description
+            if (!empty($row['blurb'])) {
+                return strip_tags(html_entity_decode($row['blurb']));
+            } elseif (!empty($row['description'])) {
+                return strip_tags(html_entity_decode($row['description']));
+            }
+        }
+        
+        return '';
+    }
+
+    /**
+     * Extrae shippingDetails de others_content
+     */
+    private function getShippingDetailsFromOthers($saved_content)
+    {
+        if (!$saved_content || empty($saved_content['others_content'])) {
+            // Retornar default si no hay contenido guardado
+            return [
+                "@type" => "OfferShippingDetails",
+                "shippingRate" => [
+                    "@type" => "MonetaryAmount",
+                    "value" => "5.99",
+                    "currency" => "USD"
+                ],
+                "shippingDestination" => [
+                    "@type" => "DefinedRegion",
+                    "addressCountry" => "US"
+                ],
+                "deliveryTime" => [
+                    "@type" => "ShippingDeliveryTime",
+                    "handlingTime" => [
+                        "@type" => "QuantitativeValue",
+                        "minValue" => 1,
+                        "maxValue" => 2,
+                        "unitCode" => "d"
+                    ],
+                    "transitTime" => [
+                        "@type" => "QuantitativeValue",
+                        "minValue" => 3,
+                        "maxValue" => 5,
+                        "unitCode" => "d"
+                    ]
+                ]
+            ];
+        }
+        
+        $others_data = json_decode($saved_content['others_content'], true);
+        if (is_array($others_data) && isset($others_data['shippingDetails'])) {
+            return $others_data['shippingDetails'];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Extrae returnPolicy de others_content
+     */
+    private function getReturnPolicyFromOthers($saved_content)
+    {
+        if (!$saved_content || empty($saved_content['others_content'])) {
+            // Retornar default si no hay contenido guardado
+            return [
+                "@type" => "MerchantReturnPolicy",
+                "applicableCountry" => "US",
+                "returnPolicyCategory" => "https://schema.org/MerchantReturnFiniteReturnWindow",
+                "merchantReturnDays" => 30,
+                "returnMethod" => "https://schema.org/ReturnByMail",
+                "returnFees" => "https://schema.org/FreeReturn"
+            ];
+        }
+        
+        $others_data = json_decode($saved_content['others_content'], true);
+        if (is_array($others_data) && isset($others_data['hasMerchantReturnPolicy'])) {
+            return $others_data['hasMerchantReturnPolicy'];
+        }
+        
+        return null;
     }
 
     /**
@@ -474,9 +622,9 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Genera offer principal con campos mejorados para IA
+     * Genera offer principal con campos mejorados para IA y campos requeridos
      */
-    private function getProductOffer($that, $product_info)
+    private function getProductOffer($that, $product_info, $saved_content = null)
     {
         $price = $product_info['final_price'] > 0.00 ? $product_info['final_price'] : $product_info['price'];
         
@@ -512,27 +660,17 @@ class ExtensionSmartSeoSchema extends Extension
             $offer["availability"] = "https://schema.org/" . $stockStatus;
         }
 
-        // Agregar información de envío básica
-        $offer["shippingDetails"] = [
-            "@type" => "OfferShippingDetails",
-            "deliveryTime" => [
-                "@type" => "ShippingDeliveryTime",
-                "businessDays" => [
-                    "@type" => "OpeningHoursSpecification",
-                    "dayOfWeek" => ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                    "opens" => "09:00",
-                    "closes" => "17:00"
-                ]
-            ]
-        ];
+        // Agregar shippingDetails desde others_content o default
+        $shipping_details = $this->getShippingDetailsFromOthers($saved_content);
+        if ($shipping_details) {
+            $offer["shippingDetails"] = $shipping_details;
+        }
 
-        // Agregar política de devolución básica
-        $offer["hasMerchantReturnPolicy"] = [
-            "@type" => "MerchantReturnPolicy",
-            "applicableCountry" => "US",
-            "returnPolicyCategory" => "https://schema.org/MerchantReturnFiniteReturnWindow",
-            "merchantReturnDays" => 30
-        ];
+        // Agregar returnPolicy desde others_content o default
+        $return_policy = $this->getReturnPolicyFromOthers($saved_content);
+        if ($return_policy) {
+            $offer["hasMerchantReturnPolicy"] = $return_policy;
+        }
 
         return $offer;
     }
