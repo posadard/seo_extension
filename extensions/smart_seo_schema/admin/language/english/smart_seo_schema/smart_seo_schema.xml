@@ -45,7 +45,7 @@
 </definition>
 <definition>
     <key>smart_seo_schema_ai_min_tokens_per_content</key>
-    <value><![CDATA[Minimum Tokens Per Content:<br /><span class="help">Minimum guaranteed tokens for each content type when dividing total tokens. Default: 100</span>]]></value>
+    <value><![CDATA[Minimum Tokens Per Content:<br /><span class="help">Minimum guaranteed tokens for each individual content generation. Default: 100</span>]]></value>
 </definition>
 
 <definition>
@@ -86,6 +86,49 @@
     <key>entry_product_reviews</key>
     <value><![CDATA[Product Reviews:<br /><span class="help">Manage actual product reviews from database with AI optimization capabilities</span>]]></value>
   </definition>
+
+  <!-- Individual Generation Buttons -->
+  <definition>
+    <key>button_generate_description</key>
+    <value><![CDATA[Generate Description]]></value>
+  </definition>
+  <definition>
+    <key>button_generate_faq</key>
+    <value><![CDATA[Generate FAQ]]></value>
+  </definition>
+  <definition>
+    <key>button_generate_howto</key>
+    <value><![CDATA[Generate HowTo]]></value>
+  </definition>
+
+  <!-- Individual Generation Success Messages -->
+  <definition>
+    <key>success_description_generated</key>
+    <value><![CDATA[Product description generated successfully!]]></value>
+  </definition>
+  <definition>
+    <key>success_faq_generated</key>
+    <value><![CDATA[FAQ content generated successfully!]]></value>
+  </definition>
+  <definition>
+    <key>success_howto_generated</key>
+    <value><![CDATA[HowTo instructions generated successfully!]]></value>
+  </definition>
+
+  <!-- Individual Generation Error Messages -->
+  <definition>
+    <key>error_description_generate_failed</key>
+    <value><![CDATA[Failed to generate description. Please check your AI configuration.]]></value>
+  </definition>
+  <definition>
+    <key>error_faq_generate_failed</key>
+    <value><![CDATA[Failed to generate FAQ content. Please check your AI configuration.]]></value>
+  </definition>
+  <definition>
+    <key>error_howto_generate_failed</key>
+    <value><![CDATA[Failed to generate HowTo instructions. Please check your AI configuration.]]></value>
+  </definition>
+
 
   <definition>
     <key>smart_seo_schema_groq_api_key</key>
@@ -129,11 +172,11 @@
   </definition>
   <definition>
     <key>smart_seo_schema_ai_max_tokens</key>
-    <value><![CDATA[Max Tokens:<br /><span class="help">Maximum length of AI-generated content. Default: 200 tokens (~150 words)</span>]]></value>
+    <value><![CDATA[Max Tokens:<br /><span class="help">Maximum length of AI-generated content for individual generation. Default: 800 tokens (~600 words)</span>]]></value>
   </definition>
   <definition>
     <key>smart_seo_schema_ai_timeout</key>
-    <value><![CDATA[API Timeout (seconds):<br /><span class="help">Maximum time to wait for AI response. Default: 10 seconds</span>]]></value>
+    <value><![CDATA[API Timeout (seconds):<br /><span class="help">Maximum time to wait for AI response. Default: 30 seconds</span>]]></value>
   </definition>
 
   <definition>
@@ -213,7 +256,7 @@
   </definition>
   <definition>
     <key>text_section_ai</key>
-    <value><![CDATA[AI Content Generation]]></value>
+    <value><![CDATA[AI Content Generation - Individual]]></value>
   </definition>
   <definition>
     <key>text_section_reviews</key>
@@ -238,7 +281,7 @@
 
   <definition>
     <key>text_ai_connection_success</key>
-    <value><![CDATA[AI connection successful! Groq API is working properly.]]></value>
+    <value><![CDATA[AI connection successful! Individual generation ready for each content type.]]></value>
   </definition>
   <definition>
     <key>text_ai_connection_failed</key>
@@ -435,6 +478,14 @@
   </definition>
 
   <definition>
+    <key>help_individual_generation</key>
+    <value><![CDATA[Each content section has its own AI generation button. Each section uses the full min-max token range configured in extension settings for optimal content length.]]></value>
+  </definition>
+  <definition>
+    <key>help_token_settings</key>
+    <value><![CDATA[Configure minimum and maximum tokens in extension settings. Each individual generation will use this range to create appropriately sized content.]]></value>
+  </definition>
+  <definition>
     <key>help_schema_org</key>
     <value><![CDATA[Schema.org is a structured data vocabulary that helps search engines understand your content better, leading to enhanced search results and better SEO.]]></value>
   </definition>
@@ -445,5 +496,15 @@
   <definition>
     <key>help_reviews_management</key>
     <value><![CDATA[Manage real product reviews from your database. Use AI to optimize existing reviews or generate example reviews for products without reviews. All reviews contribute to Schema.org structured data for better SEO.]]></value>
+  </definition>
+
+  <!-- Additional helpful texts for individual generation -->
+  <definition>
+    <key>text_individual_generation_info</key>
+    <value><![CDATA[Individual AI Generation: Each content type has its own generation button and uses the full token range for optimal results.]]></value>
+  </definition>
+  <definition>
+    <key>text_min_max_tokens_info</key>
+    <value><![CDATA[Min-Max Tokens: Each section generates content within the configured token range for consistent quality.]]></value>
   </definition>
 </definitions>

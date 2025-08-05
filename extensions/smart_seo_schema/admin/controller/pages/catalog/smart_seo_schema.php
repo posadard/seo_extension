@@ -130,7 +130,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         exit();
     }
 
-    public function generateMultipleAIContent()
+    public function generateDescriptionContent()
     {
         if (ob_get_level()) {
             ob_clean();
@@ -140,14 +140,9 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         try {
             $product_id = $this->request->get['product_id'];
-            $content_types = $this->request->post['content_types'];
             
-            $this->logDebug("=== GENERANDO CONTENIDO MÚLTIPLE IA CON DIVISIÓN DE TOKENS ===");
-            $this->logDebug("Tipos solicitados: " . implode(', ', $content_types));
-            $this->logDebug("Producto: " . $product_id);
-            
-            if (!$product_id || !is_array($content_types) || empty($content_types)) {
-                throw new Exception('Missing required parameters or invalid content_types array');
+            if (!$product_id) {
+                throw new Exception('Missing product_id parameter');
             }
             
             $this->loadModel('catalog/product');
@@ -157,23 +152,20 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 throw new Exception('Product not found: ' . $product_id);
             }
             
-            $this->logDebug("Producto encontrado: " . $product_info['name']);
+            $this->logDebug("=== GENERANDO DESCRIPCIÓN INDIVIDUAL ===");
+            $this->logDebug("Producto: " . $product_info['name']);
             
-            $generated_content = $this->generateMultipleAIContentWithTokenDivision($product_info, $content_types);
-            
-            if (empty($generated_content)) {
-                throw new Exception('AI generated empty content for all requested types');
-            }
+            $content = $this->generateDescriptionWithAI($product_info);
             
             $json = array(
                 'error' => false,
-                'content' => $generated_content,
-                'content_types' => $content_types,
-                'product_name' => $product_info['name'],
+                'content' => $content,
+                'length' => strlen($content),
+                'word_count' => str_word_count($content),
                 'timestamp' => date('Y-m-d H:i:s')
             );
             
-            $this->logDebug("Contenido múltiple generado exitosamente - Tipos: " . implode(', ', array_keys($generated_content)));
+            $this->logDebug("Descripción generada exitosamente - Longitud: " . strlen($content) . " caracteres");
             
         } catch (Exception $e) {
             $json = array(
@@ -182,27 +174,121 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 'debug' => array(
                     'exception' => get_class($e),
                     'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'trace' => $e->getTraceAsString()
-                ),
-                'timestamp' => date('Y-m-d H:i:s')
-            );
-            $this->logDebug("Error generando contenido múltiple: " . $e->getMessage());
-        } catch (Error $e) {
-            $json = array(
-                'error' => true,
-                'message' => "Fatal error: " . $e->getMessage(),
-                'debug' => array(
-                    'error' => get_class($e),
-                    'file' => $e->getFile(),
                     'line' => $e->getLine()
-                ),
-                'timestamp' => date('Y-m-d H:i:s')
+                )
             );
-            $this->logDebug("Error fatal: " . $e->getMessage());
+            $this->logDebug("Error generando descripción: " . $e->getMessage());
         }
 
-        echo json_encode($json, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    public function generateFAQContent()
+    {
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        
+        try {
+            $product_id = $this->request->get['product_id'];
+            
+            if (!$product_id) {
+                throw new Exception('Missing product_id parameter');
+            }
+            
+            $this->loadModel('catalog/product');
+            $product_info = $this->model_catalog_product->getProduct($product_id);
+            
+            if (!$product_info) {
+                throw new Exception('Product not found: ' . $product_id);
+            }
+            
+            $this->logDebug("=== GENERANDO FAQ INDIVIDUAL ===");
+            $this->logDebug("Producto: " . $product_info['name']);
+            
+            $content = $this->generateFAQWithAI($product_info);
+            
+            $json = array(
+                'error' => false,
+                'content' => $content,
+                'length' => strlen($content),
+                'word_count' => str_word_count($content),
+                'timestamp' => date('Y-m-d H:i:s')
+            );
+            
+            $this->logDebug("FAQ generado exitosamente - Longitud: " . strlen($content) . " caracteres");
+            
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => $e->getMessage(),
+                'debug' => array(
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                )
+            );
+            $this->logDebug("Error generando FAQ: " . $e->getMessage());
+        }
+
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    public function generateHowToContent()
+    {
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        
+        try {
+            $product_id = $this->request->get['product_id'];
+            
+            if (!$product_id) {
+                throw new Exception('Missing product_id parameter');
+            }
+            
+            $this->loadModel('catalog/product');
+            $product_info = $this->model_catalog_product->getProduct($product_id);
+            
+            if (!$product_info) {
+                throw new Exception('Product not found: ' . $product_id);
+            }
+            
+            $this->logDebug("=== GENERANDO HOWTO INDIVIDUAL ===");
+            $this->logDebug("Producto: " . $product_info['name']);
+            
+            $content = $this->generateHowToWithAI($product_info);
+            
+            $json = array(
+                'error' => false,
+                'content' => $content,
+                'length' => strlen($content),
+                'word_count' => str_word_count($content),
+                'timestamp' => date('Y-m-d H:i:s')
+            );
+            
+            $this->logDebug("HowTo generado exitosamente - Longitud: " . strlen($content) . " caracteres");
+            
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => $e->getMessage(),
+                'debug' => array(
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                )
+            );
+            $this->logDebug("Error generando HowTo: " . $e->getMessage());
+        }
+
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
         exit();
     }
 
@@ -541,6 +627,148 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
 
         echo json_encode($json, JSON_UNESCAPED_UNICODE);
         exit();
+    }
+
+    private function generateDescriptionWithAI($product_info)
+    {
+        $api_key = $this->config->get('smart_seo_schema_groq_api_key');
+        
+        if (!$api_key) {
+            throw new Exception('No API key configured');
+        }
+        
+        $max_tokens = (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 800;
+        $min_tokens = (int)$this->config->get('smart_seo_schema_ai_min_tokens_per_content') ?: 100;
+        
+        $existing_description = '';
+        if (!empty($product_info['description'])) {
+            $existing_description = strip_tags($product_info['description']);
+            $existing_description = substr($existing_description, 0, 500);
+        }
+        
+        $prompt = "Create a professional, SEO-optimized product description for:\n\n";
+        $prompt .= "Product: " . $product_info['name'] . "\n";
+        $prompt .= "Model: " . $product_info['model'] . "\n";
+        
+        if ($existing_description) {
+            $prompt .= "Current description: " . $existing_description . "\n\n";
+            $prompt .= "Improve and expand this description with:\n";
+        } else {
+            $prompt .= "\nCreate a compelling description that includes:\n";
+        }
+        
+        $prompt .= "- Key features and benefits\n";
+        $prompt .= "- Technical specifications\n";
+        $prompt .= "- Use cases and target audience\n";
+        $prompt .= "- Professional, engaging tone\n\n";
+        $prompt .= "Write between {$min_tokens} and {$max_tokens} tokens. Return only the description text:";
+        
+        $this->logDebug("Generando descripción con {$min_tokens}-{$max_tokens} tokens");
+        
+        return $this->callGroqAPI(
+            $api_key,
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
+            $prompt,
+            $max_tokens
+        );
+    }
+
+    private function generateFAQWithAI($product_info)
+    {
+        $api_key = $this->config->get('smart_seo_schema_groq_api_key');
+        
+        if (!$api_key) {
+            throw new Exception('No API key configured');
+        }
+        
+        $max_tokens = (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 800;
+        $min_tokens = (int)$this->config->get('smart_seo_schema_ai_min_tokens_per_content') ?: 100;
+        $faq_count = (int)$this->config->get('smart_seo_schema_faq_count') ?: 3;
+        
+        $existing_description = '';
+        if (!empty($product_info['description'])) {
+            $existing_description = strip_tags($product_info['description']);
+            $existing_description = substr($existing_description, 0, 400);
+        }
+        
+        $prompt = "Create {$faq_count} useful FAQ questions and answers for this product:\n\n";
+        $prompt .= "Product: " . $product_info['name'] . "\n";
+        $prompt .= "Model: " . $product_info['model'] . "\n";
+        
+        if ($existing_description) {
+            $prompt .= "Description: " . $existing_description . "\n\n";
+        }
+        
+        $prompt .= "Format each Q&A as:\n";
+        $prompt .= "Q: [question]\n";
+        $prompt .= "A: [detailed answer]\n\n";
+        
+        $prompt .= "Cover topics like:\n";
+        $prompt .= "- Product specifications and compatibility\n";
+        $prompt .= "- Installation or setup instructions\n";
+        $prompt .= "- Common usage questions\n";
+        $prompt .= "- Warranty or support information\n\n";
+        
+        $prompt .= "Write between {$min_tokens} and {$max_tokens} tokens. Return only the FAQ content:";
+        
+        $this->logDebug("Generando FAQ con {$min_tokens}-{$max_tokens} tokens, {$faq_count} preguntas");
+        
+        return $this->callGroqAPI(
+            $api_key,
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
+            $prompt,
+            $max_tokens
+        );
+    }
+
+    private function generateHowToWithAI($product_info)
+    {
+        $api_key = $this->config->get('smart_seo_schema_groq_api_key');
+        
+        if (!$api_key) {
+            throw new Exception('No API key configured');
+        }
+        
+        $max_tokens = (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 800;
+        $min_tokens = (int)$this->config->get('smart_seo_schema_ai_min_tokens_per_content') ?: 100;
+        $steps_count = (int)$this->config->get('smart_seo_schema_howto_steps_count') ?: 5;
+        
+        $existing_description = '';
+        if (!empty($product_info['description'])) {
+            $existing_description = strip_tags($product_info['description']);
+            $existing_description = substr($existing_description, 0, 400);
+        }
+        
+        $prompt = "Create step-by-step instructions for using this product:\n\n";
+        $prompt .= "Product: " . $product_info['name'] . "\n";
+        $prompt .= "Model: " . $product_info['model'] . "\n";
+        
+        if ($existing_description) {
+            $prompt .= "Description: " . $existing_description . "\n\n";
+        }
+        
+        $prompt .= "Create {$steps_count} clear, actionable steps for installation, setup, or usage.\n\n";
+        
+        $prompt .= "Format as:\n";
+        $prompt .= "Step 1: [detailed instruction]\n";
+        $prompt .= "Step 2: [detailed instruction]\n";
+        $prompt .= "Continue for all steps...\n\n";
+        
+        $prompt .= "Focus on:\n";
+        $prompt .= "- Clear, actionable instructions\n";
+        $prompt .= "- Proper sequence and safety considerations\n";
+        $prompt .= "- Practical tips and best practices\n\n";
+        
+        $prompt .= "Write between {$min_tokens} and {$max_tokens} tokens. Return only the step-by-step instructions:";
+        
+        $this->logDebug("Generando HowTo con {$min_tokens}-{$max_tokens} tokens, {$steps_count} pasos");
+        
+        return $this->callGroqAPI(
+            $api_key,
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
+            $prompt,
+            $max_tokens
+        );
     }
 
     private function setupForm($product_id)
@@ -1192,212 +1420,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return !$this->error;
     }
 
-    private function generateMultipleAIContentWithTokenDivision($product_info, $content_types)
-    {
-        $this->logDebug("=== INICIO DIVISIÓN INTELIGENTE DE TOKENS ===");
-        $this->logDebug("Producto: " . $product_info['name']);
-        $this->logDebug("Tipos de contenido solicitados: " . implode(', ', $content_types));
-        
-        $base_max_tokens = (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 800;
-        $content_count = count($content_types);
-        
-        $this->logDebug("Tokens base configurados: " . $base_max_tokens);
-        $this->logDebug("Cantidad de tipos de contenido: " . $content_count);
-        
-        $min_tokens_per_content = 100;
-        $tokens_per_content = intval($base_max_tokens / $content_count);
-        
-        if ($tokens_per_content < $min_tokens_per_content) {
-            $tokens_per_content = $min_tokens_per_content;
-            $actual_total_tokens = $tokens_per_content * $content_count;
-            $this->logDebug("AJUSTE: Tokens insuficientes. Subiendo a mínimo de {$min_tokens_per_content} por tipo");
-            $this->logDebug("Total real de tokens que se usarán: " . $actual_total_tokens);
-        } else {
-            $actual_total_tokens = $base_max_tokens;
-            $this->logDebug("División estándar: {$tokens_per_content} tokens por tipo");
-        }
-        
-        $existing_description = '';
-        if (!empty($product_info['description'])) {
-            $existing_description = strip_tags($product_info['description']);
-            $existing_description = substr($existing_description, 0, 600);
-        }
-        
-        $prompt = "You are a professional content writer. Create high-quality content for this product:\n\n";
-        $prompt .= "Product: " . $product_info['name'] . "\n";
-        $prompt .= "Model: " . $product_info['model'] . "\n";
-        
-        if ($existing_description) {
-            $prompt .= "Current description: " . $existing_description . "\n\n";
-        }
-        
-        $prompt .= "Generate the following content sections with clear headers:\n\n";
-        
-        foreach ($content_types as $type) {
-            $prompt .= $this->buildCleanPromptSection($type, $tokens_per_content);
-        }
-        
-        $prompt .= "\nIMPORTANT GUIDELINES:\n";
-        $prompt .= "- Write professionally and concisely\n";
-        $prompt .= "- Use clear section headers with === markers\n";
-        $prompt .= "- Focus on key information and benefits\n";
-        $prompt .= "- Keep each section appropriately sized for its purpose\n";
-        
-        $this->logDebug("Prompt final creado - Longitud: " . strlen($prompt));
-        $this->logDebug("Tokens por sección: " . $tokens_per_content);
-        $this->logDebug("Total máximo permitido: " . $actual_total_tokens);
-        
-        $response = $this->callGroqAPI(
-            $this->config->get('smart_seo_schema_groq_api_key'),
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt,
-            $actual_total_tokens
-        );
-        
-        if (!$response) {
-            throw new Exception('No response from AI API with token division');
-        }
-        
-        $this->logDebug("Respuesta recibida con división de tokens - Longitud: " . strlen($response));
-        
-        $parsed_content = $this->parseMultipleAIResponse($response, $content_types);
-        
-        $this->logDebug("=== RESULTADO DIVISIÓN DE TOKENS ===");
-        foreach ($parsed_content as $type => $content) {
-            $word_count = str_word_count($content);
-            $char_count = strlen($content);
-            $this->logDebug("Tipo: {$type} | Palabras: {$word_count} | Caracteres: {$char_count}");
-        }
-        
-        return $parsed_content;
-    }
-
-    private function buildCleanPromptSection($content_type, $tokens_per_content)
-    {
-        $section = "";
-        
-        switch ($content_type) {
-            case 'description':
-                $section .= "===DESCRIPTION===\n";
-                $section .= "Create a concise, SEO-optimized product description. Focus on:\n";
-                $section .= "- Key features and benefits\n";
-                $section .= "- Technical specifications\n";
-                $section .= "- Use cases and target audience\n";
-                $section .= "Write professionally and keep it appropriately detailed.\n\n";
-                break;
-                
-            case 'faq':
-                $faq_count = $this->config->get('smart_seo_schema_faq_count') ?: 3;
-                $section .= "===FAQ===\n";
-                $section .= "Create {$faq_count} useful Q&A pairs in this format:\n";
-                $section .= "Q: [question]\n";
-                $section .= "A: [answer]\n";
-                $section .= "Cover specifications, compatibility, and common usage questions.\n\n";
-                break;
-                
-            case 'howto':
-                $steps_count = $this->config->get('smart_seo_schema_howto_steps_count') ?: 5;
-                $section .= "===HOWTO===\n";
-                $section .= "Create {$steps_count} clear steps for installation, setup, or usage:\n";
-                $section .= "Step 1: [instruction]\n";
-                $section .= "Step 2: [instruction]\n";
-                $section .= "Focus on practical, actionable guidance.\n\n";
-                break;
-                
-            case 'review':
-                $section .= "===REVIEW===\n";
-                $section .= "Write a professional product review including:\n";
-                $section .= "- Main advantages and benefits\n";
-                $section .= "- Performance highlights\n";
-                $section .= "- Overall recommendation\n";
-                $section .= "Keep it balanced and informative.\n\n";
-                break;
-        }
-        
-        return $section;
-    }
-
-    private function parseMultipleAIResponse($response, $content_types)
-    {
-        $this->logDebug("=== PARSEANDO RESPUESTA CON DIVISIÓN DE TOKENS ===");
-        
-        $parsed_content = array();
-        
-        $sections = array(
-            'description' => '===DESCRIPTION===',
-            'faq' => '===FAQ===',
-            'howto' => '===HOWTO===',
-            'review' => '===REVIEW==='
-        );
-        
-        foreach ($content_types as $type) {
-            if (!isset($sections[$type])) {
-                $this->logDebug("Tipo no reconocido: " . $type);
-                continue;
-            }
-            
-            $marker = $sections[$type];
-            $start_pos = strpos($response, $marker);
-            
-            if ($start_pos !== false) {
-                $start_pos += strlen($marker);
-                
-                $end_pos = strlen($response);
-                foreach ($sections as $other_marker) {
-                    if ($other_marker === $marker) continue;
-                    $next_pos = strpos($response, $other_marker, $start_pos);
-                    if ($next_pos !== false && $next_pos < $end_pos) {
-                        $end_pos = $next_pos;
-                    }
-                }
-                
-                $content = substr($response, $start_pos, $end_pos - $start_pos);
-                $content = trim($content);
-                
-                $content = preg_replace('/\b(?:EXACTLY|exactly)\s+\d+\s+tokens?\s+(?:MAX|max)\b/i', '', $content);
-                $content = preg_replace('/\(\s*EXACTLY\s+\d+\s+tokens?\s+MAX\s*\)/i', '', $content);
-                $content = preg_replace('/\b\d+\s+tokens?\s+(?:each|MAX|max)\b/i', '', $content);
-                
-                $content = preg_replace('/^[\r\n]+/', '', $content);
-                $content = preg_replace('/[\r\n]+$/', '', $content);
-                $content = trim($content);
-                
-                if (!empty($content)) {
-                    $parsed_content[$type] = $content;
-                    $this->logDebug("Extraído {$type}: " . strlen($content) . " caracteres, " . str_word_count($content) . " palabras");
-                } else {
-                    $this->logDebug("Contenido vacío para: " . $type);
-                }
-            } else {
-                $this->logDebug("Marcador no encontrado para: " . $type);
-            }
-        }
-        
-        if (empty($parsed_content) && !empty($content_types)) {
-            $this->logDebug("FALLBACK: Sin marcadores encontrados, intentando división por líneas");
-            
-            $first_type = $content_types[0];
-            $lines = explode("\n", trim($response));
-            $clean_lines = array_filter($lines, function($line) {
-                return !empty(trim($line));
-            });
-            
-            if (!empty($clean_lines)) {
-                $fallback_content = implode("\n", array_slice($clean_lines, 0, 10));
-                $fallback_content = preg_replace('/\b(?:EXACTLY|exactly)\s+\d+\s+tokens?\s+(?:MAX|max)\b/i', '', $fallback_content);
-                $fallback_content = preg_replace('/\(\s*EXACTLY\s+\d+\s+tokens?\s+MAX\s*\)/i', '', $fallback_content);
-                $fallback_content = trim($fallback_content);
-                
-                $parsed_content[$first_type] = $fallback_content;
-                $this->logDebug("Fallback aplicado para {$first_type}: " . strlen($fallback_content) . " caracteres");
-            }
-        }
-        
-        $this->logDebug("Parsing completado - Tipos extraídos: " . implode(', ', array_keys($parsed_content)));
-        
-        return $parsed_content;
-    }
-
     private function callGroqAPI($api_key, $model, $prompt, $max_tokens = null)
     {
         $url = 'https://api.groq.com/openai/v1/chat/completions';
@@ -1421,10 +1443,10 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'User-Agent: AbanteCart-SmartSEOSchema/2.0'
         ];
 
-        $this->logDebug("=== LLAMADA API CON CONTROL DE TOKENS ===");
+        $this->logDebug("=== LLAMADA API INDIVIDUAL ===");
         $this->logDebug("URL: " . $url);
         $this->logDebug("Modelo: " . $model);
-        $this->logDebug("Max tokens (específicos): " . $tokens_to_use);
+        $this->logDebug("Max tokens: " . $tokens_to_use);
         $this->logDebug("Temperature: " . $data['temperature']);
         $this->logDebug("Prompt length: " . strlen($prompt) . " caracteres");
 
@@ -1452,7 +1474,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         $this->logDebug("Response length: " . strlen($response) . " caracteres");
         $this->logDebug("cURL Error: " . ($curl_error ?: 'None'));
         $this->logDebug("Total time: " . $curl_info['total_time'] . "s");
-        $this->logDebug("Connect time: " . $curl_info['connect_time'] . "s");
 
         if ($curl_error) {
             throw new Exception("cURL Error: " . $curl_error);
@@ -1460,10 +1481,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
 
         if ($response === false) {
             throw new Exception("cURL failed to get response");
-        }
-
-        if ($response) {
-            $this->logDebug("Raw response preview: " . substr($response, 0, 300) . "...");
         }
 
         if ($http_code == 200 && $response) {
