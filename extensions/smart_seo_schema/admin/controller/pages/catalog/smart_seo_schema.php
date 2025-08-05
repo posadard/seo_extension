@@ -878,7 +878,8 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 date_added,
                 date_modified
             FROM " . DB_PREFIX . "reviews 
-            WHERE product_id = " . (int)$product_id . "
+            WHERE product_id = " . (int)$product_id . " 
+            AND status = 1
             ORDER BY date_added DESC
         ");
 

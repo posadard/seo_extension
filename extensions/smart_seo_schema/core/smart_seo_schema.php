@@ -4,17 +4,6 @@ if (!defined('DIR_CORE')) {
     header('Location: static_pages/');
 }
 
-/**
- * Smart SEO Schema Assistant - Core Extension Class OPTIMIZADO CON DIVISIÓN DE TOKENS
- * 
- * Generates Schema.org structured data for AbanteCart products
- * Includes AI-powered content generation with token optimization
- * VERSIÓN CON PERSISTENCIA DE DATOS Y CAMPOS ADICIONALES CORREGIDOS
- * FIXED: Always includes offers/aggregateRating to meet Schema.org requirements
- * FIXED: Added priceValidUntil automatic generation (current date + 1 year)
- * 
- * @version 2.0.4
- */
 class ExtensionSmartSeoSchema extends Extension
 {
     protected $registry;
@@ -24,9 +13,6 @@ class ExtensionSmartSeoSchema extends Extension
         $this->registry = Registry::getInstance();
     }
 
-    /**
-     * Hook para tabs en admin cuando se edita un producto
-     */
     public function onControllerPagesCatalogProductTabs_InitData()
     {
         /** @var ControllerPagesCatalogProduct $that */
@@ -36,7 +22,6 @@ class ExtensionSmartSeoSchema extends Extension
             return;
         }
 
-        // Cargar archivo de idioma para asegurar que el texto del tab aparezca correctamente
         $that->loadLanguage('smart_seo_schema/smart_seo_schema');
 
         $that->data['tabs'][] = [
@@ -49,9 +34,6 @@ class ExtensionSmartSeoSchema extends Extension
         ];
     }
 
-    /**
-     * Hook para tab de product tabs en admin
-     */
     public function onControllerPagesCatalogProductTabs_UpdateData()
     {
         /** @var ControllerPagesCatalogProduct $that */
@@ -61,7 +43,6 @@ class ExtensionSmartSeoSchema extends Extension
             return;
         }
 
-        // Cargar archivo de idioma para asegurar que el texto del tab aparezca correctamente
         $that->loadLanguage('smart_seo_schema/smart_seo_schema');
 
         $this->data = [
@@ -83,9 +64,6 @@ class ExtensionSmartSeoSchema extends Extension
         $that->view->addHookVar('extension_tabs', $view->fetch('pages/smart_seo_schema/tabs.tpl'));
     }
 
-    /**
-     * Hook principal para generar Schema.org en frontend - CON PERSISTENCIA
-     */
     public function onControllerPagesProductProduct_UpdateData()
     {
         /** @var ControllerPagesProductProduct $that */
@@ -95,31 +73,24 @@ class ExtensionSmartSeoSchema extends Extension
             return;
         }
 
-        // Generar Schema.org completo con variantes y IA
         $schema_data = $this->generateCompleteSchema($that);
         
         $that->load->library('json');
         $that->view->assign('smart_seo_schema_data', AJson::encode($schema_data));
     }
 
-    /**
-     * Genera Schema.org completo PARA EL PREVIEW ADMIN
-     */
     public function generateCompleteSchemaForProduct($product_info)
     {
-        // Cargar registry y dependencias necesarias
         $registry = Registry::getInstance();
         $db = $registry->get('db');
         $config = $registry->get('config');
         
-        // Crear un objeto mock del controlador con las propiedades necesarias
         $mock_controller = new stdClass();
         $mock_controller->config = $config;
         $mock_controller->db = $db;
         $mock_controller->currency = $registry->get('currency');
         $mock_controller->language = $registry->get('language');
         
-        // Mock de load->library para AJson
         $mock_controller->load = new stdClass();
         $mock_controller->load->library = function($library) {
             if ($library === 'json') {
@@ -127,18 +98,15 @@ class ExtensionSmartSeoSchema extends Extension
             }
         };
         
-        // Mock de model_catalog_review - corregir método inexistente
         $mock_controller->model_catalog_review = new stdClass();
         $mock_controller->model_catalog_review->getTotalReviewsByProductId = function($product_id) {
             return 0;
         };
         
-        // Asegurar que db esté disponible para getAggregateRating fallback
         if (!isset($mock_controller->db)) {
             $mock_controller->db = $db;
         }
         
-        // Datos del producto mock si no se pasan todos
         $mock_controller->data = [
             'product_info' => $product_info,
             'average' => $product_info['rating'] ?? 0,
@@ -146,25 +114,17 @@ class ExtensionSmartSeoSchema extends Extension
             'product_review_url' => ''
         ];
         
-        // Generar schema usando el método principal
         return $this->generateCompleteSchema($mock_controller);
     }
 
-    /**
-     * Genera Schema.org completo con persistencia y IA - CORE METHOD FIXED
-     */
     private function generateCompleteSchema($that)
     {
         $product_info = $that->data['product_info'];
         $product_id = $product_info['product_id'];
 
-        // Cargar contenido guardado desde base de datos
         $saved_content = $this->getSavedSchemaContent($product_id);
-
-        // Generar snippet principal del producto
         $product_snippet = $this->generateProductSnippet($product_info, $that, $saved_content);
 
-        // Generar variantes si están habilitadas y existen
         $variants = [];
         if ($that->config->get('smart_seo_schema_enable_variants') && 
             (!empty($saved_content['enable_variants']) || $saved_content === null)) {
@@ -174,7 +134,6 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        // FIXED: SIEMPRE incluir offers en producto principal para cumplir Schema.org requirements
         if ($that->config->get('smart_seo_schema_show_offer')) {
             $offer = $this->getProductOffer($that, $product_info, $saved_content, $variants);
             if ($offer) {
@@ -182,18 +141,15 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        // FIXED: Agregar aggregateRating si hay reviews o rating data
         $aggregateRating = $this->generateAggregateRating($that, $product_info);
         if ($aggregateRating) {
             $product_snippet["aggregateRating"] = $aggregateRating;
         }
 
-        // APLICAR OTHERS_CONTENT - Propiedades adicionales desde JSON
         if ($saved_content && !empty($saved_content['others_content'])) {
             $others_data = json_decode($saved_content['others_content'], true);
             if (is_array($others_data)) {
                 foreach ($others_data as $key => $value) {
-                    // Solo agregar si no existe ya en el schema principal
                     if (!isset($product_snippet[$key]) && !empty($value)) {
                        $product_snippet[$key] = $value;
                     }
@@ -201,15 +157,11 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        // Esquemas adicionales con IA (USAR CONTENIDO GUARDADO)
         $additional_schemas = $this->generateAdditionalSchemas($product_info, $that, $saved_content);
         
         return array_merge([$product_snippet], $additional_schemas);
     }
 
-    /**
-     * Cargar contenido Schema guardado de la base de datos - INCLUYE OTHERS_CONTENT
-     */
     private function getSavedSchemaContent($product_id)
     {
         try {
@@ -234,7 +186,6 @@ class ExtensionSmartSeoSchema extends Extension
             if ($query->num_rows) {
                 $content = $query->row;
                 
-                // Convertir flags a boolean
                 $content['enable_variants'] = (bool)$content['enable_variants'];
                 $content['enable_faq'] = (bool)$content['enable_faq'];
                 $content['enable_howto'] = (bool)$content['enable_howto'];
@@ -243,19 +194,15 @@ class ExtensionSmartSeoSchema extends Extension
                 return $content;
             }
         } catch (Exception $e) {
-            // En caso de error, continuar sin contenido guardado
             if ($this->registry->get('config')->get('smart_seo_schema_debug_mode')) {
                 $warning = new AWarning('Smart SEO Schema - Error loading saved content: ' . $e->getMessage());
                 $warning->toLog();
             }
         }
         
-        return null; // No hay contenido guardado
+        return null;
     }
 
-    /**
-     * Genera el snippet principal del producto con Schema.org
-     */
     private function generateProductSnippet($product_info, $that, $saved_content = null)
     {
         $product_snippet = [
@@ -263,10 +210,8 @@ class ExtensionSmartSeoSchema extends Extension
             "@type"    => "Product"
         ];
 
-        // Nombre del producto
         $product_snippet["name"] = $product_info['name'];
 
-        // Descripción (usar custom si existe)
         if ($saved_content && !empty($saved_content['custom_description'])) {
             $description = trim($saved_content['custom_description']);
         } else {
@@ -277,7 +222,6 @@ class ExtensionSmartSeoSchema extends Extension
             $product_snippet["description"] = $description;
         }
 
-        // Imagen del producto
         if ($that->config->get('smart_seo_schema_show_image')) {
             $images = $this->getProductImages($that, $product_info);
             if (!empty($images)) {
@@ -285,7 +229,6 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        // SKU y MPN
         if ($that->config->get('smart_seo_schema_show_sku') && !empty($product_info['sku'])) {
             $product_snippet["sku"] = $product_info['sku'];
         }
@@ -294,12 +237,10 @@ class ExtensionSmartSeoSchema extends Extension
             $product_snippet["mpn"] = $product_info['model'];
         }
 
-        // productGroupID - Usando SKU del producto principal
         if (!empty($product_info['sku'])) {
             $product_snippet["productGroupID"] = $product_info['sku'];
         }
 
-        // Brand - Obtener desde manufacturer_id
         $brand = $this->getProductBrand($that, $product_info);
         if (!empty($brand)) {
             $product_snippet["brand"] = [
@@ -311,9 +252,6 @@ class ExtensionSmartSeoSchema extends Extension
         return $product_snippet;
     }
 
-    /**
-     * Obtiene el brand del producto desde la tabla manufacturers
-     */
     private function getProductBrand($that, $product_info)
     {
         if (empty($product_info['manufacturer_id'])) {
@@ -337,10 +275,6 @@ class ExtensionSmartSeoSchema extends Extension
         return null;
     }
 
-    /**
-     * Obtiene variantes desde tablas nativas de AbanteCart con formato mejorado
-     * FIXED: Added priceValidUntil automatic generation
-     */
     private function getProductVariants($product_id, $that, $saved_content = null)
     {
         $db = $that->db;
@@ -368,7 +302,6 @@ class ExtensionSmartSeoSchema extends Extension
             return [];
         }
 
-        // Obtener datos base del producto
         $base_product_query = $db->query("
             SELECT p.price, p.sku, p.manufacturer_id, pd.name 
             FROM " . DB_PREFIX . "products p
@@ -381,7 +314,6 @@ class ExtensionSmartSeoSchema extends Extension
         $product_name = $base_product_query->row['name'] ?? '';
         $manufacturer_id = $base_product_query->row['manufacturer_id'] ?? null;
 
-        // Obtener brand del producto principal
         $brand = null;
         if ($manufacturer_id) {
             $brand_query = $db->query("
@@ -395,28 +327,18 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        // Obtener imagen principal
         $main_image = $this->getProductMainImage($that, $product_id);
-        
-        // Obtener valores por defecto para shipping y return policy
         $default_shipping = $this->getDefaultShippingDetails();
         $default_return_policy = $this->getDefaultReturnPolicy();
         
-        // Si hay contenido guardado, intentar extraer desde others_content
         $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $default_shipping;
         $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $default_return_policy;
-
-        // FIXED: Generate automatic priceValidUntil (today + 1 year)
         $price_valid_until = date('Y-m-d', strtotime('+1 year'));
 
         $variants = [];
         foreach ($query->rows as $row) {
             $variant_price = $this->calculateVariantPrice($base_price, $row['price'], $row['prefix']);
-            
-            // Formato mejorado para el nombre de la variante: "1 Pack - Methylene Blue Powder (25gr)"
             $variant_full_name = $row['variant_name'] . ' - ' . $product_name;
-            
-            // Descripción concisa: "Methylene Blue Powder (25gr) - 1 Pack"
             $variant_description = $product_name . ' - ' . $row['variant_name'];
             
             $variant = [
@@ -429,14 +351,13 @@ class ExtensionSmartSeoSchema extends Extension
                     "@type"        => "Offer",
                     "price"        => number_format($variant_price, 2, '.', ''),
                     "priceCurrency" => $that->currency->getCode(),
-                    "priceValidUntil" => $price_valid_until,  // FIXED: Added automatic priceValidUntil
+                    "priceValidUntil" => $price_valid_until,
                     "availability" => $this->getVariantAvailability($row['quantity']),
                     "shippingDetails" => $shipping_details,
                     "hasMerchantReturnPolicy" => $return_policy
                 ]
             ];
 
-            // Agregar brand si existe
             if (!empty($brand)) {
                 $variant["brand"] = [
                     "@type" => "Brand",
@@ -450,9 +371,6 @@ class ExtensionSmartSeoSchema extends Extension
         return $variants;
     }
 
-    /**
-     * Obtiene valores por defecto para shippingDetails
-     */
     private function getDefaultShippingDetails()
     {
         return [
@@ -484,9 +402,6 @@ class ExtensionSmartSeoSchema extends Extension
         ];
     }
 
-    /**
-     * Obtiene valores por defecto para hasMerchantReturnPolicy
-     */
     private function getDefaultReturnPolicy()
     {
         return [
@@ -499,15 +414,11 @@ class ExtensionSmartSeoSchema extends Extension
         ];
     }
 
-    /**
-     * Obtiene la imagen principal del producto
-     */
     private function getProductMainImage($that, $product_id)
     {
         $db = $that->db;
         $config = $that->config;
         
-        // Obtener primera imagen del producto
         $imageQuery = "SELECT rd.resource_path 
                       FROM " . DB_PREFIX . "resource_map rm 
                       JOIN " . DB_PREFIX . "resource_descriptions rd ON rm.resource_id = rd.resource_id
@@ -523,9 +434,6 @@ class ExtensionSmartSeoSchema extends Extension
         return null;
     }
 
-    /**
-     * Obtiene descripción del producto según configuración
-     */
     private function getProductDescription($that, $product_id)
     {
         $db = $that->db;
@@ -555,7 +463,6 @@ class ExtensionSmartSeoSchema extends Extension
                 return strip_tags($row['blurb']);
             case 'auto':
             default:
-                // Priorizar blurb si existe, sino usar description
                 if (!empty($row['blurb'])) {
                     return strip_tags($row['blurb']);
                 } else {
@@ -564,72 +471,49 @@ class ExtensionSmartSeoSchema extends Extension
         }
     }
 
-    /**
-     * FIXED: Genera aggregateRating desde reviews o contenido guardado
-     */
     private function generateAggregateRating($that, $product_info)
     {
         try {
-            $total_reviews = 0;
-            $rating = 0;
-            
-            // Verificar si el método existe antes de llamarlo
-            if (isset($that->model_catalog_review) && 
-                is_object($that->model_catalog_review) && 
-                method_exists($that->model_catalog_review, 'getTotalReviewsByProductId')) {
-                $total_reviews = $that->model_catalog_review->getTotalReviewsByProductId($product_info['product_id']);
-            } else {
-                // Fallback: consultar directamente la base de datos
-                $db = $that->db ?? $this->registry->get('db');
-                if ($db) {
-                    $query = $db->query("
-                        SELECT COUNT(*) as total_reviews, AVG(rating) as avg_rating
-                        FROM " . DB_PREFIX . "reviews 
-                        WHERE product_id = " . (int)$product_info['product_id'] . " 
-                        AND status = 1
-                    ");
-                    if ($query->num_rows) {
-                        $total_reviews = (int)$query->row['total_reviews'];
-                        $rating = (float)$query->row['avg_rating'];
-                    }
-                }
+            $db = $that->db ?? $this->registry->get('db');
+            if (!$db) {
+                return null;
             }
 
-            // Si no obtuvimos rating del query anterior, usar el del data
-            if ($rating == 0) {
-                $rating = isset($that->data['average']) ? (float)$that->data['average'] : 0;
-            }
+            $query = $db->query("
+                SELECT 
+                    COUNT(*) as total_reviews, 
+                    AVG(rating) as avg_rating,
+                    MAX(rating) as best_rating,
+                    MIN(rating) as worst_rating
+                FROM " . DB_PREFIX . "reviews 
+                WHERE product_id = " . (int)$product_info['product_id'] . " 
+                AND status = 1
+            ");
 
-            // FIXED: Si aún no hay rating, crear uno por defecto basado en review content
-            if ($total_reviews == 0 && $rating == 0) {
-                // Buscar si hay review content guardado
-                $saved_content = $this->getSavedSchemaContent($product_info['product_id']);
-                if ($saved_content && !empty($saved_content['review_content'])) {
-                    $rating = 5.0; // Default rating for AI-generated reviews
-                    $total_reviews = 1;
-                }
-            }
+            if ($query->num_rows && $query->row['total_reviews'] > 0) {
+                $total_reviews = (int)$query->row['total_reviews'];
+                $avg_rating = (float)$query->row['avg_rating'];
+                $best_rating = (int)$query->row['best_rating'];
+                $worst_rating = (int)$query->row['worst_rating'];
 
-            if ($total_reviews > 0 && $rating > 0) {
                 return [
                     "@type"      => "AggregateRating",
-                    "ratingValue" => number_format($rating, 1),
+                    "ratingValue" => number_format($avg_rating, 1),
                     "reviewCount" => $total_reviews,
-                    "bestRating"  => "5",
-                    "worstRating" => "1"
+                    "bestRating"  => (string)$best_rating,
+                    "worstRating" => (string)$worst_rating
                 ];
             }
         } catch (Exception $e) {
-            // Continuar sin calificaciones si hay error
+            if ($this->registry->get('config')->get('smart_seo_schema_debug_mode')) {
+                $warning = new AWarning('Smart SEO Schema - Error generating aggregate rating: ' . $e->getMessage());
+                $warning->toLog();
+            }
         }
 
         return null;
     }
 
-    /**
-     * FIXED: Genera offer del producto principal con precio inteligente y rango
-     * FIXED: Added priceValidUntil automatic generation
-     */
     private function getProductOffer($that, $product_info, $saved_content = null, $variants = [])
     {
         if (!$that->config->get('smart_seo_schema_show_offer')) {
@@ -640,7 +524,6 @@ class ExtensionSmartSeoSchema extends Extension
         $currency = $that->currency->getCode();
         $availability = $this->getProductAvailability($that);
 
-        // FIXED: Si el precio base es 0 y hay variantes, usar el precio mínimo de las variantes
         if ($base_price == 0 && !empty($variants)) {
             $variant_prices = [];
             foreach ($variants as $variant) {
@@ -653,24 +536,20 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        // Obtener shipping y return policy desde others_content o usar defaults
         $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $this->getDefaultShippingDetails();
         $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $this->getDefaultReturnPolicy();
-
-        // FIXED: Generate automatic priceValidUntil (today + 1 year)
         $price_valid_until = date('Y-m-d', strtotime('+1 year'));
 
         $offer = [
             "@type"        => "Offer",
             "price"        => number_format($base_price, 2, '.', ''),
             "priceCurrency" => $currency,
-            "priceValidUntil" => $price_valid_until,  // FIXED: Added automatic priceValidUntil
+            "priceValidUntil" => $price_valid_until,
             "availability" => $availability,
             "shippingDetails" => $shipping_details,
             "hasMerchantReturnPolicy" => $return_policy
         ];
 
-        // FIXED: Si hay variantes, agregar rango de precios (highPrice)
         if (!empty($variants)) {
             $variant_prices = [];
             foreach ($variants as $variant) {
@@ -690,9 +569,6 @@ class ExtensionSmartSeoSchema extends Extension
         return $offer;
     }
 
-    /**
-     * Determina disponibilidad del producto
-     */
     private function getProductAvailability($that)
     {
         $stockStatuses = [
@@ -720,18 +596,14 @@ class ExtensionSmartSeoSchema extends Extension
             return $stockStatuses['Pre-Sale'];
         }
 
-        return $stockStatuses['InStock']; // Default
+        return $stockStatuses['InStock'];
     }
 
-    /**
-     * Genera esquemas adicionales (FAQ, HowTo, Review, Organization) - CON PERSISTENCIA
-     */
     private function generateAdditionalSchemas($product_info, $that, $saved_content = null)
     {
         $schemas = [];
         $config = $that->config;
 
-        // FAQPage Schema - USAR CONTENIDO GUARDADO
         if (($config->get('smart_seo_schema_enable_faq_schema') && !$saved_content) ||
             ($saved_content && $saved_content['enable_faq'] && !empty($saved_content['faq_content']))) {
             $faq = $this->generateFAQSchema($product_info, $saved_content);
@@ -740,7 +612,6 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        // HowTo Schema - USAR CONTENIDO GUARDADO
         if (($config->get('smart_seo_schema_enable_howto_schema') && !$saved_content) ||
             ($saved_content && $saved_content['enable_howto'] && !empty($saved_content['howto_content']))) {
             $howto = $this->generateHowToSchema($product_info, $saved_content);
@@ -749,7 +620,6 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        // Review Schema - USAR CONTENIDO GUARDADO (mantener como esquema separado)
         if (($config->get('smart_seo_schema_enable_review_schema') && !$saved_content) ||
             ($saved_content && $saved_content['enable_review'] && !empty($saved_content['review_content']))) {
             $review = $this->generateReviewSchema($product_info, $saved_content);
@@ -758,7 +628,6 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        // Organization Schema
         if ($config->get('smart_seo_schema_enable_organization')) {
             $organization = $this->generateOrganizationSchema($that);
             if ($organization) {
@@ -769,17 +638,12 @@ class ExtensionSmartSeoSchema extends Extension
         return $schemas;
     }
 
-    /**
-     * Genera FAQ Schema con IA - CON PERSISTENCIA
-     */
     private function generateFAQSchema($product_info, $saved_content = null)
     {
-        // USAR CONTENIDO GUARDADO SI EXISTE
         if ($saved_content && !empty($saved_content['faq_content'])) {
             return $this->parseFAQContent($saved_content['faq_content']);
         }
 
-        // Implementación básica - fallback
         return [
             "@type" => "FAQPage",
             "mainEntity" => [
@@ -795,9 +659,6 @@ class ExtensionSmartSeoSchema extends Extension
         ];
     }
 
-    /**
-     * Parsea contenido FAQ desde texto a Schema.org
-     */
     private function parseFAQContent($faq_content)
     {
         $lines = explode("\n", trim($faq_content));
@@ -810,9 +671,7 @@ class ExtensionSmartSeoSchema extends Extension
             $line = trim($line);
             if (empty($line)) continue;
             
-            // Detectar pregunta (líneas que terminan con ?)
             if (substr($line, -1) === '?') {
-                // Guardar pregunta anterior si existe
                 if ($current_question && !empty($current_answer)) {
                     $questions[] = [
                         "@type" => "Question",
@@ -827,12 +686,10 @@ class ExtensionSmartSeoSchema extends Extension
                 $current_question = $line;
                 $current_answer = [];
             } else {
-                // Es parte de la respuesta
                 $current_answer[] = $line;
             }
         }
         
-        // Agregar última pregunta
         if ($current_question && !empty($current_answer)) {
             $questions[] = [
                 "@type" => "Question",
@@ -854,17 +711,12 @@ class ExtensionSmartSeoSchema extends Extension
         ];
     }
 
-    /**
-     * Genera HowTo Schema con IA - CON PERSISTENCIA
-     */
     private function generateHowToSchema($product_info, $saved_content = null)
     {
-        // USAR CONTENIDO GUARDADO SI EXISTE
         if ($saved_content && !empty($saved_content['howto_content'])) {
             return $this->parseHowToContent($saved_content['howto_content'], $product_info['name']);
         }
 
-        // Implementación básica - fallback
         return [
             "@type" => "HowTo",
             "name" => "How to use " . $product_info['name'],
@@ -878,9 +730,6 @@ class ExtensionSmartSeoSchema extends Extension
         ];
     }
 
-    /**
-     * Parsea contenido HowTo desde texto a Schema.org
-     */
     private function parseHowToContent($howto_content, $product_name)
     {
         $lines = explode("\n", trim($howto_content));
@@ -890,17 +739,13 @@ class ExtensionSmartSeoSchema extends Extension
             $line = trim($line);
             if (empty($line)) continue;
             
-            // Detectar paso numerado (1. 2. 3. etc.)
             if (preg_match('/^(\d+)\.\s*(.+)/', $line, $matches)) {
                 $steps[] = [
                     "@type" => "HowToStep",
                     "name" => "Step " . $matches[1],
                     "text" => trim($matches[2])
                 ];
-            }
-            // Si no hay numeración, agregar como paso simple
-            elseif (!empty($steps)) {
-                // Agregar al último paso si es continuación
+            } elseif (!empty($steps)) {
                 $last_key = count($steps) - 1;
                 $steps[$last_key]['text'] .= ' ' . $line;
             }
@@ -917,17 +762,12 @@ class ExtensionSmartSeoSchema extends Extension
         ];
     }
 
-    /**
-     * Genera Review Schema con IA - CON PERSISTENCIA
-     */
     private function generateReviewSchema($product_info, $saved_content = null)
     {
-        // USAR CONTENIDO GUARDADO SI EXISTE
         if ($saved_content && !empty($saved_content['review_content'])) {
             return $this->parseReviewContent($saved_content['review_content'], $product_info['name']);
         }
 
-        // Implementación básica - fallback
         return [
             "@type" => "Review",
             "author" => [
@@ -943,12 +783,8 @@ class ExtensionSmartSeoSchema extends Extension
         ];
     }
 
-    /**
-     * Parsea contenido Review desde texto a Schema.org
-     */
     private function parseReviewContent($review_content, $product_name)
     {
-        // Implementación básica que toma el contenido como reviewBody
         return [
             "@type" => "Review",
             "author" => [
@@ -964,15 +800,11 @@ class ExtensionSmartSeoSchema extends Extension
         ];
     }
 
-    /**
-     * Genera Organization Schema con nombre corregido desde config_owner
-     */
     private function generateOrganizationSchema($that)
     {
         $config = $that->config;
         $db = $that->db;
         
-        // Obtener nombre de la organización desde config_owner
         $org_name = null;
         $query = $db->query("
             SELECT value 
@@ -986,12 +818,10 @@ class ExtensionSmartSeoSchema extends Extension
             $org_name = trim($query->row['value']);
         }
         
-        // Fallback al config_name si config_owner está vacío
         if (empty($org_name)) {
             $org_name = $config->get('config_name');
         }
         
-        // Si aún está vacío, usar un valor por defecto
         if (empty($org_name)) {
             $org_name = 'Online Store';
         }
@@ -1003,16 +833,12 @@ class ExtensionSmartSeoSchema extends Extension
         ];
     }
 
-    /**
-     * Obtiene imágenes del producto (principal y adicionales) - CORREGIDO PARA ABANTECART
-     */
     private function getProductImages($that, $product_info)
     {
         $db = $that->db;
         $config = $that->config;
         $product_id = $product_info['product_id'];
         
-        // Obtener imagen principal - SINTAXIS COMPATIBLE CON ABANTECART
         $imageQuery = "SELECT rd.resource_path 
                       FROM " . DB_PREFIX . "resource_map rm 
                       JOIN " . DB_PREFIX . "resource_descriptions rd ON rm.resource_id = rd.resource_id
@@ -1025,7 +851,6 @@ class ExtensionSmartSeoSchema extends Extension
             $storeUrl = rtrim($config->get('config_ssl_url') ?: $config->get('config_url'), '/');
             $imageUrl = $storeUrl . '/resources/image/' . $mainImage;
             
-            // Obtener imágenes adicionales (máximo 4 adicionales)
             if ($config->get('smart_seo_schema_show_image')) {
                 $additionalImagesQuery = "SELECT rd.resource_path 
                                          FROM " . DB_PREFIX . "resource_map rm 
@@ -1054,9 +879,6 @@ class ExtensionSmartSeoSchema extends Extension
         return [];
     }
 
-    /**
-     * Extrae shippingDetails de others_content
-     */
     private function getShippingDetailsFromOthers($saved_content)
     {
         if (!$saved_content || empty($saved_content['others_content'])) {
@@ -1071,9 +893,6 @@ class ExtensionSmartSeoSchema extends Extension
         return null;
     }
 
-    /**
-     * Extrae returnPolicy de others_content
-     */
     private function getReturnPolicyFromOthers($saved_content)
     {
         if (!$saved_content || empty($saved_content['others_content'])) {
@@ -1088,33 +907,22 @@ class ExtensionSmartSeoSchema extends Extension
         return null;
     }
 
-    /**
-     * Calcula precio de variante según prefix mejorado (% y $)
-     */
     private function calculateVariantPrice($basePrice, $variantPrice, $prefix)
     {
         switch ($prefix) {
             case '%':
-                // Porcentaje: precio_base * (1 + precio_variante)
                 return $basePrice * (1 + $variantPrice);
             case '$':
-                // Suma fija: precio_base + precio_variante
                 return $basePrice + $variantPrice;
             case '+':
-                // Compatibilidad con sistema anterior
                 return $basePrice + $variantPrice;
             case '-':
-                // Compatibilidad con sistema anterior
                 return $basePrice - $variantPrice;
             default:
-                // Sin modificación
                 return $basePrice;
         }
     }
 
-    /**
-     * Determina disponibilidad de variante
-     */
     private function getVariantAvailability($quantity)
     {
         if ($quantity > 0) {
@@ -1124,9 +932,6 @@ class ExtensionSmartSeoSchema extends Extension
         }
     }
 
-    /**
-     * Obtiene idioma por defecto del admin
-     */
     private function getAdminDefaultLanguageId($that)
     {
         $db = $that->db;
@@ -1144,6 +949,6 @@ class ExtensionSmartSeoSchema extends Extension
             return $query->row['language_id'];
         }
 
-        return 1; // Fallback
+        return 1;
     }
 }
