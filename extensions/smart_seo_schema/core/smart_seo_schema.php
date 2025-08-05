@@ -75,16 +75,12 @@ class ExtensionSmartSeoSchema extends Extension
             "name"     => $product_info['name'],
         ];
 
-        // Descripción (PRIORIZAR CONTENIDO GUARDADO)
+        // Descripción (REQUERIDA)
         $description = $this->getOptimizedDescription($that, $product_info, $saved_content);
-        if ($description) {
-            $product_snippet["description"] = $description;
-        }
+        $product_snippet["description"] = $description ?: strip_tags(html_entity_decode($product_info['name']));
 
-        // Imagen
-        if ($that->config->get('smart_seo_schema_show_image') && isset($that->data['image_main']['thumb_url'])) {
-            $product_snippet["image"] = $that->data['image_main']['thumb_url'];
-        }
+        // Imagen (REQUERIDA)
+        $product_snippet["image"] = $this->getProductImages($that, $product_info);
 
         // MPN y Brand
         if ($product_info['model']) {
@@ -422,7 +418,7 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Genera offer principal
+     * Genera offer principal con campos mejorados para IA
      */
     private function getProductOffer($that, $product_info)
     {
@@ -446,6 +442,7 @@ class ExtensionSmartSeoSchema extends Extension
 
         $stockStatus = $this->determineStockStatus($that, $stockStatuses);
         $priceValidUntil = new DateTime();
+        $priceValidUntil->add(new DateInterval('P1Y')); // Valid for 1 year
 
         $offer = [
             "@type"           => "Offer",
@@ -458,6 +455,28 @@ class ExtensionSmartSeoSchema extends Extension
         if ($that->config->get('smart_seo_schema_show_availability')) {
             $offer["availability"] = "https://schema.org/" . $stockStatus;
         }
+
+        // Agregar información de envío básica
+        $offer["shippingDetails"] = [
+            "@type" => "OfferShippingDetails",
+            "deliveryTime" => [
+                "@type" => "ShippingDeliveryTime",
+                "businessDays" => [
+                    "@type" => "OpeningHoursSpecification",
+                    "dayOfWeek" => ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                    "opens" => "09:00",
+                    "closes" => "17:00"
+                ]
+            ]
+        ];
+
+        // Agregar política de devolución básica
+        $offer["hasMerchantReturnPolicy"] = [
+            "@type" => "MerchantReturnPolicy",
+            "applicableCountry" => "US",
+            "returnPolicyCategory" => "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays" => 30
+        ];
 
         return $offer;
     }
@@ -715,32 +734,96 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Genera Organization Schema
+     * Genera Organization Schema con nombre corregido desde config_owner
      */
     private function generateOrganizationSchema($that)
     {
         $config = $that->config;
+        $db = $that->db;
+        
+        // Obtener nombre de la organización desde config_owner
+        $org_name = null;
+        $query = $db->query("
+            SELECT value 
+            FROM " . DB_PREFIX . "settings 
+            WHERE `key` = 'config_owner' 
+            AND store_id = 0 
+            LIMIT 1
+        ");
+        
+        if ($query->num_rows) {
+            $org_name = trim($query->row['value']);
+        }
+        
+        // Fallback al config_name si config_owner está vacío
+        if (empty($org_name)) {
+            $org_name = $config->get('config_name');
+        }
+        
+        // Si aún está vacío, usar un valor por defecto
+        if (empty($org_name)) {
+            $org_name = 'Online Store';
+        }
         
         return [
             "@type" => "Organization",
-            "name" => $config->get('config_name'),
+            "name" => $org_name,
             "url" => $config->get('config_url')
         ];
     }
 
     /**
-     * Método público para generar Schema completo (usado desde admin controller)
+     * Obtiene imágenes del producto (principal y adicionales)
      */
-    public function generateCompleteSchemaForProduct($product_info)
+    private function getProductImages($that, $product_info)
     {
-        // Mock object para compatibilidad con admin
-        $mock_that = new stdClass();
-        $mock_that->config = Registry::getInstance()->get('config');
-        $mock_that->db = Registry::getInstance()->get('db');
-        $mock_that->currency = Registry::getInstance()->get('currency');
-        $mock_that->language = Registry::getInstance()->get('language');
-        $mock_that->data = ['product_info' => $product_info];
+        $db = $that->db;
+        $config = $that->config;
+        $product_id = $product_info['product_id'];
         
-        return $this->generateCompleteSchema($mock_that);
+        // Obtener imagen principal
+        $imageQuery = "SELECT rd.resource_path 
+                      FROM " . DB_PREFIX . "resource_map rm 
+                      JOIN " . DB_PREFIX . "resource_descriptions rd ON rm.resource_id = rd.resource_id
+                      WHERE rm.object_name = 'products' AND rm.object_id = ? AND rm.sort_order = 1
+                      LIMIT 1";
+        $imageStmt = $db->query($imageQuery, [$product_id]);
+        $mainImage = $imageStmt->num_rows ? $imageStmt->row['resource_path'] : null;
+        
+        if ($mainImage) {
+            $storeUrl = rtrim($config->get('config_ssl_url') ?: $config->get('config_url'), '/');
+            $imageUrl = $storeUrl . '/resources/image/' . $mainImage;
+            
+            // Verificar si necesitamos imágenes adicionales
+            if ($that->config->get('smart_seo_schema_show_image')) {
+                // Obtener imágenes adicionales (máximo 5)
+                $additionalImagesQuery = "SELECT DISTINCT rd.resource_path 
+                                         FROM " . DB_PREFIX . "resource_map rm 
+                                         JOIN " . DB_PREFIX . "resource_descriptions rd ON rm.resource_id = rd.resource_id
+                                         WHERE rm.object_name = 'products' AND rm.object_id = ? 
+                                         AND rd.resource_path != ?
+                                         ORDER BY rm.sort_order
+                                         LIMIT 5";
+                $additionalImagesStmt = $db->query($additionalImagesQuery, [$product_id, $mainImage]);
+                
+                $images = [$imageUrl]; // Empezar con imagen principal
+                
+                if ($additionalImagesStmt->num_rows) {
+                    foreach ($additionalImagesStmt->rows as $row) {
+                        if (!empty($row['resource_path'])) {
+                            $images[] = $storeUrl . '/resources/image/' . $row['resource_path'];
+                        }
+                    }
+                }
+                
+                return count($images) > 1 ? $images : $imageUrl;
+            }
+            
+            return $imageUrl;
+        }
+        
+        // Fallback: usar imagen por defecto o placeholder
+        $storeUrl = rtrim($config->get('config_ssl_url') ?: $config->get('config_url'), '/');
+        return $storeUrl . '/image/no_image.jpg';
     }
 }
