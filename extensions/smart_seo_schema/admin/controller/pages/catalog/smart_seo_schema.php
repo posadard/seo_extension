@@ -791,8 +791,8 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $existing_description = substr($existing_description, 0, 600); // Más contexto
         }
         
-        // PASO 4: Construir prompt optimizado con límites específicos
-        $prompt = "CRITICAL TOKEN LIMITS - You MUST optimize content to stay within these exact limits:\n\n";
+        // PASO 4: Construir prompt optimizado sin mencionar límites de tokens en el contenido
+        $prompt = "You are a professional content writer. Create high-quality content for this product:\n\n";
         $prompt .= "Product: " . $product_info['name'] . "\n";
         $prompt .= "Model: " . $product_info['model'] . "\n";
         
@@ -800,18 +800,18 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $prompt .= "Current description: " . $existing_description . "\n\n";
         }
         
-        $prompt .= "Generate EXACTLY these content types with STRICT token limits:\n\n";
+        $prompt .= "Generate the following content sections with clear headers:\n\n";
         
-        // PASO 5: Agregar instrucciones específicas con tokens explícitos
+        // PASO 5: Agregar instrucciones específicas SIN mencionar tokens
         foreach ($content_types as $type) {
-            $prompt .= $this->buildOptimizedPromptSection($type, $tokens_per_content);
+            $prompt .= $this->buildCleanPromptSection($type, $tokens_per_content);
         }
         
-        $prompt .= "\nCRITICAL RULES:\n";
-        $prompt .= "- Each section must stay within its {$tokens_per_content} token limit\n";
-        $prompt .= "- Write only the requested sections with === headers\n";
-        $prompt .= "- Be precise and efficient - prioritize key information\n";
-        $prompt .= "- Total response must not exceed {$actual_total_tokens} tokens\n";
+        $prompt .= "\nIMPORTANT GUIDELINES:\n";
+        $prompt .= "- Write professionally and concisely\n";
+        $prompt .= "- Use clear section headers with === markers\n";
+        $prompt .= "- Focus on key information and benefits\n";
+        $prompt .= "- Keep each section appropriately sized for its purpose\n";
         
         $this->logDebug("Prompt final creado - Longitud: " . strlen($prompt));
         $this->logDebug("Tokens por sección: " . $tokens_per_content);
@@ -846,48 +846,47 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Construye sección de prompt optimizada para cada tipo de contenido
+     * Construye sección de prompt LIMPIA para cada tipo de contenido (SIN MENCIONAR TOKENS)
      */
-    private function buildOptimizedPromptSection($content_type, $tokens_per_content)
+    private function buildCleanPromptSection($content_type, $tokens_per_content)
     {
         $section = "";
         
         switch ($content_type) {
             case 'description':
-                $section .= "===DESCRIPTION=== (EXACTLY {$tokens_per_content} tokens MAX)\n";
-                $section .= "Create concise SEO-optimized product description. Focus on:\n";
+                $section .= "===DESCRIPTION===\n";
+                $section .= "Create a concise, SEO-optimized product description. Focus on:\n";
                 $section .= "- Key features and benefits\n";
                 $section .= "- Technical specifications\n";
                 $section .= "- Use cases and target audience\n";
-                $section .= "Keep under {$tokens_per_content} tokens!\n\n";
+                $section .= "Write professionally and keep it appropriately detailed.\n\n";
                 break;
                 
             case 'faq':
                 $faq_count = $this->config->get('smart_seo_schema_faq_count') ?: 3;
-                $section .= "===FAQ=== (EXACTLY {$tokens_per_content} tokens MAX)\n";
-                $section .= "Create {$faq_count} brief Q&A pairs in format:\n";
-                $section .= "Q: [concise question]\n";
-                $section .= "A: [brief answer]\n";
-                $section .= "Cover: specifications, compatibility, usage\n";
-                $section .= "Total under {$tokens_per_content} tokens!\n\n";
+                $section .= "===FAQ===\n";
+                $section .= "Create {$faq_count} useful Q&A pairs in this format:\n";
+                $section .= "Q: [question]\n";
+                $section .= "A: [answer]\n";
+                $section .= "Cover specifications, compatibility, and common usage questions.\n\n";
                 break;
                 
             case 'howto':
                 $steps_count = $this->config->get('smart_seo_schema_howto_steps_count') ?: 5;
-                $section .= "===HOWTO=== (EXACTLY {$tokens_per_content} tokens MAX)\n";
-                $section .= "Create {$steps_count} concise steps in format:\n";
-                $section .= "Step 1: [brief instruction]\n";
-                $section .= "Focus on installation/setup/usage\n";
-                $section .= "Keep total under {$tokens_per_content} tokens!\n\n";
+                $section .= "===HOWTO===\n";
+                $section .= "Create {$steps_count} clear steps for installation, setup, or usage:\n";
+                $section .= "Step 1: [instruction]\n";
+                $section .= "Step 2: [instruction]\n";
+                $section .= "Focus on practical, actionable guidance.\n\n";
                 break;
                 
             case 'review':
-                $section .= "===REVIEW=== (EXACTLY {$tokens_per_content} tokens MAX)\n";
-                $section .= "Write brief technical review including:\n";
-                $section .= "- Main pros and cons\n";
+                $section .= "===REVIEW===\n";
+                $section .= "Write a professional product review including:\n";
+                $section .= "- Main advantages and benefits\n";
                 $section .= "- Performance highlights\n";
-                $section .= "- Recommendation\n";
-                $section .= "Stay under {$tokens_per_content} tokens!\n\n";
+                $section .= "- Overall recommendation\n";
+                $section .= "Keep it balanced and informative.\n\n";
                 break;
         }
         
@@ -936,9 +935,15 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 $content = substr($response, $start_pos, $end_pos - $start_pos);
                 $content = trim($content);
                 
-                // Limpiar contenido
+                // Limpiar contenido de posibles referencias a tokens
+                $content = preg_replace('/\b(?:EXACTLY|exactly)\s+\d+\s+tokens?\s+(?:MAX|max)\b/i', '', $content);
+                $content = preg_replace('/\(\s*EXACTLY\s+\d+\s+tokens?\s+MAX\s*\)/i', '', $content);
+                $content = preg_replace('/\b\d+\s+tokens?\s+(?:each|MAX|max)\b/i', '', $content);
+                
+                // Limpiar contenido adicional
                 $content = preg_replace('/^[\r\n]+/', '', $content); // Remover saltos iniciales
                 $content = preg_replace('/[\r\n]+$/', '', $content); // Remover saltos finales
+                $content = trim($content);
                 
                 if (!empty($content)) {
                     $parsed_content[$type] = $content;
@@ -964,6 +969,11 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             
             if (!empty($clean_lines)) {
                 $fallback_content = implode("\n", array_slice($clean_lines, 0, 10)); // Primeras 10 líneas
+                // Limpiar referencias a tokens del fallback también
+                $fallback_content = preg_replace('/\b(?:EXACTLY|exactly)\s+\d+\s+tokens?\s+(?:MAX|max)\b/i', '', $fallback_content);
+                $fallback_content = preg_replace('/\(\s*EXACTLY\s+\d+\s+tokens?\s+MAX\s*\)/i', '', $fallback_content);
+                $fallback_content = trim($fallback_content);
+                
                 $parsed_content[$first_type] = $fallback_content;
                 $this->logDebug("Fallback aplicado para {$first_type}: " . strlen($fallback_content) . " caracteres");
             }
