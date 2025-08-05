@@ -11,8 +11,9 @@ if (!defined('DIR_CORE')) {
  * Includes AI-powered content generation with token optimization
  * VERSIÓN CON PERSISTENCIA DE DATOS Y CAMPOS ADICIONALES CORREGIDOS
  * FIXED: Always includes offers/aggregateRating to meet Schema.org requirements
+ * FIXED: Added priceValidUntil automatic generation (current date + 1 year)
  * 
- * @version 2.0.3
+ * @version 2.0.4
  */
 class ExtensionSmartSeoSchema extends Extension
 {
@@ -338,6 +339,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     /**
      * Obtiene variantes desde tablas nativas de AbanteCart con formato mejorado
+     * FIXED: Added priceValidUntil automatic generation
      */
     private function getProductVariants($product_id, $that, $saved_content = null)
     {
@@ -404,6 +406,9 @@ class ExtensionSmartSeoSchema extends Extension
         $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $default_shipping;
         $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $default_return_policy;
 
+        // FIXED: Generate automatic priceValidUntil (today + 1 year)
+        $price_valid_until = date('Y-m-d', strtotime('+1 year'));
+
         $variants = [];
         foreach ($query->rows as $row) {
             $variant_price = $this->calculateVariantPrice($base_price, $row['price'], $row['prefix']);
@@ -424,6 +429,7 @@ class ExtensionSmartSeoSchema extends Extension
                     "@type"        => "Offer",
                     "price"        => number_format($variant_price, 2, '.', ''),
                     "priceCurrency" => $that->currency->getCode(),
+                    "priceValidUntil" => $price_valid_until,  // FIXED: Added automatic priceValidUntil
                     "availability" => $this->getVariantAvailability($row['quantity']),
                     "shippingDetails" => $shipping_details,
                     "hasMerchantReturnPolicy" => $return_policy
@@ -622,6 +628,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     /**
      * FIXED: Genera offer del producto principal con precio inteligente y rango
+     * FIXED: Added priceValidUntil automatic generation
      */
     private function getProductOffer($that, $product_info, $saved_content = null, $variants = [])
     {
@@ -650,10 +657,14 @@ class ExtensionSmartSeoSchema extends Extension
         $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $this->getDefaultShippingDetails();
         $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $this->getDefaultReturnPolicy();
 
+        // FIXED: Generate automatic priceValidUntil (today + 1 year)
+        $price_valid_until = date('Y-m-d', strtotime('+1 year'));
+
         $offer = [
             "@type"        => "Offer",
             "price"        => number_format($base_price, 2, '.', ''),
             "priceCurrency" => $currency,
+            "priceValidUntil" => $price_valid_until,  // FIXED: Added automatic priceValidUntil
             "availability" => $availability,
             "shippingDetails" => $shipping_details,
             "hasMerchantReturnPolicy" => $return_policy
