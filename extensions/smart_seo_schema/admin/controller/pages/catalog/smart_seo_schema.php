@@ -1,22 +1,9 @@
 <?php
-/*------------------------------------------------------------------------------
-  Smart SEO Schema Assistant - Admin Controller OPTIMIZADO CON DIVISIÓN DE TOKENS
-  
-  Controller for product tab integration in AbanteCart admin
-  Handles Schema.org configuration per product with AI assistance
-  VERSIÓN CON DIVISIÓN INTELIGENTE DE TOKENS Y PERSISTENCIA DE DATOS
-------------------------------------------------------------------------------*/
 
 if (!defined('DIR_CORE')) {
     header('Location: static_pages/');
 }
 
-/**
- * Class ControllerPagesCatalogSmartSeoSchema
- * 
- * @property ModelExtensionSmartSeoSchema $model_extension_smart_seo_schema
- * @property ModelCatalogProduct $model_catalog_product
- */
 class ControllerPagesCatalogSmartSeoSchema extends AController
 {
     public $error = array();
@@ -38,7 +25,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
 
         $this->document->setTitle($this->language->get('smart_seo_schema_name'));
         
-        // Get product info
         $product_info = $this->model_catalog_product->getProduct($product_id);
         $this->data['product_description'] = $this->model_catalog_product->getProductDescriptions($product_id);
         $this->data['heading_title'] = $this->language->get('text_edit') . '&nbsp;' . $this->language->get('text_product');
@@ -49,45 +35,32 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             unset($this->session->data['success']);
         }
 
-        // Breadcrumb
         $this->setupBreadcrumb($product_id);
 
-        // Load tabs controller
         $this->data['active'] = 'smart_seo_schema';
         $tabs_obj = $this->dispatch('pages/catalog/product_tabs', array($this->data));
         $this->data['product_tabs'] = $tabs_obj->dispatchGetOutput();
         unset($tabs_obj);
 
-        // Get current schema settings
         $this->data['schema_settings'] = $this->getSchemaSettings($product_id);
-        
-        // Get product variants for hasVariant[] preview
         $this->data['product_variants'] = $this->getProductVariants($product_id);
-        
-        // AI Status check
+        $this->data['product_reviews'] = $this->getProductReviews($product_id);
         $this->data['ai_status'] = $this->checkAIConnection();
         
-        // Setup form
         $this->setupForm($product_id);
 
-        // Add child controllers
         $this->addChild('pages/catalog/product_summary', 'summary_form', 'pages/catalog/product_summary.tpl');
 
         $this->view->batchAssign($this->data);
         $this->processTemplate('pages/smart_seo_schema/smart_seo_schema_form.tpl');
     }
 
-    /**
-     * AJAX endpoint para testing AI connection - CORREGIDO
-     */
     public function testAIConnection()
     {
-        // Limpiar cualquier output previo
         if (ob_get_level()) {
             ob_clean();
         }
         
-        // Forzar JSON headers
         header('Content-Type: application/json; charset=utf-8');
         
         try {
@@ -98,7 +71,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             
             $json = array();
             
-            // Log inicial del test
             $this->logDebug("=== INICIO TEST CONEXIÓN IA ===");
             $this->logDebug("API Key presente: " . (!empty($api_key) ? 'Sí (' . strlen($api_key) . ' chars)' : 'No'));
             $this->logDebug("Modelo configurado: " . $model);
@@ -154,33 +126,26 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $this->logDebug("Error fatal: " . $e->getMessage());
         }
 
-        // Asegurar output JSON válido
         echo json_encode($json, JSON_UNESCAPED_UNICODE);
-        exit(); // Importante: terminar aquí para evitar HTML adicional
+        exit();
     }
 
-    /**
-     * AJAX endpoint para generar múltiple contenido IA con DIVISIÓN INTELIGENTE DE TOKENS
-     */
     public function generateMultipleAIContent()
     {
-        // Limpiar cualquier output previo
         if (ob_get_level()) {
             ob_clean();
         }
         
-        // Forzar JSON headers
         header('Content-Type: application/json; charset=utf-8');
         
         try {
             $product_id = $this->request->get['product_id'];
-            $content_types = $this->request->post['content_types']; // Array de tipos
+            $content_types = $this->request->post['content_types'];
             
             $this->logDebug("=== GENERANDO CONTENIDO MÚLTIPLE IA CON DIVISIÓN DE TOKENS ===");
             $this->logDebug("Tipos solicitados: " . implode(', ', $content_types));
             $this->logDebug("Producto: " . $product_id);
             
-            // Validación básica
             if (!$product_id || !is_array($content_types) || empty($content_types)) {
                 throw new Exception('Missing required parameters or invalid content_types array');
             }
@@ -194,7 +159,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             
             $this->logDebug("Producto encontrado: " . $product_info['name']);
             
-            // Generar contenido múltiple con división inteligente de tokens
             $generated_content = $this->generateMultipleAIContentWithTokenDivision($product_info, $content_types);
             
             if (empty($generated_content)) {
@@ -238,22 +202,216 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $this->logDebug("Error fatal: " . $e->getMessage());
         }
 
-        // Asegurar output JSON válido
         echo json_encode($json, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        exit(); // Importante: terminar aquí para evitar HTML adicional
+        exit();
     }
 
-    /**
-     * AJAX endpoint for variants preview - CORREGIDO
-     */
-    public function getVariants()
+    public function getReviewsAjax()
     {
-        // Limpiar cualquier output previo
         if (ob_get_level()) {
             ob_clean();
         }
         
-        // Forzar JSON headers
+        header('Content-Type: application/json; charset=utf-8');
+        
+        try {
+            $product_id = $this->request->get['product_id'];
+            
+            if (!$product_id) {
+                throw new Exception('Missing product_id parameter');
+            }
+            
+            $reviews = $this->getProductReviews($product_id);
+            
+            $json = array(
+                'error' => false,
+                'reviews' => $reviews,
+                'count' => count($reviews)
+            );
+            
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => $e->getMessage()
+            );
+        }
+
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    public function optimizeReview()
+    {
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        
+        try {
+            $review_id = $this->request->post['review_id'];
+            $review_text = $this->request->post['review_text'];
+            $product_id = $this->request->get['product_id'];
+            
+            if (!$review_id || !$review_text || !$product_id) {
+                throw new Exception('Missing required parameters');
+            }
+            
+            $this->loadModel('catalog/product');
+            $product_info = $this->model_catalog_product->getProduct($product_id);
+            
+            if (!$product_info) {
+                throw new Exception('Product not found');
+            }
+            
+            $optimized_text = $this->optimizeReviewWithAI($review_text, $product_info);
+            
+            $json = array(
+                'error' => false,
+                'optimized_text' => $optimized_text,
+                'original_length' => strlen($review_text),
+                'optimized_length' => strlen($optimized_text)
+            );
+            
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => $e->getMessage()
+            );
+        }
+
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    public function generateExampleReview()
+    {
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        
+        try {
+            $product_id = $this->request->get['product_id'];
+            
+            if (!$product_id) {
+                throw new Exception('Missing product_id parameter');
+            }
+            
+            $this->loadModel('catalog/product');
+            $product_info = $this->model_catalog_product->getProduct($product_id);
+            
+            if (!$product_info) {
+                throw new Exception('Product not found');
+            }
+            
+            $example_review = $this->generateExampleReviewWithAI($product_info);
+            
+            $json = array(
+                'error' => false,
+                'review' => $example_review
+            );
+            
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => $e->getMessage()
+            );
+        }
+
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    public function saveReview()
+    {
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        
+        try {
+            $review_id = $this->request->post['review_id'];
+            $product_id = $this->request->post['product_id'];
+            $author = $this->request->post['author'];
+            $text = $this->request->post['text'];
+            $rating = (int)$this->request->post['rating'];
+            $verified_purchase = isset($this->request->post['verified_purchase']) ? 1 : 0;
+            $status = isset($this->request->post['status']) ? 1 : 0;
+            
+            if (!$product_id || !$author || !$text || !$rating) {
+                throw new Exception('Missing required fields');
+            }
+            
+            if ($rating < 1 || $rating > 5) {
+                throw new Exception('Rating must be between 1 and 5');
+            }
+            
+            if ($review_id) {
+                $this->updateReview($review_id, $author, $text, $rating, $verified_purchase, $status);
+                $message = 'Review updated successfully';
+            } else {
+                $this->createReview($product_id, $author, $text, $rating, $verified_purchase, $status);
+                $message = 'Review created successfully';
+            }
+            
+            $json = array(
+                'error' => false,
+                'message' => $message
+            );
+            
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => $e->getMessage()
+            );
+        }
+
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    public function deleteReview()
+    {
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        
+        try {
+            $review_id = $this->request->post['review_id'];
+            
+            if (!$review_id) {
+                throw new Exception('Missing review_id parameter');
+            }
+            
+            $this->db->query("DELETE FROM " . DB_PREFIX . "reviews WHERE review_id = " . (int)$review_id);
+            
+            $json = array(
+                'error' => false,
+                'message' => 'Review deleted successfully'
+            );
+            
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => $e->getMessage()
+            );
+        }
+
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    public function getVariants()
+    {
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
         header('Content-Type: application/json; charset=utf-8');
         
         try {
@@ -282,17 +440,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         exit();
     }
 
-    /**
-     * AJAX endpoint for schema preview - CORREGIDO CON OTHERS_CONTENT
-     */
     public function previewSchema()
     {
-        // Limpiar cualquier output previo
         if (ob_get_level()) {
             ob_clean();
         }
         
-        // Forzar JSON headers
         header('Content-Type: application/json; charset=utf-8');
         
         try {
@@ -309,7 +462,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 throw new Exception('Product not found: ' . $product_id);
             }
             
-            // Generate complete schema using extension logic
             if (!class_exists('ExtensionSmartSeoSchema')) {
                 throw new Exception('ExtensionSmartSeoSchema class not found. Please check if core extension file exists.');
             }
@@ -339,17 +491,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         exit();
     }
 
-    /**
-     * AJAX endpoint para generar y actualizar others_content automáticamente
-     */
     public function generateOthersContent()
     {
-        // Limpiar cualquier output previo
         if (ob_get_level()) {
             ob_clean();
         }
         
-        // Forzar JSON headers
         header('Content-Type: application/json; charset=utf-8');
         
         try {
@@ -366,10 +513,8 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 throw new Exception('Product not found: ' . $product_id);
             }
             
-            // Generar others_content con valores por defecto mejorados usando los mismos del core
             $others_content = $this->generateOthersContentData($product_info);
             
-            // Guardar en base de datos
             $this->updateOthersContent($product_id, $others_content);
             
             $json = array(
@@ -398,9 +543,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         exit();
     }
 
-    /**
-     * Setup form fields and actions
-     */
     private function setupForm($product_id)
     {
         $form = new AForm('HT');
@@ -414,7 +556,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         $this->data['form_title'] = $this->language->get('smart_seo_schema_name');
         $this->data['product_id'] = $product_id;
 
-        // Incluir configuraciones para el frontend
         $this->data['smart_seo_schema_groq_api_key'] = $this->config->get('smart_seo_schema_groq_api_key') ?: '';
 
         $this->data['form']['id'] = 'smart_seo_schema_form';
@@ -439,7 +580,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'style' => 'button2'
         ));
 
-        // AI test button
         $this->data['test_ai_button'] = $form->getFieldHtml(array(
             'type' => 'button',
             'name' => 'test_ai',
@@ -448,7 +588,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'attr' => 'type="button" onclick="testAIConnection()"'
         ));
 
-        // Schema preview button
         $this->data['preview_schema_button'] = $form->getFieldHtml(array(
             'type' => 'button',
             'name' => 'preview_schema',
@@ -457,16 +596,11 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'attr' => 'type="button" onclick="previewSchema()"'
         ));
 
-        // Setup form fields for schema configuration
         $this->setupSchemaFields($form);
     }
 
-    /**
-     * Setup schema configuration fields
-     */
     private function setupSchemaFields($form)
     {
-        // Language entries for form
         $this->data['entry_custom_description'] = $this->language->get('entry_custom_description') ?: 'Custom Description:';
         $this->data['entry_enable_variants'] = $this->language->get('entry_enable_variants') ?: 'Enable Product Variants:';
         $this->data['entry_faq_content'] = $this->language->get('entry_faq_content') ?: 'FAQ Content:';
@@ -479,7 +613,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         $this->data['button_test_ai_connection'] = $this->language->get('button_test_ai_connection') ?: 'Test AI Connection';
         $this->data['button_preview_schema'] = $this->language->get('button_preview_schema') ?: 'Preview Schema';
 
-        // Custom description field
         $this->data['form']['fields']['custom_description'] = $form->getFieldHtml(array(
             'type' => 'textarea',
             'name' => 'custom_description',
@@ -487,7 +620,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'style' => 'large-field'
         ));
 
-        // FAQ fields
         $this->data['form']['fields']['faq_content'] = $form->getFieldHtml(array(
             'type' => 'textarea',
             'name' => 'faq_content',
@@ -495,7 +627,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'style' => 'large-field'
         ));
 
-        // HowTo fields
         $this->data['form']['fields']['howto_content'] = $form->getFieldHtml(array(
             'type' => 'textarea',
             'name' => 'howto_content',
@@ -503,7 +634,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'style' => 'large-field'
         ));
 
-        // Review fields
         $this->data['form']['fields']['review_content'] = $form->getFieldHtml(array(
             'type' => 'textarea',
             'name' => 'review_content',
@@ -511,7 +641,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'style' => 'large-field'
         ));
 
-        // Additional schema options
         $this->data['form']['fields']['enable_variants'] = $form->getFieldHtml(array(
             'type' => 'checkbox',
             'name' => 'enable_variants',
@@ -519,9 +648,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         ));
     }
 
-    /**
-     * Setup breadcrumb navigation
-     */
     private function setupBreadcrumb($product_id)
     {
         $this->document->initBreadcrumb(array(
@@ -550,9 +676,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         ));
     }
 
-    /**
-     * Get current schema settings for product - INCLUYE OTHERS_CONTENT
-     */
     private function getSchemaSettings($product_id)
     {
         $this->logDebug("Cargando configuración schema para producto: " . $product_id);
@@ -579,7 +702,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             if ($query->num_rows) {
                 $settings = $query->row;
                 
-                // Convertir flags a boolean para compatibilidad
                 $settings['enable_variants'] = (bool)$settings['enable_variants'];
                 $settings['enable_faq'] = (bool)$settings['enable_faq'];
                 $settings['enable_howto'] = (bool)$settings['enable_howto'];
@@ -599,7 +721,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             } else {
                 $this->logDebug("No se encontró configuración para el producto. Retornando valores por defecto.");
                 
-                // Retornar valores por defecto si no existe configuración
                 return array(
                     'custom_description' => '',
                     'faq_content' => '',
@@ -615,7 +736,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         } catch (Exception $e) {
             $this->logDebug("Error cargando configuración: " . $e->getMessage());
             
-            // En caso de error, retornar array vacío para evitar fallos
             return array(
                 'custom_description' => '',
                 'faq_content' => '',
@@ -630,9 +750,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         }
     }
 
-    /**
-     * Save schema settings for product - INCLUYE OTHERS_CONTENT
-     */
     private function saveSchemaSettings($product_id)
     {
         $this->logDebug("=== GUARDANDO CONFIGURACIÓN SCHEMA CON OTHERS_CONTENT ===");
@@ -640,7 +757,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         $this->logDebug("POST data: " . print_r($this->request->post, true));
         
         try {
-            // Verificar si ya existe un registro para este producto
             $query = $this->db->query("
                 SELECT id 
                 FROM " . DB_PREFIX . "seo_schema_content 
@@ -648,7 +764,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 LIMIT 1
             ");
 
-            // Preparar datos para guardar
             $data = array(
                 'custom_description' => trim($this->request->post['custom_description'] ?? ''),
                 'faq_content' => trim($this->request->post['faq_content'] ?? ''),
@@ -664,7 +779,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $this->logDebug("Datos procesados: " . print_r($data, true));
 
             if ($query->num_rows) {
-                // UPDATE - Actualizar registro existente
                 $this->logDebug("Actualizando registro existente...");
                 
                 $update_sql = "
@@ -687,7 +801,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 $this->logDebug("Registro actualizado exitosamente.");
                 
             } else {
-                // INSERT - Crear nuevo registro
                 $this->logDebug("Creando nuevo registro...");
                 
                 $insert_sql = "
@@ -725,7 +838,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 $this->logDebug("Nuevo registro creado exitosamente.");
             }
 
-            // Verificar que se guardó correctamente
             $verify_query = $this->db->query("
                 SELECT 
                     LENGTH(custom_description) as desc_len,
@@ -747,19 +859,173 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $this->logDebug("ERROR guardando configuración: " . $e->getMessage());
             $this->logDebug("SQL Error Info: " . $this->db->error);
             
-            // Re-lanzar la excepción para que sea manejada por el controlador principal
             throw new Exception("Error saving schema settings: " . $e->getMessage());
         }
     }
 
-    /**
-     * Generar others_content con datos automáticos usando los mismos valores por defecto del core
-     */
+    private function getProductReviews($product_id)
+    {
+        $query = $this->db->query("
+            SELECT 
+                review_id,
+                product_id,
+                customer_id,
+                author,
+                text,
+                rating,
+                verified_purchase,
+                status,
+                date_added,
+                date_modified
+            FROM " . DB_PREFIX . "reviews 
+            WHERE product_id = " . (int)$product_id . "
+            ORDER BY date_added DESC
+        ");
+
+        return $query->rows;
+    }
+
+    private function optimizeReviewWithAI($review_text, $product_info)
+    {
+        $api_key = $this->config->get('smart_seo_schema_groq_api_key');
+        
+        if (!$api_key) {
+            throw new Exception('No API key configured');
+        }
+        
+        $prompt = "Optimize this product review to be more helpful and detailed while maintaining authenticity and the original rating sentiment:\n\n";
+        $prompt .= "Product: " . $product_info['name'] . "\n";
+        $prompt .= "Original review: " . $review_text . "\n\n";
+        $prompt .= "Please improve the review by:\n";
+        $prompt .= "- Adding more specific details about the product\n";
+        $prompt .= "- Enhancing readability and structure\n";
+        $prompt .= "- Maintaining the original tone and rating sentiment\n";
+        $prompt .= "- Making it more helpful for other customers\n\n";
+        $prompt .= "Return ONLY the improved review text, no additional formatting or explanations:";
+        
+        return $this->callGroqAPI(
+            $api_key,
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
+            $prompt,
+            300
+        );
+    }
+
+    private function generateExampleReviewWithAI($product_info)
+    {
+        $api_key = $this->config->get('smart_seo_schema_groq_api_key');
+        
+        if (!$api_key) {
+            throw new Exception('No API key configured');
+        }
+        
+        $rating = rand(3, 5);
+        
+        $prompt = "Generate a realistic product review for this product. Return ONLY valid JSON with no additional text or formatting.\n\n";
+        $prompt .= "Product: " . $product_info['name'] . "\n";
+        $prompt .= "Model: " . $product_info['model'] . "\n";
+        
+        if (!empty($product_info['description'])) {
+            $description = strip_tags($product_info['description']);
+            $prompt .= "Description: " . substr($description, 0, 300) . "\n";
+        }
+        
+        $prompt .= "\nGenerate a " . $rating . "-star review with these exact JSON fields:\n";
+        $prompt .= '{"author": "realistic_name", "text": "detailed_review_100_to_200_words", "rating": ' . $rating . ', "verified_purchase": 1, "status": 1}' . "\n\n";
+        $prompt .= "Make the review sound authentic and helpful for potential buyers. Return ONLY the JSON object:";
+        
+        $response = $this->callGroqAPI(
+            $api_key,
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
+            $prompt,
+            400
+        );
+        
+        $clean_response = trim($response);
+        $clean_response = preg_replace('/^[^{]*/', '', $clean_response);
+        $clean_response = preg_replace('/[^}]*$/', '', $clean_response);
+        
+        $review_data = json_decode($clean_response, true);
+        if (!$review_data || !isset($review_data['author']) || !isset($review_data['text']) || !isset($review_data['rating'])) {
+            $this->logDebug("Failed to parse JSON response: " . $clean_response);
+            
+            $fallback_data = array(
+                'author' => 'Customer Review',
+                'text' => $this->extractTextFromResponse($response, $product_info['name']),
+                'rating' => $rating,
+                'verified_purchase' => 1,
+                'status' => 1
+            );
+            return $fallback_data;
+        }
+        
+        $review_data['rating'] = (int)$review_data['rating'];
+        $review_data['verified_purchase'] = isset($review_data['verified_purchase']) ? (int)$review_data['verified_purchase'] : 1;
+        $review_data['status'] = isset($review_data['status']) ? (int)$review_data['status'] : 1;
+        
+        return $review_data;
+    }
+
+    private function extractTextFromResponse($response, $product_name)
+    {
+        $lines = explode("\n", $response);
+        $text_lines = array();
+        
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (!empty($line) && 
+                !preg_match('/^[\{\}\[\]"]/', $line) && 
+                !preg_match('/(author|rating|verified|status)/', $line) &&
+                strlen($line) > 20) {
+                $text_lines[] = $line;
+            }
+        }
+        
+        if (!empty($text_lines)) {
+            return implode(' ', array_slice($text_lines, 0, 3));
+        }
+        
+        return "Great product! The " . $product_name . " works exactly as described and meets all my expectations. Would definitely recommend to others.";
+    }
+
+    private function createReview($product_id, $author, $text, $rating, $verified_purchase, $status)
+    {
+        $this->db->query("
+            INSERT INTO " . DB_PREFIX . "reviews 
+            (product_id, customer_id, author, text, rating, verified_purchase, status, date_added, date_modified) 
+            VALUES (
+                " . (int)$product_id . ",
+                0,
+                '" . $this->db->escape($author) . "',
+                '" . $this->db->escape($text) . "',
+                " . (int)$rating . ",
+                " . (int)$verified_purchase . ",
+                " . (int)$status . ",
+                NOW(),
+                NOW()
+            )
+        ");
+    }
+
+    private function updateReview($review_id, $author, $text, $rating, $verified_purchase, $status)
+    {
+        $this->db->query("
+            UPDATE " . DB_PREFIX . "reviews 
+            SET 
+                author = '" . $this->db->escape($author) . "',
+                text = '" . $this->db->escape($text) . "',
+                rating = " . (int)$rating . ",
+                verified_purchase = " . (int)$verified_purchase . ",
+                status = " . (int)$status . ",
+                date_modified = NOW()
+            WHERE review_id = " . (int)$review_id
+        );
+    }
+
     private function generateOthersContentData($product_info)
     {
         $others_data = array();
         
-        // shippingDetails - Usar los mismos valores que en el core
         $others_data['shippingDetails'] = array(
             "@type" => "OfferShippingDetails",
             "shippingRate" => array(
@@ -788,7 +1054,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             )
         );
         
-        // hasMerchantReturnPolicy - Usar los mismos valores que en el core
         $others_data['hasMerchantReturnPolicy'] = array(
             "@type" => "MerchantReturnPolicy",
             "applicableCountry" => "US",
@@ -798,14 +1063,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             "returnFees" => "https://schema.org/FreeReturn"
         );
         
-        // productGroupID - Basado en modelo o SKU
         if (!empty($product_info['model'])) {
             $others_data['productGroupID'] = $product_info['model'];
         } elseif (!empty($product_info['sku'])) {
             $others_data['productGroupID'] = $product_info['sku'];
         }
         
-        // additionalProperty - Propiedades técnicas si existen
         $additionalProperties = array();
         
         if (!empty($product_info['weight'])) {
@@ -838,14 +1101,10 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return $others_data;
     }
 
-    /**
-     * Actualizar solo others_content en base de datos
-     */
     private function updateOthersContent($product_id, $others_content)
     {
         $json_content = json_encode($others_content, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         
-        // Verificar si existe registro
         $query = $this->db->query("
             SELECT id 
             FROM " . DB_PREFIX . "seo_schema_content 
@@ -854,7 +1113,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         ");
         
         if ($query->num_rows) {
-            // Actualizar registro existente
             $this->db->query("
                 UPDATE " . DB_PREFIX . "seo_schema_content 
                 SET 
@@ -863,7 +1121,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 WHERE product_id = " . (int)$product_id
             );
         } else {
-            // Crear nuevo registro con solo others_content
             $this->db->query("
                 INSERT INTO " . DB_PREFIX . "seo_schema_content 
                 (product_id, others_content, created_date, updated_date) 
@@ -877,9 +1134,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         }
     }
 
-    /**
-     * Get product variants for preview
-     */
     private function getProductVariants($product_id)
     {
         $db = $this->db;
@@ -905,18 +1159,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return $query->rows;
     }
 
-    /**
-     * Check AI connection status
-     */
     private function checkAIConnection()
     {
         $api_key = $this->config->get('smart_seo_schema_groq_api_key');
         return !empty($api_key);
     }
 
-    /**
-     * Get admin default language ID
-     */
     private function getAdminDefaultLanguageId()
     {
         $query = $this->db->query("
@@ -934,9 +1182,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return (int)$this->config->get('config_language_id');
     }
 
-    /**
-     * Validate form data
-     */
     protected function validateForm()
     {
         if (!$this->user->hasPermission('modify', 'catalog/smart_seo_schema')) {
@@ -946,27 +1191,21 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return !$this->error;
     }
 
-    /**
-     * Genera múltiple contenido IA con DIVISIÓN INTELIGENTE DE TOKENS - NUEVA IMPLEMENTACIÓN
-     */
     private function generateMultipleAIContentWithTokenDivision($product_info, $content_types)
     {
         $this->logDebug("=== INICIO DIVISIÓN INTELIGENTE DE TOKENS ===");
         $this->logDebug("Producto: " . $product_info['name']);
         $this->logDebug("Tipos de contenido solicitados: " . implode(', ', $content_types));
         
-        // PASO 1: Obtener configuración de tokens base
         $base_max_tokens = (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 800;
         $content_count = count($content_types);
         
         $this->logDebug("Tokens base configurados: " . $base_max_tokens);
         $this->logDebug("Cantidad de tipos de contenido: " . $content_count);
         
-        // PASO 2: Calcular división con tokens mínimos garantizados
-        $min_tokens_per_content = 100; // Mínimo garantizado por tipo
+        $min_tokens_per_content = 100;
         $tokens_per_content = intval($base_max_tokens / $content_count);
         
-        // Verificar que cada tipo tenga al menos el mínimo
         if ($tokens_per_content < $min_tokens_per_content) {
             $tokens_per_content = $min_tokens_per_content;
             $actual_total_tokens = $tokens_per_content * $content_count;
@@ -977,14 +1216,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $this->logDebug("División estándar: {$tokens_per_content} tokens por tipo");
         }
         
-        // PASO 3: Preparar contexto del producto
         $existing_description = '';
         if (!empty($product_info['description'])) {
             $existing_description = strip_tags($product_info['description']);
-            $existing_description = substr($existing_description, 0, 600); // Más contexto
+            $existing_description = substr($existing_description, 0, 600);
         }
         
-        // PASO 4: Construir prompt optimizado sin mencionar límites de tokens en el contenido
         $prompt = "You are a professional content writer. Create high-quality content for this product:\n\n";
         $prompt .= "Product: " . $product_info['name'] . "\n";
         $prompt .= "Model: " . $product_info['model'] . "\n";
@@ -995,7 +1232,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         $prompt .= "Generate the following content sections with clear headers:\n\n";
         
-        // PASO 5: Agregar instrucciones específicas SIN mencionar tokens
         foreach ($content_types as $type) {
             $prompt .= $this->buildCleanPromptSection($type, $tokens_per_content);
         }
@@ -1010,12 +1246,11 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         $this->logDebug("Tokens por sección: " . $tokens_per_content);
         $this->logDebug("Total máximo permitido: " . $actual_total_tokens);
         
-        // PASO 6: Llamada a API con límites optimizados
         $response = $this->callGroqAPI(
             $this->config->get('smart_seo_schema_groq_api_key'),
             $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
             $prompt,
-            $actual_total_tokens // Usar el total calculado
+            $actual_total_tokens
         );
         
         if (!$response) {
@@ -1024,10 +1259,8 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         $this->logDebug("Respuesta recibida con división de tokens - Longitud: " . strlen($response));
         
-        // PASO 7: Parsear y validar contenido
         $parsed_content = $this->parseMultipleAIResponse($response, $content_types);
         
-        // PASO 8: Log final de resultados
         $this->logDebug("=== RESULTADO DIVISIÓN DE TOKENS ===");
         foreach ($parsed_content as $type => $content) {
             $word_count = str_word_count($content);
@@ -1038,9 +1271,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return $parsed_content;
     }
 
-    /**
-     * Construye sección de prompt LIMPIA para cada tipo de contenido (SIN MENCIONAR TOKENS)
-     */
     private function buildCleanPromptSection($content_type, $tokens_per_content)
     {
         $section = "";
@@ -1086,16 +1316,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return $section;
     }
 
-    /**
-     * Parsea respuesta múltiple de IA en contenidos separados - MEJORADO
-     */
     private function parseMultipleAIResponse($response, $content_types)
     {
         $this->logDebug("=== PARSEANDO RESPUESTA CON DIVISIÓN DE TOKENS ===");
         
         $parsed_content = array();
         
-        // Marcadores de sección
         $sections = array(
             'description' => '===DESCRIPTION===',
             'faq' => '===FAQ===',
@@ -1115,7 +1341,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             if ($start_pos !== false) {
                 $start_pos += strlen($marker);
                 
-                // Buscar el siguiente marcador o final de texto
                 $end_pos = strlen($response);
                 foreach ($sections as $other_marker) {
                     if ($other_marker === $marker) continue;
@@ -1128,14 +1353,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 $content = substr($response, $start_pos, $end_pos - $start_pos);
                 $content = trim($content);
                 
-                // Limpiar contenido de posibles referencias a tokens
                 $content = preg_replace('/\b(?:EXACTLY|exactly)\s+\d+\s+tokens?\s+(?:MAX|max)\b/i', '', $content);
                 $content = preg_replace('/\(\s*EXACTLY\s+\d+\s+tokens?\s+MAX\s*\)/i', '', $content);
                 $content = preg_replace('/\b\d+\s+tokens?\s+(?:each|MAX|max)\b/i', '', $content);
                 
-                // Limpiar contenido adicional
-                $content = preg_replace('/^[\r\n]+/', '', $content); // Remover saltos iniciales
-                $content = preg_replace('/[\r\n]+$/', '', $content); // Remover saltos finales
+                $content = preg_replace('/^[\r\n]+/', '', $content);
+                $content = preg_replace('/[\r\n]+$/', '', $content);
                 $content = trim($content);
                 
                 if (!empty($content)) {
@@ -1149,11 +1372,9 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             }
         }
         
-        // Fallback mejorado
         if (empty($parsed_content) && !empty($content_types)) {
             $this->logDebug("FALLBACK: Sin marcadores encontrados, intentando división por líneas");
             
-            // Intentar dividir la respuesta en párrafos y asignar al primer tipo
             $first_type = $content_types[0];
             $lines = explode("\n", trim($response));
             $clean_lines = array_filter($lines, function($line) {
@@ -1161,8 +1382,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             });
             
             if (!empty($clean_lines)) {
-                $fallback_content = implode("\n", array_slice($clean_lines, 0, 10)); // Primeras 10 líneas
-                // Limpiar referencias a tokens del fallback también
+                $fallback_content = implode("\n", array_slice($clean_lines, 0, 10));
                 $fallback_content = preg_replace('/\b(?:EXACTLY|exactly)\s+\d+\s+tokens?\s+(?:MAX|max)\b/i', '', $fallback_content);
                 $fallback_content = preg_replace('/\(\s*EXACTLY\s+\d+\s+tokens?\s+MAX\s*\)/i', '', $fallback_content);
                 $fallback_content = trim($fallback_content);
@@ -1177,19 +1397,14 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return $parsed_content;
     }
 
-    /**
-     * Método mejorado para llamar a Groq API con control de tokens específico
-     */
     private function callGroqAPI($api_key, $model, $prompt, $max_tokens = null)
     {
         $url = 'https://api.groq.com/openai/v1/chat/completions';
         
-        // Verificar que cURL esté disponible
         if (!function_exists('curl_init')) {
             throw new Exception('cURL extension is not available on this server');
         }
         
-        // Usar tokens específicos o configuración por defecto
         $tokens_to_use = $max_tokens ?: (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 800;
         
         $data = [
@@ -1218,7 +1433,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, (int)$this->config->get('smart_seo_schema_ai_timeout') ?: 30); // Más tiempo para respuestas largas
+        curl_setopt($ch, CURLOPT_TIMEOUT, (int)$this->config->get('smart_seo_schema_ai_timeout') ?: 30);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
@@ -1260,7 +1475,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 $content = $decoded['choices'][0]['message']['content'];
                 $this->logDebug("Contenido extraído exitosamente: " . strlen($content) . " caracteres");
                 
-                // Log de uso de tokens si está disponible
                 if (isset($decoded['usage'])) {
                     $usage = $decoded['usage'];
                     $this->logDebug("Tokens utilizados: prompt=" . ($usage['prompt_tokens'] ?? 'N/A') . 
@@ -1275,7 +1489,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             }
         }
 
-        // Enhanced error handling with response details
         $error_details = null;
         if ($response) {
             $error_details = json_decode($response, true);
@@ -1326,18 +1539,13 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         }
     }
 
-    /**
-     * Método de logging mejorado
-     */
     private function logDebug($message)
     {
         try {
-            // Log a archivo específico
             $log_file = DIR_LOGS . 'smart_seo_schema_debug.log';
             $timestamp = date('Y-m-d H:i:s');
             $log_entry = "[{$timestamp}] {$message}" . PHP_EOL;
             
-            // Crear directorio si no existe
             $log_dir = dirname($log_file);
             if (!is_dir($log_dir)) {
                 mkdir($log_dir, 0755, true);
@@ -1345,14 +1553,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             
             file_put_contents($log_file, $log_entry, FILE_APPEND | LOCK_EX);
         } catch (Exception $e) {
-            // Si falla el logging a archivo, intentar con AbanteCart
             try {
                 if ($this->config && $this->config->get('smart_seo_schema_debug_mode')) {
                     $warning = new AWarning('Smart SEO Schema Debug: ' . $message);
                     $warning->toLog();
                 }
             } catch (Exception $e2) {
-                // Si todo falla, al menos escribir a error_log de PHP
                 error_log("Smart SEO Schema Debug: " . $message);
             }
         }

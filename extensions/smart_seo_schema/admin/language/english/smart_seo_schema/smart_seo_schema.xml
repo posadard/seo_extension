@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions>
-  <!-- Definiciones básicas existentes -->
   <definition>
     <key>smart_seo_schema_name</key>
     <value><![CDATA[Smart SEO Schema Assistant]]></value>
@@ -54,8 +53,6 @@
     <value><![CDATA[Log Token Usage:<br /><span class="help">Log detailed token consumption for AI API calls to monitor usage and costs</span>]]></value>
 </definition>
 
-  
-  <!-- Valores para selectbox de descripción -->
   <definition>
     <key>smart_seo_schema_description_auto</key>
     <value><![CDATA[Auto (Blurb if available, otherwise Description)]]></value>
@@ -69,7 +66,6 @@
     <value><![CDATA[Product Description]]></value>
   </definition>
 
-  <!-- DEFINICIONES QUE FALTABAN - CAMPOS DEL FORMULARIO -->
   <definition>
     <key>entry_custom_description</key>
     <value><![CDATA[Custom Description:<br /><span class="help">Override the automatic product description with a custom one for Schema.org markup</span>]]></value>
@@ -87,11 +83,10 @@
     <value><![CDATA[HowTo Instructions:<br /><span class="help">Generate or enter step-by-step instructions for HowTo structured data</span>]]></value>
   </definition>
   <definition>
-    <key>entry_review_content</key>
-    <value><![CDATA[Review Content:<br /><span class="help">Generate or enter review content for Review structured data</span>]]></value>
+    <key>entry_product_reviews</key>
+    <value><![CDATA[Product Reviews:<br /><span class="help">Manage actual product reviews from database with AI optimization capabilities</span>]]></value>
   </definition>
 
-  <!-- Definiciones Groq IA -->
   <definition>
     <key>smart_seo_schema_groq_api_key</key>
     <value><![CDATA[Groq API Key:<br /><span class="help">Enter your Groq API key for AI-powered content generation. Get one at <a href="https://groq.com" target="_blank">groq.com</a></span>]]></value>
@@ -106,13 +101,11 @@
     <value><![CDATA[Enable AI Auto-Generation:<br /><span class="help">Automatically improve product descriptions using AI when generating Schema.org markup</span>]]></value>
   </definition>
 
-  <!-- Definiciones hasVariant[] -->
   <definition>
     <key>smart_seo_schema_enable_variants</key>
     <value><![CDATA[Enable Product Variants (hasVariant):<br /><span class="help">Generate Schema.org hasVariant markup from AbanteCart product options for better SEO</span>]]></value>
   </definition>
 
-  <!-- Definiciones Esquemas Adicionales -->
   <definition>
     <key>smart_seo_schema_enable_faq_schema</key>
     <value><![CDATA[Enable FAQ Schema:<br /><span class="help">Generate FAQPage structured data for products to enhance search results with FAQ snippets</span>]]></value>
@@ -130,7 +123,6 @@
     <value><![CDATA[Enable Organization Schema:<br /><span class="help">Include Organization structured data to identify your business in search results</span>]]></value>
   </definition>
 
-  <!-- Definiciones IA Avanzadas -->
   <definition>
     <key>smart_seo_schema_ai_temperature</key>
     <value><![CDATA[AI Temperature:<br /><span class="help">Controls AI creativity (0.0-1.0). Lower values = more focused, higher values = more creative. Default: 0.7</span>]]></value>
@@ -144,7 +136,6 @@
     <value><![CDATA[API Timeout (seconds):<br /><span class="help">Maximum time to wait for AI response. Default: 10 seconds</span>]]></value>
   </definition>
 
-  <!-- Definiciones FAQ específicas -->
   <definition>
     <key>smart_seo_schema_faq_auto_generate</key>
     <value><![CDATA[Auto-Generate FAQ:<br /><span class="help">Use AI to automatically create FAQ content based on product information</span>]]></value>
@@ -154,7 +145,6 @@
     <value><![CDATA[FAQ Questions Count:<br /><span class="help">Number of FAQ questions to generate automatically. Default: 3</span>]]></value>
   </definition>
 
-  <!-- Definiciones HowTo específicas -->
   <definition>
     <key>smart_seo_schema_howto_auto_generate</key>
     <value><![CDATA[Auto-Generate HowTo:<br /><span class="help">Use AI to create HowTo instructions for product usage</span>]]></value>
@@ -164,7 +154,6 @@
     <value><![CDATA[HowTo Steps Count:<br /><span class="help">Number of steps to generate in HowTo instructions. Default: 5</span>]]></value>
   </definition>
 
-  <!-- Definiciones Review específicas -->
   <definition>
     <key>smart_seo_schema_review_auto_generate</key>
     <value><![CDATA[Auto-Generate Reviews:<br /><span class="help">Create technical reviews using AI for products without existing reviews</span>]]></value>
@@ -178,7 +167,6 @@
     <value><![CDATA[Maximum Review Rating:<br /><span class="help">Maximum rating for auto-generated reviews (1-5). Default: 5</span>]]></value>
   </definition>
 
-  <!-- Definiciones Organization -->
   <definition>
     <key>smart_seo_schema_org_logo_url</key>
     <value><![CDATA[Organization Logo URL:<br /><span class="help">Full URL to your organization's logo for Schema.org markup</span>]]></value>
@@ -188,7 +176,6 @@
     <value><![CDATA[Contact Type:<br /><span class="help">Primary contact type for your organization in structured data</span>]]></value>
   </definition>
   
-  <!-- Valores para selectbox de contact type -->
   <definition>
     <key>smart_seo_schema_org_contact_type_customer_service</key>
     <value><![CDATA[Customer Service]]></value>
@@ -211,7 +198,6 @@
     <value><![CDATA[Organization Phone:<br /><span class="help">Main phone number for customer contact in international format (+1-555-123-4567)</span>]]></value>
   </definition>
 
-  <!-- Definiciones Debug/Logging -->
   <definition>
     <key>smart_seo_schema_debug_mode</key>
     <value><![CDATA[Debug Mode:<br /><span class="help">Enable debugging output for Schema.org generation (for developers only)</span>]]></value>
@@ -221,7 +207,6 @@
     <value><![CDATA[Log AI API Calls:<br /><span class="help">Log all AI API requests and responses for monitoring and debugging</span>]]></value>
   </definition>
 
-  <!-- Títulos de secciones para admin -->
   <definition>
     <key>text_section_basic</key>
     <value><![CDATA[Basic Schema Settings]]></value>
@@ -229,6 +214,10 @@
   <definition>
     <key>text_section_ai</key>
     <value><![CDATA[AI Content Generation]]></value>
+  </definition>
+  <definition>
+    <key>text_section_reviews</key>
+    <value><![CDATA[Product Reviews Management]]></value>
   </definition>
   <definition>
     <key>text_section_variants</key>
@@ -247,7 +236,6 @@
     <value><![CDATA[Debug & Monitoring]]></value>
   </definition>
 
-  <!-- Mensajes de estado y errores de IA -->
   <definition>
     <key>text_ai_connection_success</key>
     <value><![CDATA[AI connection successful! Groq API is working properly.]]></value>
@@ -277,7 +265,6 @@
     <value><![CDATA[No product variants found. Only main product will be included in schema.]]></value>
   </definition>
 
-  <!-- Botones y acciones -->
   <definition>
     <key>button_test_ai_connection</key>
     <value><![CDATA[Test AI Connection]]></value>
@@ -303,7 +290,125 @@
     <value><![CDATA[Cancel]]></value>
   </definition>
 
-  <!-- Mensajes del sistema -->
+  <definition>
+    <key>button_add_review</key>
+    <value><![CDATA[Add New Review]]></value>
+  </definition>
+  <definition>
+    <key>button_generate_example_review</key>
+    <value><![CDATA[Generate Example Review]]></value>
+  </definition>
+  <definition>
+    <key>button_optimize_review</key>
+    <value><![CDATA[Optimize Review]]></value>
+  </definition>
+  <definition>
+    <key>button_edit_review</key>
+    <value><![CDATA[Edit Review]]></value>
+  </definition>
+  <definition>
+    <key>button_delete_review</key>
+    <value><![CDATA[Delete Review]]></value>
+  </definition>
+  <definition>
+    <key>button_save_review</key>
+    <value><![CDATA[Save Review]]></value>
+  </definition>
+
+  <definition>
+    <key>text_review_author</key>
+    <value><![CDATA[Author]]></value>
+  </definition>
+  <definition>
+    <key>text_review_text</key>
+    <value><![CDATA[Review Text]]></value>
+  </definition>
+  <definition>
+    <key>text_review_rating</key>
+    <value><![CDATA[Rating]]></value>
+  </definition>
+  <definition>
+    <key>text_review_status</key>
+    <value><![CDATA[Status]]></value>
+  </definition>
+  <definition>
+    <key>text_review_date</key>
+    <value><![CDATA[Date]]></value>
+  </definition>
+  <definition>
+    <key>text_review_actions</key>
+    <value><![CDATA[Actions]]></value>
+  </definition>
+  <definition>
+    <key>text_review_verified_purchase</key>
+    <value><![CDATA[Verified Purchase]]></value>
+  </definition>
+  <definition>
+    <key>text_review_active_status</key>
+    <value><![CDATA[Active Status]]></value>
+  </definition>
+
+  <definition>
+    <key>text_no_reviews_found</key>
+    <value><![CDATA[No reviews found for this product]]></value>
+  </definition>
+  <definition>
+    <key>text_no_reviews_help</key>
+    <value><![CDATA[Click "Add New Review" to create one manually or "Generate Example Review" to create one with AI]]></value>
+  </definition>
+
+  <definition>
+    <key>text_review_optimization_help</key>
+    <value><![CDATA[Improve existing review content while maintaining authenticity]]></value>
+  </definition>
+  <definition>
+    <key>text_review_generation_help</key>
+    <value><![CDATA[Create sample reviews (3-5 stars) based on product description]]></value>
+  </definition>
+  <definition>
+    <key>text_review_database_help</key>
+    <value><![CDATA[All reviews are stored in your database and used for Schema.org markup]]></value>
+  </definition>
+
+  <definition>
+    <key>confirm_delete_review</key>
+    <value><![CDATA[Are you sure you want to delete this review?]]></value>
+  </definition>
+
+  <definition>
+    <key>error_review_save_failed</key>
+    <value><![CDATA[Failed to save review. Please check all required fields.]]></value>
+  </definition>
+  <definition>
+    <key>error_review_delete_failed</key>
+    <value><![CDATA[Failed to delete review. Please try again.]]></value>
+  </definition>
+  <definition>
+    <key>error_review_optimize_failed</key>
+    <value><![CDATA[Failed to optimize review. Please check your AI configuration.]]></value>
+  </definition>
+  <definition>
+    <key>error_review_generate_failed</key>
+    <value><![CDATA[Failed to generate example review. Please check your AI configuration.]]></value>
+  </definition>
+
+  <definition>
+    <key>success_review_saved</key>
+    <value><![CDATA[Review saved successfully!]]></value>
+  </definition>
+  <definition>
+    <key>success_review_deleted</key>
+    <value><![CDATA[Review deleted successfully!]]></value>
+  </definition>
+  <definition>
+    <key>success_review_optimized</key>
+    <value><![CDATA[Review optimized successfully!]]></value>
+  </definition>
+  <definition>
+    <key>success_review_generated</key>
+    <value><![CDATA[Example review generated successfully!]]></value>
+  </definition>
+
   <definition>
     <key>text_success</key>
     <value><![CDATA[Success: You have modified Smart SEO Schema settings!]]></value>
@@ -329,7 +434,6 @@
     <value><![CDATA[Warning: You do not have permission to modify Smart SEO Schema!]]></value>
   </definition>
 
-  <!-- Ayuda contextual -->
   <definition>
     <key>help_schema_org</key>
     <value><![CDATA[Schema.org is a structured data vocabulary that helps search engines understand your content better, leading to enhanced search results and better SEO.]]></value>
@@ -337,5 +441,9 @@
   <definition>
     <key>help_groq_ai</key>
     <value><![CDATA[Groq AI provides fast, high-quality language models for automatic content generation. This helps create better product descriptions, FAQ content, and structured data.]]></value>
+  </definition>
+  <definition>
+    <key>help_reviews_management</key>
+    <value><![CDATA[Manage real product reviews from your database. Use AI to optimize existing reviews or generate example reviews for products without reviews. All reviews contribute to Schema.org structured data for better SEO.]]></value>
   </definition>
 </definitions>

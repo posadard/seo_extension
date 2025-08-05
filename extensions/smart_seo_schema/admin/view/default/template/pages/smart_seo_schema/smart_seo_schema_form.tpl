@@ -11,19 +11,16 @@
             <div class="btn-group mr10 toolbar">
                 <?php echo $this->getHookVar('common_content_buttons'); ?>
 
-                <!-- AI Connection Test Button -->
                 <button type="button" id="test_ai_connection" class="btn btn-info tooltips" 
                         title="<?php echo $button_test_ai_connection; ?>">
                     <i class="fa fa-flask fa-lg"></i> <?php echo $button_test_ai_connection; ?>
                 </button>
 
-                <!-- Schema Preview Button -->
                 <button type="button" id="preview_schema" class="btn btn-success tooltips" 
                         title="<?php echo $button_preview_schema; ?>">
                     <i class="fa fa-eye fa-lg"></i> <?php echo $button_preview_schema; ?>
                 </button>
 
-                <!-- Generate Others Content Button -->
                 <button type="button" id="generate_others_content" class="btn btn-primary tooltips" 
                         title="Auto-generate shipping & return policy defaults">
                     <i class="fa fa-cogs fa-lg"></i> Auto-Generate Defaults
@@ -39,7 +36,6 @@
     <?php echo $form['form_open']; ?>
     <div class="panel-body panel-body-nopadding tab-content col-xs-12">
 
-        <!-- Token Division Info Panel -->
         <div class="alert alert-info">
             <div class="row">
                 <div class="col-md-8">
@@ -54,13 +50,11 @@
             </div>
         </div>
 
-        <!-- AI Status Alert -->
         <div id="ai_status_alert" class="alert alert-info" style="display: none;">
             <i class="fa fa-info-circle fa-fw fa-lg"></i>
             <span id="ai_status_message"></span>
         </div>
 
-        <!-- Basic Schema Settings Section -->
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h4 class="panel-title">
@@ -69,7 +63,6 @@
             </div>
             <div class="panel-body">
                 
-                <!-- Custom Description - OPTIMIZADO CON DIVISIÓN DE TOKENS -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="custom_description">
                         <?php echo $entry_custom_description; ?>
@@ -96,7 +89,6 @@
                     </div>
                 </div>
 
-                <!-- Enable Variants -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="enable_variants">
                         <?php echo $entry_enable_variants; ?>
@@ -106,12 +98,10 @@
                     </div>
                 </div>
 
-                <!-- Variants Preview -->
                 <div id="variants_preview" class="form-group" style="display: none;">
                     <label class="control-label col-sm-3 col-xs-12">Product Variants Found:</label>
                     <div class="col-sm-7 col-xs-12">
                         <div id="variants_list" class="well well-sm">
-                            <!-- Variants will be loaded here via AJAX -->
                         </div>
                     </div>
                 </div>
@@ -119,7 +109,6 @@
             </div>
         </div>
 
-        <!-- AI Content Generation Section CON DIVISIÓN DE TOKENS -->
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h4 class="panel-title">
@@ -129,19 +118,16 @@
             </div>
             <div class="panel-body">
 
-                <!-- Token Division Summary -->
                 <div class="row" id="token_division_summary" style="display: none; margin-bottom: 20px;">
                     <div class="col-xs-12">
                         <div class="alert alert-warning">
                             <strong><i class="fa fa-pie-chart"></i> Token Distribution:</strong>
                             <div id="token_breakdown" class="row" style="margin-top: 10px;">
-                                <!-- Token breakdown will be populated by JavaScript -->
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- FAQ Content - OPTIMIZADO CON DIVISIÓN DE TOKENS -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="faq_content">
                         <?php echo $entry_faq_content; ?>
@@ -168,7 +154,6 @@
                     </div>
                 </div>
 
-                <!-- HowTo Content - OPTIMIZADO CON DIVISIÓN DE TOKENS -->
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="howto_content">
                         <?php echo $entry_howto_content; ?>
@@ -195,34 +180,6 @@
                     </div>
                 </div>
 
-                <!-- Review Content - OPTIMIZADO CON DIVISIÓN DE TOKENS -->
-                <div class="form-group">
-                    <label class="control-label col-sm-3 col-xs-12" for="review_content">
-                        <?php echo $entry_review_content; ?>
-                    </label>
-                    <div class="input-group afield col-sm-7 col-xs-12">
-                        <span class="input-group-addon">
-                            <input type="checkbox" id="ai_generate_review" name="ai_generate_review" value="1" onchange="updateTokenDivision()">
-                            <label for="ai_generate_review" style="margin-left: 5px;">AI Generate</label>
-                        </span>
-                        <textarea 
-                            id="review_content" 
-                            name="review_content" 
-                            class="form-control large-field" 
-                            rows="6" 
-                            placeholder="Select AI Generate for review with precise token limits..."><?php echo $schema_settings['review_content'] ?? ''; ?></textarea>
-                    </div>
-                    <div class="col-sm-2 col-xs-12">
-                        <div class="token-info-box" id="review_token_info" style="display: none;">
-                            <small class="text-muted">
-                                <i class="fa fa-info-circle"></i> Tokens: <span class="token-count">0</span><br>
-                                <i class="fa fa-clock-o"></i> Est. words: <span class="word-estimate">0</span>
-                            </small>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Main AI Generation Button CON INFORMACIÓN DE TOKENS -->
                 <div class="form-group">
                     <div class="col-sm-offset-3 col-sm-7">
                         <button type="button" id="generate_ai_content_main" class="btn btn-success btn-lg" onclick="generateAllAIContent()">
@@ -242,7 +199,8 @@
             </div>
         </div>
 
-        <!-- Others Content Section - CAMPO EDITABLES PARA shippingDetails y returnPolicy -->
+        <?php include('reviews_section.tpl'); ?>
+
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h4 class="panel-title">
@@ -287,7 +245,6 @@
                     </div>
                 </div>
                 
-                <!-- JSON Validation and Auto-Generate Buttons -->
                 <div class="form-group">
                     <div class="col-sm-offset-3 col-sm-7">
                         <div class="btn-group">
@@ -304,7 +261,6 @@
             </div>
         </div>
 
-        <!-- Schema Preview Section -->
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h4 class="panel-title">
@@ -339,7 +295,6 @@
 
 </div>
 
-<!-- Loading Modal -->
 <div class="modal fade" id="loading_modal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -354,7 +309,6 @@
     </div>
 </div>
 
-<!-- Debug Modal -->
 <div class="modal fade" id="debug_modal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -369,7 +323,62 @@
     </div>
 </div>
 
-<!-- CSS para highlighting y token info -->
+<div class="modal fade" id="review_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title" id="review_modal_title">Edit Review</h4>
+            </div>
+            <div class="modal-body">
+                <form id="review_form">
+                    <input type="hidden" id="review_id" name="review_id">
+                    <input type="hidden" id="product_id_review" name="product_id" value="<?php echo $product_id; ?>">
+                    
+                    <div class="form-group">
+                        <label for="review_author">Author:</label>
+                        <input type="text" class="form-control" id="review_author" name="author" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="review_text">Review Text:</label>
+                        <textarea class="form-control" id="review_text" name="text" rows="6" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="review_rating">Rating:</label>
+                        <select class="form-control" id="review_rating" name="rating" required>
+                            <option value="1">1 Star</option>
+                            <option value="2">2 Stars</option>
+                            <option value="3">3 Stars</option>
+                            <option value="4">4 Stars</option>
+                            <option value="5">5 Stars</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="review_verified" name="verified_purchase" value="1">
+                            Verified Purchase
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="review_status" name="status" value="1">
+                            Active Status
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveReview()">Save Review</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .highlight-success {
     border: 2px solid #5cb85c !important;
@@ -405,14 +414,27 @@
     color: #ffffff;
     opacity: 0.9;
 }
+.review-row {
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+.review-row:last-child {
+    border-bottom: none;
+}
+.star-rating {
+    color: #ffc107;
+}
+.btn-optimize {
+    padding: 2px 6px;
+    font-size: 11px;
+    margin-left: 5px;
+}
 </style>
 
 <script type="text/javascript">
-<!--
 
-// Variables globales para token management
 var globalTokenSettings = {
-    maxTokens: 800, // Default, se actualizará desde configuración
+    maxTokens: 800,
     minTokensPerContent: 100,
     selectedContentTypes: []
 };
@@ -420,18 +442,14 @@ var globalTokenSettings = {
 $(document).ready(function() {
     console.log('=== INICIALIZANDO SMART SEO SCHEMA CON DIVISIÓN DE TOKENS ===');
     
-    // Initialize token settings first
     initializeTokenSettings();
     
-    // Check AI status on load
     checkAIStatus();
     
-    // Load variants preview if enabled
     if ($('#enable_variants').is(':checked')) {
         loadVariantsPreview();
     }
     
-    // Toggle variants preview
     $('#enable_variants').change(function() {
         if ($(this).is(':checked')) {
             loadVariantsPreview();
@@ -440,10 +458,8 @@ $(document).ready(function() {
         }
     });
     
-    // Initial token division update
     updateTokenDivision();
     
-    // Debug inicial de campos
     setTimeout(function() {
         debugFormFields();
     }, 1000);
@@ -452,11 +468,8 @@ $(document).ready(function() {
 function initializeTokenSettings() {
     console.log('=== INICIALIZANDO CONFIGURACIÓN DE TOKENS ===');
     
-    // Simular obtención desde configuración PHP (en implementación real vendrá del backend)
-    // Estos valores deberían venir del controlador PHP
-    globalTokenSettings.maxTokens = 800; // Valor por defecto, debería venir de la configuración
+    globalTokenSettings.maxTokens = 800;
     
-    // Actualizar displays iniciales
     $('#max_tokens_display').text('Max Tokens: ' + globalTokenSettings.maxTokens);
     
     console.log('Token settings inicializados:', globalTokenSettings);
@@ -465,19 +478,16 @@ function initializeTokenSettings() {
 function updateTokenDivision() {
     console.log('=== ACTUALIZANDO DIVISIÓN DE TOKENS ===');
     
-    // Obtener tipos de contenido seleccionados
     var selectedTypes = [];
     if ($('#ai_generate_description').is(':checked')) selectedTypes.push('description');
     if ($('#ai_generate_faq').is(':checked')) selectedTypes.push('faq');
     if ($('#ai_generate_howto').is(':checked')) selectedTypes.push('howto');
-    if ($('#ai_generate_review').is(':checked')) selectedTypes.push('review');
     
     globalTokenSettings.selectedContentTypes = selectedTypes;
     
     console.log('Tipos seleccionados:', selectedTypes);
     
     if (selectedTypes.length === 0) {
-        // No hay tipos seleccionados
         $('#per_content_display').text('Per Content: Select types above');
         $('#token_division_summary').hide();
         hideAllTokenInfo();
@@ -485,25 +495,20 @@ function updateTokenDivision() {
         return;
     }
     
-    // Calcular división de tokens
     var tokensPerContent = Math.floor(globalTokenSettings.maxTokens / selectedTypes.length);
     var actualTotal = globalTokenSettings.maxTokens;
     
-    // Verificar mínimo garantizado
     if (tokensPerContent < globalTokenSettings.minTokensPerContent) {
         tokensPerContent = globalTokenSettings.minTokensPerContent;
         actualTotal = tokensPerContent * selectedTypes.length;
         console.log('Ajuste por mínimo: ', tokensPerContent, 'tokens por tipo, total:', actualTotal);
     }
     
-    // Actualizar displays
     $('#per_content_display').text('Per Content: ' + tokensPerContent + ' tokens');
     updateGenerateButtonInfo(selectedTypes.length, tokensPerContent);
     
-    // Mostrar breakdown detallado
     showTokenBreakdown(selectedTypes, tokensPerContent, actualTotal);
     
-    // Actualizar info boxes individuales
     updateIndividualTokenInfo(selectedTypes, tokensPerContent);
     
     console.log('División calculada - Por contenido:', tokensPerContent, 'Total:', actualTotal);
@@ -514,7 +519,7 @@ function showTokenBreakdown(selectedTypes, tokensPerContent, totalTokens) {
     
     selectedTypes.forEach(function(type) {
         var typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
-        var estimatedWords = Math.floor(tokensPerContent * 0.75); // Aproximación tokens a palabras
+        var estimatedWords = Math.floor(tokensPerContent * 0.75);
         
         breakdownHtml += '<div class="col-md-3 col-sm-6">' +
             '<div class="token-breakdown-item active">' +
@@ -530,10 +535,8 @@ function showTokenBreakdown(selectedTypes, tokensPerContent, totalTokens) {
 }
 
 function updateIndividualTokenInfo(selectedTypes, tokensPerContent) {
-    // Hide all token info boxes first
     hideAllTokenInfo();
     
-    // Show info for selected types
     selectedTypes.forEach(function(type) {
         var infoBoxId = type + '_token_info';
         var estimatedWords = Math.floor(tokensPerContent * 0.75);
@@ -591,7 +594,7 @@ function testAIConnection() {
         url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/testAIConnection", "&product_id=" . $product_id); ?>',
         type: 'GET',
         dataType: 'json',
-        timeout: 15000, // 15 seconds timeout
+        timeout: 15000,
         success: function(response) {
             console.log('AI test response:', response);
             
@@ -599,7 +602,6 @@ function testAIConnection() {
                 showAIStatus('danger', response.message);
                 error_alert(response.message);
                 
-                // Show debug info if available
                 if (response.debug) {
                     $('#debug_content').text(JSON.stringify(response.debug, null, 2));
                     $('#debug_modal').modal('show');
@@ -624,7 +626,6 @@ function testAIConnection() {
             showAIStatus('danger', errorMsg);
             error_alert(errorMsg);
             
-            // Show raw response for debugging
             $('#debug_content').text('Status: ' + status + '\nError: ' + error + '\nResponse: ' + xhr.responseText);
             $('#debug_modal').modal('show');
         },
@@ -637,7 +638,6 @@ function testAIConnection() {
 function generateAllAIContent() {
     console.log('=== GENERACIÓN MÚLTIPLE CON DIVISIÓN INTELIGENTE DE TOKENS ===');
     
-    // Obtener tipos de contenido seleccionados
     var selectedTypes = globalTokenSettings.selectedContentTypes;
     
     console.log('Tipos seleccionados:', selectedTypes);
@@ -648,24 +648,20 @@ function generateAllAIContent() {
         return;
     }
     
-    // Calcular información de tokens para mostrar al usuario
     var tokensPerContent = Math.floor(globalTokenSettings.maxTokens / selectedTypes.length);
     if (tokensPerContent < globalTokenSettings.minTokensPerContent) {
         tokensPerContent = globalTokenSettings.minTokensPerContent;
     }
     
-    // Deshabilitar botón y mostrar loading con información de tokens
     var $button = $('#generate_ai_content_main');
     var originalText = $button.html();
     $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating with Smart Token Division...');
     
-    // Actualizar mensaje del modal
     $('#loading_modal .modal-body p').html('Generating ' + selectedTypes.length + ' content types<br>' +
                                           '<strong>' + tokensPerContent + ' tokens each</strong><br>' +
                                           '<small>Total: ' + (tokensPerContent * selectedTypes.length) + ' tokens</small>');
     $('#loading_modal').modal('show');
     
-    // Preparar datos
     var postData = {
         'content_types': selectedTypes,
         'product_id': '<?php echo $product_id; ?>'
@@ -678,7 +674,7 @@ function generateAllAIContent() {
         type: 'POST',
         data: postData,
         dataType: 'json',
-        timeout: 90000, // 90 segundos para generación con división de tokens
+        timeout: 90000,
         success: function(response) {
             console.log('=== RESPUESTA CON DIVISIÓN DE TOKENS RECIBIDA ===');
             console.log('Response completo:', response);
@@ -689,7 +685,6 @@ function generateAllAIContent() {
                 console.error('Error en respuesta:', response.message);
                 error_alert('Error generating content with token division: ' + response.message);
                 
-                // Show debug si está disponible
                 if (response.debug) {
                     console.log('Debug info:', response.debug);
                     $('#debug_content').text(JSON.stringify(response.debug, null, 2));
@@ -702,25 +697,21 @@ function generateAllAIContent() {
                 var fieldMapping = {
                     'description': 'custom_description',
                     'faq': 'faq_content',
-                    'howto': 'howto_content',
-                    'review': 'review_content'
+                    'howto': 'howto_content'
                 };
                 
-                // Llenar campos con contenido generado
                 for (var contentType in response.content) {
                     var fieldId = fieldMapping[contentType];
                     if (fieldId && response.content[contentType]) {
                         $('#' + fieldId).val(response.content[contentType]);
                         
-                        // Highlight del campo con información de tokens
                         $('#' + fieldId).addClass('highlight-success');
                         setTimeout(function(field) {
                             return function() { $('#' + field).removeClass('highlight-success'); };
-                        }(fieldId), 4000); // Más tiempo para apreciar el resultado
+                        }(fieldId), 4000);
                         
                         successCount++;
                         
-                        // Log de estadísticas del contenido generado
                         var content = response.content[contentType];
                         var wordCount = content.split(/\s+/).length;
                         var charCount = content.length;
@@ -733,7 +724,6 @@ function generateAllAIContent() {
                     successMsg += 'Each content optimized for ' + tokensPerContent + ' tokens.';
                     success_alert(successMsg);
                     
-                    // Scroll al primer campo generado
                     var firstField = Object.keys(response.content)[0];
                     var firstFieldId = fieldMapping[firstField];
                     if (firstFieldId) {
@@ -770,7 +760,6 @@ function generateAllAIContent() {
             
             error_alert(errorMsg);
             
-            // Mostrar respuesta completa en debug modal
             $('#debug_content').text('AJAX Error Details (Token Division):\n' +
                 'Status: ' + status + '\n' +
                 'Error: ' + error + '\n' +
@@ -781,7 +770,6 @@ function generateAllAIContent() {
         },
         complete: function() {
             console.log('=== AJAX CON DIVISIÓN DE TOKENS COMPLETADO ===');
-            // Restaurar botón
             $button.prop('disabled', false).html(originalText);
         }
     });
@@ -803,11 +791,9 @@ function autoGenerateOthersContent() {
             if (response.error) {
                 error_alert('Error generating others content: ' + response.message);
             } else {
-                // Formatear JSON con indentación y llenar el campo
                 var formattedJson = JSON.stringify(response.others_content, null, 2);
                 $('#others_content').val(formattedJson);
                 
-                // Highlight y scroll
                 $('#others_content').addClass('highlight-success');
                 setTimeout(function() {
                     $('#others_content').removeClass('highlight-success');
@@ -846,7 +832,6 @@ function previewSchema() {
                 var formattedJson = JSON.stringify(response.schema, null, 2);
                 $('#schema_preview').text(formattedJson).show();
                 
-                // Scroll to preview
                 $('html, body').animate({
                     scrollTop: $("#schema_preview").offset().top - 100
                 }, 500);
@@ -917,11 +902,10 @@ function validateOthersContentJSON() {
     }
 }
 
-// Función auxiliar para debug de campos
 function debugFormFields() {
     console.log('=== DEBUG CAMPOS FORMULARIO CON TOKENS ===');
     
-    var expectedFields = ['custom_description', 'faq_content', 'howto_content', 'review_content', 'others_content'];
+    var expectedFields = ['custom_description', 'faq_content', 'howto_content', 'others_content'];
     
     expectedFields.forEach(function(fieldName) {
         var byId = $('#' + fieldName);
@@ -933,23 +917,172 @@ function debugFormFields() {
         console.log('  Valor actual:', byId.length > 0 ? byId.val().substring(0, 50) + '...' : 'N/A');
     });
     
-    // Información adicional de tokens
     console.log('=== CONFIGURACIÓN DE TOKENS ===');
     console.log('Max tokens:', globalTokenSettings.maxTokens);
     console.log('Min tokens per content:', globalTokenSettings.minTokensPerContent);
     console.log('Selected types:', globalTokenSettings.selectedContentTypes);
     
-    // Listar todos los campos del formulario
     console.log('=== TODOS LOS CAMPOS DEL FORMULARIO ===');
     $('#smart_seo_schema_form input, #smart_seo_schema_form textarea, #smart_seo_schema_form select').each(function() {
         console.log('  -', this.tagName, 'id="' + this.id + '"', 'name="' + this.name + '"');
     });
 }
 
-// Bind click events
+function optimizeReview(reviewId, currentText) {
+    console.log('=== OPTIMIZING REVIEW ===', reviewId);
+    
+    var $button = $('#optimize_btn_' + reviewId);
+    var originalText = $button.html();
+    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+    
+    $.ajax({
+        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/optimizeReview", "&product_id=" . $product_id); ?>',
+        type: 'POST',
+        data: {
+            review_id: reviewId,
+            review_text: currentText
+        },
+        dataType: 'json',
+        timeout: 30000,
+        success: function(response) {
+            if (response.error) {
+                error_alert('Error optimizing review: ' + response.message);
+            } else {
+                $('#review_text_' + reviewId).val(response.optimized_text);
+                $('#review_text_' + reviewId).addClass('highlight-success');
+                setTimeout(function() {
+                    $('#review_text_' + reviewId).removeClass('highlight-success');
+                }, 3000);
+                success_alert('Review optimized successfully! Length: ' + response.optimized_length + ' chars');
+            }
+        },
+        error: function(xhr, status, error) {
+            error_alert('Failed to optimize review. Please try again.');
+        },
+        complete: function() {
+            $button.prop('disabled', false).html(originalText);
+        }
+    });
+}
+
+function editReview(reviewId) {
+    if (reviewId === 'new') {
+        $('#review_modal_title').text('Add New Review');
+        $('#review_form')[0].reset();
+        $('#review_id').val('');
+        $('#review_status').prop('checked', true);
+    } else {
+        $('#review_modal_title').text('Edit Review');
+        $('#review_id').val(reviewId);
+        $('#review_author').val($('#review_author_' + reviewId).text());
+        $('#review_text').val($('#review_text_' + reviewId).val());
+        $('#review_rating').val($('#review_rating_' + reviewId).data('rating'));
+        $('#review_verified').prop('checked', $('#review_verified_' + reviewId).data('verified') == '1');
+        $('#review_status').prop('checked', $('#review_status_' + reviewId).data('status') == '1');
+    }
+    
+    $('#review_modal').modal('show');
+}
+
+function saveReview() {
+    var formData = {
+        review_id: $('#review_id').val(),
+        product_id: $('#product_id_review').val(),
+        author: $('#review_author').val(),
+        text: $('#review_text').val(),
+        rating: $('#review_rating').val(),
+        verified_purchase: $('#review_verified').is(':checked') ? 1 : 0,
+        status: $('#review_status').is(':checked') ? 1 : 0
+    };
+    
+    if (!formData.author || !formData.text || !formData.rating) {
+        error_alert('Please fill in all required fields.');
+        return;
+    }
+    
+    $.ajax({
+        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/saveReview", "&product_id=" . $product_id); ?>',
+        type: 'POST',
+        data: formData,
+        dataType: 'json',
+        success: function(response) {
+            if (response.error) {
+                error_alert('Error saving review: ' + response.message);
+            } else {
+                $('#review_modal').modal('hide');
+                success_alert(response.message);
+                location.reload();
+            }
+        },
+        error: function() {
+            error_alert('Failed to save review. Please try again.');
+        }
+    });
+}
+
+function deleteReview(reviewId) {
+    if (!confirm('Are you sure you want to delete this review?')) {
+        return;
+    }
+    
+    $.ajax({
+        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/deleteReview", "&product_id=" . $product_id); ?>',
+        type: 'POST',
+        data: { review_id: reviewId },
+        dataType: 'json',
+        success: function(response) {
+            if (response.error) {
+                error_alert('Error deleting review: ' + response.message);
+            } else {
+                success_alert(response.message);
+                $('#review_row_' + reviewId).fadeOut(function() {
+                    $(this).remove();
+                });
+            }
+        },
+        error: function() {
+            error_alert('Failed to delete review. Please try again.');
+        }
+    });
+}
+
+function generateExampleReview() {
+    console.log('=== GENERATING EXAMPLE REVIEW ===');
+    
+    $('#generate_example_review').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
+    
+    $.ajax({
+        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateExampleReview", "&product_id=" . $product_id); ?>',
+        type: 'GET',
+        dataType: 'json',
+        timeout: 30000,
+        success: function(response) {
+            if (response.error) {
+                error_alert('Error generating example review: ' + response.message);
+            } else {
+                var review = response.review;
+                $('#review_modal_title').text('AI Generated Example Review');
+                $('#review_form')[0].reset();
+                $('#review_id').val('');
+                $('#review_author').val(review.author);
+                $('#review_text').val(review.text);
+                $('#review_rating').val(review.rating);
+                $('#review_verified').prop('checked', review.verified_purchase == 1);
+                $('#review_status').prop('checked', review.status == 1);
+                $('#review_modal').modal('show');
+            }
+        },
+        error: function() {
+            error_alert('Failed to generate example review. Please try again.');
+        },
+        complete: function() {
+            $('#generate_example_review').prop('disabled', false).html('<i class="fa fa-star"></i> Generate Example Review');
+        }
+    });
+}
+
 $('#test_ai_connection').click(testAIConnection);
 $('#preview_schema').click(previewSchema);
 $('#generate_others_content').click(autoGenerateOthersContent);
 
--->
 </script>
