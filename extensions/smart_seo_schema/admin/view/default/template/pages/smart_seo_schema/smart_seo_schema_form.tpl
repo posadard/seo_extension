@@ -39,13 +39,13 @@
         <div class="alert alert-info">
             <div class="row">
                 <div class="col-md-8">
-                    <strong><i class="fa fa-info-circle"></i> Individual AI Generation:</strong><br>
-                    <span>Each content section has its own AI generation button. Configure min/max tokens in extension settings to control content length.</span>
+                    <strong><i class="fa fa-info-circle"></i> Smart AI Generation:</strong><br>
+                    <span>Each content section uses intelligent AI generation. Custom Description automatically generates 150-160 character summaries focused on essential information.</span>
                 </div>
                 <div class="col-md-4 text-right">
-                    <strong>Token Settings:</strong><br>
-                    <span class="label label-info" id="max_tokens_display">Max Tokens: Loading...</span><br>
-                    <span class="label label-warning" id="min_tokens_display" style="margin-top: 3px;">Min Tokens: Loading...</span>
+                    <strong>Description Target:</strong><br>
+                    <span class="label label-success" id="target_length_display">150-160 Characters</span><br>
+                    <span class="label label-info" style="margin-top: 3px;">Information Priority</span>
                 </div>
             </div>
         </div>
@@ -73,16 +73,22 @@
                             name="custom_description" 
                             class="form-control large-field" 
                             rows="4" 
-                            placeholder="Product description for Schema.org markup..."><?php echo $schema_settings['custom_description'] ?? ''; ?></textarea>
+                            maxlength="200"
+                            placeholder="AI will generate 150-160 character summary focusing on key product information..."><?php echo $schema_settings['custom_description'] ?? ''; ?></textarea>
+                        <div class="help-block">
+                            <span id="char_counter" class="pull-right">0/160 characters</span>
+                            <span id="char_status" class="text-muted">Enter 150-160 characters for optimal SEO</span>
+                        </div>
                     </div>
                     <div class="col-sm-3 col-xs-12">
                         <button type="button" id="generate_description_ai" class="btn btn-success btn-block" onclick="generateDescriptionAI()">
                             <i class="fa fa-magic"></i> Generate Description
                         </button>
-                        <div class="token-info-box" style="margin-top: 8px;">
+                        <div class="description-info-box" style="margin-top: 8px;">
                             <small class="text-muted">
-                                <i class="fa fa-info-circle"></i> Uses individual token limits<br>
-                                <i class="fa fa-clock-o"></i> Min-Max token range applied
+                                <i class="fa fa-target"></i> Target: 150-160 chars<br>
+                                <i class="fa fa-info-circle"></i> Information over decoration<br>
+                                <i class="fa fa-compress"></i> Smart summarization
                             </small>
                         </div>
                     </div>
@@ -307,7 +313,19 @@
                     
                     <div class="form-group">
                         <label for="review_text">Review Text:</label>
-                        <textarea class="form-control" id="review_text" name="text" rows="6" required></textarea>
+                        <div class="input-group">
+                            <textarea class="form-control" id="review_text" name="text" rows="6" required></textarea>
+                            <span class="input-group-btn" style="vertical-align: top;">
+                                <button type="button" id="optimize_review_modal" class="btn btn-warning" 
+                                        onclick="optimizeReviewInModal()" 
+                                        title="Optimize this review with AI">
+                                    <i class="fa fa-magic"></i><br>Optimize<br>with AI
+                                </button>
+                            </span>
+                        </div>
+                        <small class="help-block text-muted">
+                            <i class="fa fa-lightbulb-o"></i> Click "Optimize with AI" to improve the review content while maintaining authenticity
+                        </small>
                     </div>
                     
                     <div class="form-group">
@@ -355,12 +373,21 @@
     background-color: #fff0f0 !important;
     transition: all 0.3s ease;
 }
-.token-info-box {
+.highlight-optimal {
+    border: 2px solid #5bc0de !important;
+    background-color: #f0f9ff !important;
+    transition: all 0.3s ease;
+}
+.token-info-box, .description-info-box {
     background: #f8f9fa;
     border: 1px solid #dee2e6;
     border-radius: 4px;
     padding: 8px;
     margin-top: 5px;
+}
+.description-info-box {
+    background: #e8f5e8;
+    border-color: #c3e6c3;
 }
 .review-row {
     border-bottom: 1px solid #eee;
@@ -377,20 +404,42 @@
     font-size: 11px;
     margin-left: 5px;
 }
+#char_counter.optimal {
+    color: #5cb85c;
+    font-weight: bold;
+}
+#char_counter.warning {
+    color: #f0ad4e;
+}
+#char_counter.danger {
+    color: #d9534f;
+}
+#optimize_review_modal {
+    height: 100px;
+    vertical-align: top;
+    font-size: 11px;
+    text-align: center;
+    white-space: nowrap;
+}
 </style>
 
 <script type="text/javascript">
 
-var aiTokenSettings = {
-    maxTokens: 800,
-    minTokens: 100
+var aiDescriptionSettings = {
+    targetMin: 150,
+    targetMax: 160,
+    maxLength: 200
 };
 
 $(document).ready(function() {
-    console.log('=== INICIALIZANDO SMART SEO SCHEMA - GENERACIÓN INDEPENDIENTE ===');
+    console.log('=== INICIALIZANDO SMART SEO SCHEMA - DESCRIPCIÓN OPTIMIZADA ===');
     
-    initializeTokenSettings();
+    initializeDescriptionSettings();
     checkAIStatus();
+    updateCharacterCounter();
+    
+    // Configurar contador de caracteres en tiempo real
+    $('#custom_description').on('input', updateCharacterCounter);
     
     if ($('#enable_variants').is(':checked')) {
         loadVariantsPreview();
@@ -405,16 +454,51 @@ $(document).ready(function() {
     });
 });
 
-function initializeTokenSettings() {
-    console.log('=== INICIALIZANDO CONFIGURACIÓN DE TOKENS INDIVIDUALES ===');
+function initializeDescriptionSettings() {
+    console.log('=== INICIALIZANDO CONFIGURACIÓN DE DESCRIPCIÓN (150-160 CHARS) ===');
     
-    aiTokenSettings.maxTokens = 800;
-    aiTokenSettings.minTokens = 100;
+    $('#target_length_display').text(aiDescriptionSettings.targetMin + '-' + aiDescriptionSettings.targetMax + ' Characters');
     
-    $('#max_tokens_display').text('Max Tokens: ' + aiTokenSettings.maxTokens);
-    $('#min_tokens_display').text('Min Tokens: ' + aiTokenSettings.minTokens);
+    console.log('Description settings inicializados:', aiDescriptionSettings);
+}
+
+function updateCharacterCounter() {
+    var text = $('#custom_description').val();
+    var length = text.length;
+    var counter = $('#char_counter');
+    var status = $('#char_status');
+    var textarea = $('#custom_description');
     
-    console.log('Token settings inicializados:', aiTokenSettings);
+    counter.text(length + '/' + aiDescriptionSettings.targetMax + ' characters');
+    
+    // Remover clases anteriores
+    counter.removeClass('optimal warning danger');
+    textarea.removeClass('highlight-success highlight-error highlight-optimal');
+    
+    if (length === 0) {
+        status.text('Enter 150-160 characters for optimal SEO').removeClass('text-success text-warning text-danger').addClass('text-muted');
+    } else if (length >= aiDescriptionSettings.targetMin && length <= aiDescriptionSettings.targetMax) {
+        // Rango óptimo
+        counter.addClass('optimal');
+        textarea.addClass('highlight-optimal');
+        status.text('✓ Optimal length for SEO!').removeClass('text-muted text-warning text-danger').addClass('text-success');
+    } else if (length < aiDescriptionSettings.targetMin) {
+        // Muy corto
+        var needed = aiDescriptionSettings.targetMin - length;
+        counter.addClass('warning');
+        status.text('Need ' + needed + ' more characters for optimal SEO').removeClass('text-muted text-success text-danger').addClass('text-warning');
+    } else if (length > aiDescriptionSettings.targetMax && length <= 180) {
+        // Ligeramente largo pero aceptable
+        var excess = length - aiDescriptionSettings.targetMax;
+        counter.addClass('warning');
+        status.text('Consider shortening by ' + excess + ' characters').removeClass('text-muted text-success text-danger').addClass('text-warning');
+    } else {
+        // Demasiado largo
+        var excess = length - aiDescriptionSettings.targetMax;
+        counter.addClass('danger');
+        textarea.addClass('highlight-error');
+        status.text('Too long! Remove ' + excess + ' characters').removeClass('text-muted text-success text-warning').addClass('text-danger');
+    }
 }
 
 function checkAIStatus() {
@@ -426,7 +510,7 @@ function checkAIStatus() {
         showAIStatus('warning', 'AI features require a valid Groq API key. Configure it in extension settings.');
         $('.btn-success[id*="generate_"]').prop('disabled', true);
     } else {
-        showAIStatus('success', 'API Key configured. Individual generation ready for each content type.');
+        showAIStatus('success', 'API Key configured. Smart description generation ready (150-160 chars).');
     }
 }
 
@@ -437,13 +521,13 @@ function showAIStatus(type, message) {
 }
 
 function generateDescriptionAI() {
-    console.log('=== GENERANDO DESCRIPCIÓN CON IA INDIVIDUAL ===');
+    console.log('=== GENERANDO DESCRIPCIÓN OPTIMIZADA (150-160 CHARS) ===');
     
     var $button = $('#generate_description_ai');
     var originalText = $button.html();
-    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
+    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Analyzing...');
     
-    $('#loading_message').text('Generating product description...');
+    $('#loading_message').text('Analyzing product and generating 150-160 character summary...');
     $('#loading_modal').modal('show');
     
     $.ajax({
@@ -458,11 +542,26 @@ function generateDescriptionAI() {
                 error_alert('Error generating description: ' + response.message);
             } else {
                 $('#custom_description').val(response.content);
-                $('#custom_description').addClass('highlight-success');
+                updateCharacterCounter();
+                
+                // Resaltar según la longitud
+                if (response.optimal_length) {
+                    $('#custom_description').addClass('highlight-optimal');
+                    success_alert('Perfect! Generated ' + response.length + ' character description in optimal range (150-160).');
+                } else {
+                    $('#custom_description').addClass('highlight-success');
+                    var message = 'Description generated (' + response.length + ' chars).';
+                    if (response.length < 150) {
+                        message += ' Consider expanding for better SEO.';
+                    } else if (response.length > 160) {
+                        message += ' Consider shortening for optimal SEO.';
+                    }
+                    success_alert(message);
+                }
+                
                 setTimeout(function() {
-                    $('#custom_description').removeClass('highlight-success');
-                }, 3000);
-                success_alert('Description generated successfully! Length: ' + response.content.length + ' characters');
+                    $('#custom_description').removeClass('highlight-success highlight-optimal');
+                }, 5000);
             }
         },
         error: function(xhr, status, error) {
@@ -570,7 +669,7 @@ function testAIConnection() {
                 showAIStatus('danger', response.message);
                 error_alert(response.message);
             } else {
-                showAIStatus('success', response.message + ' Individual generation ready.');
+                showAIStatus('success', response.message + ' Smart description generation ready.');
                 success_alert(response.message);
             }
         },
@@ -722,18 +821,25 @@ function validateOthersContentJSON() {
     }
 }
 
-function optimizeReview(reviewId, currentText) {
-    console.log('=== OPTIMIZING REVIEW ===', reviewId);
+function optimizeReviewInModal() {
+    console.log('=== OPTIMIZING REVIEW IN MODAL ===');
     
-    var $button = $('#optimize_btn_' + reviewId);
+    var currentText = $('#review_text').val().trim();
+    
+    if (!currentText) {
+        error_alert('Please enter some review text before optimizing.');
+        return;
+    }
+    
+    var $button = $('#optimize_review_modal');
     var originalText = $button.html();
-    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i><br>Working...');
     
     $.ajax({
         url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/optimizeReview", "&product_id=" . $product_id); ?>',
         type: 'POST',
         data: {
-            review_id: reviewId,
+            review_id: $('#review_id').val() || 'new',
             review_text: currentText
         },
         dataType: 'json',
@@ -742,10 +848,10 @@ function optimizeReview(reviewId, currentText) {
             if (response.error) {
                 error_alert('Error optimizing review: ' + response.message);
             } else {
-                $('#review_text_' + reviewId).val(response.optimized_text);
-                $('#review_text_' + reviewId).addClass('highlight-success');
+                $('#review_text').val(response.optimized_text);
+                $('#review_text').addClass('highlight-success');
                 setTimeout(function() {
-                    $('#review_text_' + reviewId).removeClass('highlight-success');
+                    $('#review_text').removeClass('highlight-success');
                 }, 3000);
                 success_alert('Review optimized successfully! Length: ' + response.optimized_length + ' chars');
             }

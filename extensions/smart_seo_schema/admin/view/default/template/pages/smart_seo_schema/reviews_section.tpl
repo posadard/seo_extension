@@ -42,11 +42,11 @@
                         <thead>
                             <tr>
                                 <th width="15%">Author</th>
-                                <th width="35%">Review Text</th>
+                                <th width="40%">Review Text</th>
                                 <th width="10%">Rating</th>
                                 <th width="10%">Status</th>
                                 <th width="12%">Date</th>
-                                <th width="18%">Actions</th>
+                                <th width="13%">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -54,23 +54,30 @@
                             <tr id="review_row_<?php echo $review['review_id']; ?>" class="review-row">
                                 <td>
                                     <strong id="review_author_<?php echo $review['review_id']; ?>"><?php echo htmlspecialchars($review['author']); ?></strong>
-                                    <?php if ($review['verified_purchase']): ?>
-                                        <br><small class="text-success"><i class="fa fa-check-circle"></i> Verified</small>
-                                    <?php endif; ?>
                                     
+                                    <!-- Hidden data for modal loading -->
+                                    <input type="hidden" id="review_text_<?php echo $review['review_id']; ?>" 
+                                           value="<?php echo htmlspecialchars($review['text']); ?>">
+                                    <input type="hidden" id="review_rating_<?php echo $review['review_id']; ?>" 
+                                           data-rating="<?php echo $review['rating']; ?>">
                                     <input type="hidden" id="review_verified_<?php echo $review['review_id']; ?>" 
                                            data-verified="<?php echo $review['verified_purchase']; ?>">
                                     <input type="hidden" id="review_status_<?php echo $review['review_id']; ?>" 
                                            data-status="<?php echo $review['status']; ?>">
+                                    
+                                    <?php if ($review['verified_purchase']): ?>
+                                        <br><span class="label label-success label-xs">
+                                            <i class="fa fa-check-circle"></i> Verified
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
-                                    <textarea id="review_text_<?php echo $review['review_id']; ?>" 
-                                              class="form-control" 
-                                              rows="3" 
-                                              style="resize: vertical; font-size: 12px;"><?php echo htmlspecialchars($review['text']); ?></textarea>
-                                    <small class="text-muted">
-                                        <?php echo strlen($review['text']); ?> characters
-                                    </small>
+                                    <div style="max-height: 80px; overflow-y: auto;">
+                                        <?php echo nl2br(htmlspecialchars(substr($review['text'], 0, 200))); ?>
+                                        <?php if (strlen($review['text']) > 200): ?>
+                                            <small class="text-muted">... [<?php echo strlen($review['text']); ?> chars total]</small>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                                 <td class="text-center">
                                     <div class="star-rating">
@@ -83,9 +90,6 @@
                                         <?php endfor; ?>
                                     </div>
                                     <small><?php echo $review['rating']; ?>/5</small>
-                                    
-                                    <input type="hidden" id="review_rating_<?php echo $review['review_id']; ?>" 
-                                           data-rating="<?php echo $review['rating']; ?>">
                                 </td>
                                 <td class="text-center">
                                     <?php if ($review['status']): ?>
@@ -105,17 +109,9 @@
                                 <td>
                                     <div class="btn-group-vertical btn-group-sm" style="width: 100%;">
                                         <button type="button" 
-                                                id="optimize_btn_<?php echo $review['review_id']; ?>"
-                                                class="btn btn-warning btn-optimize" 
-                                                onclick="optimizeReview(<?php echo $review['review_id']; ?>, $('#review_text_<?php echo $review['review_id']; ?>').val())"
-                                                title="Optimize this review with AI">
-                                            <i class="fa fa-magic"></i> Optimize
-                                        </button>
-                                        
-                                        <button type="button" 
                                                 class="btn btn-info btn-sm" 
                                                 onclick="editReview(<?php echo $review['review_id']; ?>)"
-                                                title="Edit review details">
+                                                title="Edit review details - AI optimization available in edit form">
                                             <i class="fa fa-edit"></i> Edit
                                         </button>
                                         
@@ -141,7 +137,7 @@
                 <div class="alert alert-success">
                     <strong><i class="fa fa-lightbulb-o"></i> AI Features:</strong>
                     <ul class="list-unstyled" style="margin-top: 10px; margin-bottom: 0;">
-                        <li><i class="fa fa-magic text-warning"></i> <strong>Optimize:</strong> Improve existing review content while maintaining authenticity</li>
+                        <li><i class="fa fa-magic text-warning"></i> <strong>Optimize in Edit Form:</strong> Use AI to improve review content while editing - maintains authenticity</li>
                         <li><i class="fa fa-star text-primary"></i> <strong>Generate Example:</strong> Create sample reviews (3-5 stars) based on product description</li>
                         <li><i class="fa fa-database text-info"></i> <strong>Real Data:</strong> All reviews are stored in your database and used for Schema.org markup</li>
                     </ul>

@@ -152,20 +152,26 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 throw new Exception('Product not found: ' . $product_id);
             }
             
-            $this->logDebug("=== GENERANDO DESCRIPCIÓN INDIVIDUAL ===");
+            $this->logDebug("=== GENERANDO DESCRIPCIÓN INDIVIDUAL (150-160 CARACTERES) ===");
             $this->logDebug("Producto: " . $product_info['name']);
             
             $content = $this->generateDescriptionWithAI($product_info);
             
+            // Validar longitud objetivo
+            $length = strlen($content);
+            $is_optimal_length = ($length >= 150 && $length <= 160);
+            
             $json = array(
                 'error' => false,
                 'content' => $content,
-                'length' => strlen($content),
+                'length' => $length,
+                'optimal_length' => $is_optimal_length,
+                'target_range' => '150-160 characters',
                 'word_count' => str_word_count($content),
                 'timestamp' => date('Y-m-d H:i:s')
             );
             
-            $this->logDebug("Descripción generada exitosamente - Longitud: " . strlen($content) . " caracteres");
+            $this->logDebug("Descripción generada - Longitud: {$length} caracteres (Objetivo: 150-160) - Óptima: " . ($is_optimal_length ? 'Sí' : 'No'));
             
         } catch (Exception $e) {
             $json = array(
@@ -637,40 +643,124 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             throw new Exception('No API key configured');
         }
         
-        $max_tokens = (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 800;
-        $min_tokens = (int)$this->config->get('smart_seo_schema_ai_min_tokens_per_content') ?: 100;
-        
+        // Analizar descripción original para extraer información clave
         $existing_description = '';
         if (!empty($product_info['description'])) {
             $existing_description = strip_tags($product_info['description']);
-            $existing_description = substr($existing_description, 0, 500);
+            $existing_description = preg_replace('/\s+/', ' ', trim($existing_description));
         }
         
-        $prompt = "Create a professional, SEO-optimized product description for:\n\n";
+        $this->logDebug("Descripción original: " . strlen($existing_description) . " caracteres");
+        
+        $prompt = "Create a concise product summary that captures the MOST IMPORTANT information about this product.\n\n";
         $prompt .= "Product: " . $product_info['name'] . "\n";
         $prompt .= "Model: " . $product_info['model'] . "\n";
         
         if ($existing_description) {
-            $prompt .= "Current description: " . $existing_description . "\n\n";
-            $prompt .= "Improve and expand this description with:\n";
+            $prompt .= "Full Description: " . $existing_description . "\n\n";
+            $prompt .= "Extract and summarize the KEY FEATURES and ESSENTIAL INFORMATION only. Prioritize:\n";
         } else {
-            $prompt .= "\nCreate a compelling description that includes:\n";
+            $prompt .= "\nCreate a professional summary focusing on:\n";
         }
         
-        $prompt .= "- Key features and benefits\n";
-        $prompt .= "- Technical specifications\n";
-        $prompt .= "- Use cases and target audience\n";
-        $prompt .= "- Professional, engaging tone\n\n";
-        $prompt .= "Write between {$min_tokens} and {$max_tokens} tokens. Return only the description text:";
+        $prompt .= "- Core functionality and primary benefits\n";
+        $prompt .= "- Technical specifications that matter most\n";
+        $prompt .= "- Target use cases\n";
+        $prompt .= "- Key differentiators\n\n";
         
-        $this->logDebug("Generando descripción con {$min_tokens}-{$max_tokens} tokens");
+        $prompt .= "CRITICAL REQUIREMENTS:\n";
+        $prompt .= "- Exactly 150-160 characters total (including spaces)\n";
+        $prompt .= "- Focus on INFORMATION over decorative language\n";
+        $prompt .= "- No marketing fluff or unnecessary adjectives\n";
+        $prompt .= "- Professional, direct tone\n";
+        $prompt .= "- Count every character carefully\n\n";
         
-        return $this->callGroqAPI(
+        $prompt .= "Return ONLY the 150-160 character summary, no explanations:";
+        
+        $this->logDebug("Generando descripción con prompt optimizado para 150-160 caracteres");
+        
+        $response = $this->callGroqAPI(
             $api_key,
             $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
             $prompt,
-            $max_tokens
+            100 // Tokens limitados para forzar concisión
         );
+        
+        // Limpieza y validación de la respuesta
+        $response = trim($response);
+        $response = preg_replace('/\s+/', ' ', $response); // Normalizar espacios
+        
+        // Si la respuesta excede el límite, intentar recortar manteniendo sentido
+        if (strlen($response) > 160) {
+            $this->logDebug("Respuesta excede 160 caracteres (" . strlen($response) . "), aplicando recorte inteligente");
+            $response = $this->intelligentTruncate($response, 160);
+        }
+        
+        // Si es muy corta, realizar un segundo intento más específico
+        if (strlen($response) < 150) {
+            $this->logDebug("Respuesta muy corta (" . strlen($response) . " caracteres), generando versión expandida");
+            $response = $this->expandDescription($product_info, $response, $api_key);
+        }
+        
+        return $response;
+    }
+    
+    private function intelligentTruncate($text, $max_length)
+    {
+        if (strlen($text) <= $max_length) {
+            return $text;
+        }
+        
+        // Buscar punto de corte inteligente (espacio, punto, coma)
+        $truncated = substr($text, 0, $max_length);
+        $last_space = strrpos($truncated, ' ');
+        $last_punct = max(strrpos($truncated, '.'), strrpos($truncated, ','));
+        
+        if ($last_punct > 0 && $last_punct > ($max_length * 0.8)) {
+            // Cortar en puntuación si está en el último 20%
+            return substr($text, 0, $last_punct + 1);
+        } elseif ($last_space > 0 && $last_space > ($max_length * 0.9)) {
+            // Cortar en espacio si está en el último 10%
+            return substr($text, 0, $last_space);
+        } else {
+            // Corte forzado pero evitar cortar palabras
+            return substr($text, 0, $max_length - 3) . '...';
+        }
+    }
+    
+    private function expandDescription($product_info, $short_description, $api_key)
+    {
+        $current_length = strlen($short_description);
+        $needed_chars = 150 - $current_length;
+        
+        if ($needed_chars <= 0) {
+            return $short_description;
+        }
+        
+        $expand_prompt = "Expand this product description to exactly 150-160 characters by adding the most important missing information:\n\n";
+        $expand_prompt .= "Current description (" . $current_length . " chars): " . $short_description . "\n";
+        $expand_prompt .= "Product: " . $product_info['name'] . "\n";
+        $expand_prompt .= "Model: " . $product_info['model'] . "\n\n";
+        $expand_prompt .= "Add approximately " . $needed_chars . " more characters with essential product details.\n";
+        $expand_prompt .= "Return ONLY the expanded 150-160 character description:";
+        
+        $expanded = $this->callGroqAPI(
+            $api_key,
+            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
+            $expand_prompt,
+            80
+        );
+        
+        $expanded = trim($expanded);
+        $expanded = preg_replace('/\s+/', ' ', $expanded);
+        
+        // Si la expansión funcionó y está en rango, usarla
+        if (strlen($expanded) >= 150 && strlen($expanded) <= 160) {
+            return $expanded;
+        }
+        
+        // Si no, devolver la descripción original (mejor corta que mala)
+        return $short_description;
     }
 
     private function generateFAQWithAI($product_info)
@@ -829,7 +919,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
 
     private function setupSchemaFields($form)
     {
-        $this->data['entry_custom_description'] = $this->language->get('entry_custom_description') ?: 'Custom Description:';
+        $this->data['entry_custom_description'] = $this->language->get('entry_custom_description') ?: 'Custom Description (150-160 chars):';
         $this->data['entry_enable_variants'] = $this->language->get('entry_enable_variants') ?: 'Enable Product Variants:';
         $this->data['entry_faq_content'] = $this->language->get('entry_faq_content') ?: 'FAQ Content:';
         $this->data['entry_howto_content'] = $this->language->get('entry_howto_content') ?: 'HowTo Content:';

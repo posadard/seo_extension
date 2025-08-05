@@ -68,7 +68,7 @@
 
   <definition>
     <key>entry_custom_description</key>
-    <value><![CDATA[Custom Description:<br /><span class="help">Override the automatic product description with a custom one for Schema.org markup</span>]]></value>
+    <value><![CDATA[Custom Description (150-160 chars):<br /><span class="help">AI-optimized product summary that extracts key information from original description, prioritizing essential features over decorative language</span>]]></value>
   </definition>
   <definition>
     <key>entry_enable_variants</key>
@@ -104,7 +104,7 @@
   <!-- Individual Generation Success Messages -->
   <definition>
     <key>success_description_generated</key>
-    <value><![CDATA[Product description generated successfully!]]></value>
+    <value><![CDATA[Smart description generated successfully! Optimized for 150-160 characters.]]></value>
   </definition>
   <definition>
     <key>success_faq_generated</key>
@@ -118,7 +118,7 @@
   <!-- Individual Generation Error Messages -->
   <definition>
     <key>error_description_generate_failed</key>
-    <value><![CDATA[Failed to generate description. Please check your AI configuration.]]></value>
+    <value><![CDATA[Failed to generate smart description. Please check your AI configuration.]]></value>
   </definition>
   <definition>
     <key>error_faq_generate_failed</key>
@@ -281,7 +281,7 @@
 
   <definition>
     <key>text_ai_connection_success</key>
-    <value><![CDATA[AI connection successful! Individual generation ready for each content type.]]></value>
+    <value><![CDATA[AI connection successful! Smart description generation ready (150-160 chars).]]></value>
   </definition>
   <definition>
     <key>text_ai_connection_failed</key>
@@ -346,6 +346,10 @@
     <value><![CDATA[Optimize Review]]></value>
   </definition>
   <definition>
+    <key>button_optimize_review_modal</key>
+    <value><![CDATA[Optimize with AI]]></value>
+  </definition>
+  <definition>
     <key>button_edit_review</key>
     <value><![CDATA[Edit Review]]></value>
   </definition>
@@ -402,7 +406,11 @@
 
   <definition>
     <key>text_review_optimization_help</key>
-    <value><![CDATA[Improve existing review content while maintaining authenticity]]></value>
+    <value><![CDATA[Use AI to improve review content while editing - maintains authenticity and original sentiment]]></value>
+  </definition>
+  <definition>
+    <key>text_review_optimization_in_modal</key>
+    <value><![CDATA[Click "Optimize with AI" to improve the review content while maintaining authenticity]]></value>
   </definition>
   <definition>
     <key>text_review_generation_help</key>
@@ -411,6 +419,10 @@
   <definition>
     <key>text_review_database_help</key>
     <value><![CDATA[All reviews are stored in your database and used for Schema.org markup]]></value>
+  </definition>
+  <definition>
+    <key>text_review_edit_help</key>
+    <value><![CDATA[Edit review details - AI optimization available in edit form]]></value>
   </definition>
 
   <definition>
@@ -433,6 +445,10 @@
   <definition>
     <key>error_review_generate_failed</key>
     <value><![CDATA[Failed to generate example review. Please check your AI configuration.]]></value>
+  </definition>
+  <definition>
+    <key>error_review_optimize_empty</key>
+    <value><![CDATA[Please enter some review text before optimizing.]]></value>
   </definition>
 
   <definition>
@@ -478,12 +494,16 @@
   </definition>
 
   <definition>
-    <key>help_individual_generation</key>
-    <value><![CDATA[Each content section has its own AI generation button. Each section uses the full min-max token range configured in extension settings for optimal content length.]]></value>
+    <key>help_smart_description</key>
+    <value><![CDATA[Smart Description: AI analyzes your full product description and creates a 150-160 character summary that prioritizes essential information over decorative language. Perfect for SEO meta descriptions and Schema.org markup.]]></value>
   </definition>
   <definition>
-    <key>help_token_settings</key>
-    <value><![CDATA[Configure minimum and maximum tokens in extension settings. Each individual generation will use this range to create appropriately sized content.]]></value>
+    <key>help_character_count</key>
+    <value><![CDATA[Character Count: 150-160 characters is the optimal range for search engine snippets. The counter shows real-time length and optimization status.]]></value>
+  </definition>
+  <definition>
+    <key>help_information_priority</key>
+    <value><![CDATA[Information Priority: AI focuses on core functionality, technical specifications, and key differentiators rather than marketing language for maximum SEO value.]]></value>
   </definition>
   <definition>
     <key>help_schema_org</key>
@@ -495,16 +515,46 @@
   </definition>
   <definition>
     <key>help_reviews_management</key>
-    <value><![CDATA[Manage real product reviews from your database. Use AI to optimize existing reviews or generate example reviews for products without reviews. All reviews contribute to Schema.org structured data for better SEO.]]></value>
+    <value><![CDATA[Manage real product reviews from your database. Use AI to optimize existing reviews in the edit form or generate example reviews for products without reviews. All reviews contribute to Schema.org structured data for better SEO.]]></value>
   </definition>
 
-  <!-- Additional helpful texts for individual generation -->
+  <!-- Updated helpful texts for new review optimization flow -->
   <definition>
-    <key>text_individual_generation_info</key>
-    <value><![CDATA[Individual AI Generation: Each content type has its own generation button and uses the full token range for optimal results.]]></value>
+    <key>text_smart_description_info</key>
+    <value><![CDATA[Smart Description: AI extracts and summarizes the most important product information in exactly 150-160 characters for optimal SEO performance.]]></value>
   </definition>
   <definition>
-    <key>text_min_max_tokens_info</key>
-    <value><![CDATA[Min-Max Tokens: Each section generates content within the configured token range for consistent quality.]]></value>
+    <key>text_character_optimization_info</key>
+    <value><![CDATA[Character Optimization: Real-time counter shows optimal length (150-160 chars) with visual indicators for perfect SEO targeting.]]></value>
+  </definition>
+  <definition>
+    <key>text_description_length_optimal</key>
+    <value><![CDATA[✓ Optimal length for SEO!]]></value>
+  </definition>
+  <definition>
+    <key>text_description_length_short</key>
+    <value><![CDATA[Need more characters for optimal SEO]]></value>
+  </definition>
+  <definition>
+    <key>text_description_length_long</key>
+    <value><![CDATA[Consider shortening for optimal SEO]]></value>
+  </definition>
+  <definition>
+    <key>text_description_length_too_long</key>
+    <value><![CDATA[Too long! Remove excess characters]]></value>
+  </definition>
+
+  <!-- New AI Features updated for modal optimization -->
+  <definition>
+    <key>text_ai_features_optimize_in_edit</key>
+    <value><![CDATA[Optimize in Edit Form: Use AI to improve review content while editing - maintains authenticity]]></value>
+  </definition>
+  <definition>
+    <key>text_ai_features_generate_example</key>
+    <value><![CDATA[Generate Example: Create sample reviews (3-5 stars) based on product description]]></value>
+  </definition>
+  <definition>
+    <key>text_ai_features_real_data</key>
+    <value><![CDATA[Real Data: All reviews are stored in your database and used for Schema.org markup]]></value>
   </definition>
 </definitions>
