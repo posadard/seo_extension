@@ -340,7 +340,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * NUEVO: AJAX endpoint para generar y actualizar others_content automáticamente
+     * AJAX endpoint para generar y actualizar others_content automáticamente
      */
     public function generateOthersContent()
     {
@@ -366,7 +366,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 throw new Exception('Product not found: ' . $product_id);
             }
             
-            // Generar others_content con datos técnicos y de Rich Results con defaults mejorados
+            // Generar others_content con valores por defecto mejorados usando los mismos del core
             $others_content = $this->generateOthersContentData($product_info);
             
             // Guardar en base de datos
@@ -753,13 +753,13 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * NUEVO: Generar others_content con datos automáticos para Rich Results con defaults mejorados
+     * Generar others_content con datos automáticos usando los mismos valores por defecto del core
      */
     private function generateOthersContentData($product_info)
     {
         $others_data = array();
         
-        // shippingDetails - DEFAULT REQUERIDO
+        // shippingDetails - Usar los mismos valores que en el core
         $others_data['shippingDetails'] = array(
             "@type" => "OfferShippingDetails",
             "shippingRate" => array(
@@ -788,7 +788,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             )
         );
         
-        // hasMerchantReturnPolicy - DEFAULT REQUERIDO
+        // hasMerchantReturnPolicy - Usar los mismos valores que en el core
         $others_data['hasMerchantReturnPolicy'] = array(
             "@type" => "MerchantReturnPolicy",
             "applicableCountry" => "US",
@@ -798,12 +798,14 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             "returnFees" => "https://schema.org/FreeReturn"
         );
         
-        // productGroupID - Basado en modelo o categoría
+        // productGroupID - Basado en modelo o SKU
         if (!empty($product_info['model'])) {
             $others_data['productGroupID'] = $product_info['model'];
+        } elseif (!empty($product_info['sku'])) {
+            $others_data['productGroupID'] = $product_info['sku'];
         }
         
-        // additionalProperty - Propiedades técnicas
+        // additionalProperty - Propiedades técnicas si existen
         $additionalProperties = array();
         
         if (!empty($product_info['weight'])) {
@@ -833,44 +835,15 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $others_data['additionalProperty'] = $additionalProperties;
         }
         
-        // category - Información de categoría si está disponible
-        if (!empty($product_info['category_id'])) {
-            $others_data['category'] = 'Product Category ID: ' . $product_info['category_id'];
-        }
-        
-        // isAccessoryOrSparePartFor - Para productos relacionados
-        if (!empty($product_info['manufacturer'])) {
-            $others_data['brand'] = array(
-                '@type' => 'Brand',
-                'name' => $product_info['manufacturer']
-            );
-        }
-        
-        // Campos mejorados para SEO
-        $seo_enhancements = array(
-            'audience' => array(
-                '@type' => 'Audience',
-                'audienceType' => 'General Public'
-            ),
-            'offers' => array(
-                'priceSpecification' => array(
-                    '@type' => 'PriceSpecification',
-                    'validThrough' => date('Y-12-31', strtotime('+1 year'))
-                )
-            )
-        );
-        
-        $others_data = array_merge($others_data, $seo_enhancements);
-        
         return $others_data;
     }
 
     /**
-     * NUEVO: Actualizar solo others_content en base de datos
+     * Actualizar solo others_content en base de datos
      */
     private function updateOthersContent($product_id, $others_content)
     {
-        $json_content = json_encode($others_content, JSON_UNESCAPED_UNICODE);
+        $json_content = json_encode($others_content, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         
         // Verificar si existe registro
         $query = $this->db->query("

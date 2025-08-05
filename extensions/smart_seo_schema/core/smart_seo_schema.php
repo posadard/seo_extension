@@ -4,6 +4,15 @@ if (!defined('DIR_CORE')) {
     header('Location: static_pages/');
 }
 
+/**
+ * Smart SEO Schema Assistant - Core Extension Class OPTIMIZADO CON DIVISIÓN DE TOKENS
+ * 
+ * Generates Schema.org structured data for AbanteCart products
+ * Includes AI-powered content generation with token optimization
+ * VERSIÓN CON PERSISTENCIA DE DATOS Y CAMPOS ADICIONALES CORREGIDOS
+ * 
+ * @version 2.0.2
+ */
 class ExtensionSmartSeoSchema extends Extension
 {
     protected $registry;
@@ -14,21 +23,56 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Hook para agregar tab en admin de productos (siguiendo patrón AvaTax)
+     * Hook para tabs en admin cuando se edita un producto
      */
     public function onControllerPagesCatalogProductTabs_InitData()
     {
-        /** @var ControllerPagesCatalogProductTabs $that */
-        $that = &$this->baseObject;
+        /** @var ControllerPagesCatalogProduct $that */
+        $that = $this->baseObject;
+        
+        if (!$that->config->get('smart_seo_schema_status')) {
+            return;
+        }
+
+        // Cargar archivo de idioma para asegurar que el texto del tab aparezca correctamente
         $that->loadLanguage('smart_seo_schema/smart_seo_schema');
 
-        $this->data = [];
-        $this->data['tabs'][] = [
+        $that->data['tabs'][] = [
+            'name'   => 'smart_seo_schema',
+            'text'   => $that->language->get('smart_seo_schema_name') ?: 'Smart SEO Schema',
             'href'   => $that->html->getSecureURL(
                 'catalog/smart_seo_schema',
                 '&product_id=' . $that->request->get['product_id']
             ),
-            'text'   => $that->language->get('smart_seo_schema_name'),
+        ];
+    }
+
+    /**
+     * Hook para tab de product tabs en admin
+     */
+    public function onControllerPagesCatalogProductTabs_UpdateData()
+    {
+        /** @var ControllerPagesCatalogProduct $that */
+        $that = $this->baseObject;
+        
+        if (!$that->config->get('smart_seo_schema_status')) {
+            return;
+        }
+
+        // Cargar archivo de idioma para asegurar que el texto del tab aparezca correctamente
+        $that->loadLanguage('smart_seo_schema/smart_seo_schema');
+
+        $this->data = [
+            'active' => $that->data['active'],
+        ];
+
+        $this->data['tabs'][] = [
+            'name'   => 'smart_seo_schema',
+            'href'   => $that->html->getSecureURL(
+                'catalog/smart_seo_schema',
+                '&product_id=' . $that->request->get['product_id']
+            ),
+            'text'   => $that->language->get('smart_seo_schema_name') ?: 'Smart SEO Schema',
             'active' => ($that->data['active'] == 'smart_seo_schema'),
         ];
 
@@ -90,66 +134,30 @@ class ExtensionSmartSeoSchema extends Extension
         // Datos del producto mock si no se pasan todos
         $mock_controller->data = [
             'product_info' => $product_info,
-            'average' => $product_info['rating'] ?? null,
+            'average' => $product_info['rating'] ?? 0,
             'stock' => 'In Stock',
             'product_review_url' => ''
         ];
         
+        // Generar schema usando el método principal
         return $this->generateCompleteSchema($mock_controller);
     }
 
     /**
-     * Genera Schema.org completo con hasVariant[], IA y esquemas adicionales
-     * VERSIÓN CON PERSISTENCIA DE DATOS Y OTHERS_CONTENT
+     * Genera Schema.org completo con persistencia y IA - CORE METHOD
      */
     private function generateCompleteSchema($that)
     {
         $product_info = $that->data['product_info'];
         $product_id = $product_info['product_id'];
-        
-        // CARGAR CONTENIDO GUARDADO DE LA BASE DE DATOS
+
+        // Cargar contenido guardado desde base de datos
         $saved_content = $this->getSavedSchemaContent($product_id);
-        
-        // Schema.org Product base
-        $product_snippet = [
-            "@context" => "https://schema.org",
-            "@type"    => "Product",
-            "name"     => $product_info['name'],
-        ];
 
-        // Descripción (REQUERIDA)
-        $description = $this->getOptimizedDescription($that, $product_info, $saved_content);
-        $product_snippet["description"] = $description ?: strip_tags(html_entity_decode($product_info['name']));
+        // Generar snippet principal del producto
+        $product_snippet = $this->generateProductSnippet($product_info, $that, $saved_content);
 
-        // Imagen (REQUERIDA)
-        $product_snippet["image"] = $this->getProductImages($that, $product_info);
-
-        // MPN y Brand
-        if ($product_info['model']) {
-            $product_snippet["mpn"] = $product_info['model'];
-        }
-
-        if ($product_info['manufacturer']) {
-            $product_snippet["brand"] = [
-                "@type" => "Brand",
-                "name"  => $product_info['manufacturer']
-            ];
-        }
-
-        // SKU principal
-        if ($that->config->get('smart_seo_schema_show_sku') && $product_info['sku']) {
-            $product_snippet["sku"] = $product_info['sku'];
-        }
-
-        // Aggregated Rating
-        if ($that->config->get('smart_seo_schema_show_review')) {
-            $rating = $this->getProductRating($that, $product_info);
-            if ($rating) {
-                $product_snippet["aggregateRating"] = $rating;
-            }
-        }
-
-        // hasVariant[] - Sistema nativo de AbanteCart
+        // Generar variantes si están habilitadas y existen
         if ($that->config->get('smart_seo_schema_enable_variants') && 
             (!empty($saved_content['enable_variants']) || $saved_content === null)) {
             $variants = $this->getProductVariants($product_info['product_id'], $that, $saved_content);
@@ -232,7 +240,59 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Obtiene variantes desde tablas nativas de AbanteCart con campos requeridos corregidos
+     * Genera el snippet principal del producto con Schema.org
+     */
+    private function generateProductSnippet($product_info, $that, $saved_content = null)
+    {
+        $product_snippet = [
+            "@context" => "https://schema.org",
+            "@type"    => "Product"
+        ];
+
+        // Nombre del producto
+        $product_snippet["name"] = $product_info['name'];
+
+        // Descripción (usar custom si existe)
+        if ($saved_content && !empty($saved_content['custom_description'])) {
+            $description = trim($saved_content['custom_description']);
+        } else {
+            $description = $this->getProductDescription($that, $product_info['product_id']);
+        }
+        
+        if (!empty($description)) {
+            $product_snippet["description"] = $description;
+        }
+
+        // Imagen del producto
+        if ($that->config->get('smart_seo_schema_show_image')) {
+            $images = $this->getProductImages($that, $product_info);
+            if (!empty($images)) {
+                $product_snippet["image"] = count($images) === 1 ? $images[0] : $images;
+            }
+        }
+
+        // SKU y MPN
+        if ($that->config->get('smart_seo_schema_show_sku') && !empty($product_info['sku'])) {
+            $product_snippet["sku"] = $product_info['sku'];
+        }
+
+        if (!empty($product_info['model'])) {
+            $product_snippet["mpn"] = $product_info['model'];
+        }
+
+        // Reseñas y calificaciones
+        if ($that->config->get('smart_seo_schema_show_review')) {
+            $aggregateRating = $this->getAggregateRating($that, $product_info);
+            if ($aggregateRating) {
+                $product_snippet["aggregateRating"] = $aggregateRating;
+            }
+        }
+
+        return $product_snippet;
+    }
+
+    /**
+     * Obtiene variantes desde tablas nativas de AbanteCart con formato mejorado
      */
     private function getProductVariants($product_id, $that, $saved_content = null)
     {
@@ -261,56 +321,109 @@ class ExtensionSmartSeoSchema extends Extension
             return [];
         }
 
-        // Obtener precio base del producto y SKU principal
+        // Obtener datos base del producto
         $base_product_query = $db->query("
-            SELECT price, sku 
-            FROM " . DB_PREFIX . "products 
-            WHERE product_id = " . (int)$product_id
-        );
+            SELECT price, sku, name 
+            FROM " . DB_PREFIX . "products p
+            LEFT JOIN " . DB_PREFIX . "product_descriptions pd ON p.product_id = pd.product_id 
+            WHERE p.product_id = " . (int)$product_id . " AND pd.language_id = " . (int)$language_id . "
+            LIMIT 1
+        ");
         $base_price = $base_product_query->row['price'] ?? 0;
         $main_sku = $base_product_query->row['sku'] ?? '';
+        $product_name = $base_product_query->row['name'] ?? '';
 
-        // Obtener imagen principal y descripción por defecto
+        // Obtener imagen principal
         $main_image = $this->getProductMainImage($that, $product_id);
-        $main_description = $this->getProductDescription($that, $product_id);
         
-        // Extraer shippingDetails y returnPolicy de others_content
-        $shipping_details = $this->getShippingDetailsFromOthers($saved_content);
-        $return_policy = $this->getReturnPolicyFromOthers($saved_content);
+        // Obtener valores por defecto para shipping y return policy
+        $default_shipping = $this->getDefaultShippingDetails();
+        $default_return_policy = $this->getDefaultReturnPolicy();
+        
+        // Si hay contenido guardado, intentar extraer desde others_content
+        $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $default_shipping;
+        $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $default_return_policy;
 
         $variants = [];
         foreach ($query->rows as $row) {
             $variant_price = $this->calculateVariantPrice($base_price, $row['price'], $row['prefix']);
             
+            // Formato mejorado para el nombre de la variante: "1 Pack - Methylene Blue Powder (25gr)"
+            $variant_full_name = $row['variant_name'] . ' - ' . $product_name;
+            
+            // Descripción concisa: "Methylene Blue Powder (25gr) - 1 Pack"
+            $variant_description = $product_name . ' - ' . $row['variant_name'];
+            
             $variant = [
                 "@type" => "Product",
-                "name"  => $row['variant_name'],
-                "sku"   => $row['sku'] ?: "VAR-" . $row['product_option_value_id'],
-                "image" => $main_image, // Usar imagen principal para todas las variantes
-                "description" => $main_description, // Usar descripción principal para todas las variantes
-                "productGroupID" => $main_sku, // Usar SKU principal como productGroupID
+                "name"  => $variant_full_name,
+                "sku"   => $row['sku'] ?: ($main_sku . "-" . $row['product_option_value_id']),
+                "image" => $main_image,
+                "description" => $variant_description,
+                "productGroupID" => $main_sku,
                 "offers" => [
                     "@type"        => "Offer",
                     "price"        => number_format($variant_price, 2, '.', ''),
                     "priceCurrency" => $that->currency->getCode(),
                     "availability" => $this->getVariantAvailability($row['quantity']),
+                    "shippingDetails" => $shipping_details,
+                    "hasMerchantReturnPolicy" => $return_policy
                 ]
             ];
-
-            // Agregar shippingDetails si existe en others_content
-            if ($shipping_details) {
-                $variant["offers"]["shippingDetails"] = $shipping_details;
-            }
-
-            // Agregar returnPolicy si existe en others_content
-            if ($return_policy) {
-                $variant["offers"]["hasMerchantReturnPolicy"] = $return_policy;
-            }
 
             $variants[] = $variant;
         }
 
         return $variants;
+    }
+
+    /**
+     * Obtiene valores por defecto para shippingDetails
+     */
+    private function getDefaultShippingDetails()
+    {
+        return [
+            "@type" => "OfferShippingDetails",
+            "shippingRate" => [
+                "@type" => "MonetaryAmount",
+                "value" => "5.99",
+                "currency" => "USD"
+            ],
+            "shippingDestination" => [
+                "@type" => "DefinedRegion",
+                "addressCountry" => "US"
+            ],
+            "deliveryTime" => [
+                "@type" => "ShippingDeliveryTime",
+                "handlingTime" => [
+                    "@type" => "QuantitativeValue",
+                    "minValue" => 1,
+                    "maxValue" => 2,
+                    "unitCode" => "d"
+                ],
+                "transitTime" => [
+                    "@type" => "QuantitativeValue",
+                    "minValue" => 3,
+                    "maxValue" => 5,
+                    "unitCode" => "d"
+                ]
+            ]
+        ];
+    }
+
+    /**
+     * Obtiene valores por defecto para hasMerchantReturnPolicy
+     */
+    private function getDefaultReturnPolicy()
+    {
+        return [
+            "@type" => "MerchantReturnPolicy",
+            "applicableCountry" => "US",
+            "returnPolicyCategory" => "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays" => 30,
+            "returnMethod" => "https://schema.org/ReturnByMail",
+            "returnFees" => "https://schema.org/FreeReturn"
+        ];
     }
 
     /**
@@ -325,8 +438,7 @@ class ExtensionSmartSeoSchema extends Extension
         $imageQuery = "SELECT rd.resource_path 
                       FROM " . DB_PREFIX . "resource_map rm 
                       JOIN " . DB_PREFIX . "resource_descriptions rd ON rm.resource_id = rd.resource_id
-                      WHERE rm.object_name = 'products' AND rm.object_id = " . (int)$product_id . " 
-                      ORDER BY rm.sort_order ASC
+                      WHERE rm.object_name = 'products' AND rm.object_id = " . (int)$product_id . " AND rm.sort_order = 1
                       LIMIT 1";
         $imageStmt = $db->query($imageQuery);
         
@@ -335,278 +447,66 @@ class ExtensionSmartSeoSchema extends Extension
             return $storeUrl . '/resources/image/' . $imageStmt->row['resource_path'];
         }
         
-        // Fallback: imagen por defecto
-        $storeUrl = rtrim($config->get('config_ssl_url') ?: $config->get('config_url'), '/');
-        return $storeUrl . '/image/no_image.jpg';
+        return null;
     }
 
     /**
-     * Obtiene la descripción principal del producto
+     * Obtiene descripción del producto según configuración
      */
     private function getProductDescription($that, $product_id)
     {
         $db = $that->db;
         $language_id = $this->getAdminDefaultLanguageId($that);
-        
+        $description_source = $that->config->get('smart_seo_schema_description');
+
+        switch ($description_source) {
+            case 'description':
+                $field = 'description';
+                break;
+            case 'blurb':
+                $field = 'blurb';
+                break;
+            default: // 'auto'
+                $field = 'blurb';
+                break;
+        }
+
         $query = $db->query("
-            SELECT description, blurb 
+            SELECT " . $field . " as description
             FROM " . DB_PREFIX . "product_descriptions 
             WHERE product_id = " . (int)$product_id . " 
             AND language_id = " . (int)$language_id . "
             LIMIT 1
         ");
-        
-        if ($query->num_rows) {
-            $row = $query->row;
+
+        if ($query->num_rows && !empty(trim($query->row['description']))) {
+            return strip_tags($query->row['description']);
+        }
+
+        // Fallback a description si blurb está vacío
+        if ($field === 'blurb') {
+            $fallback_query = $db->query("
+                SELECT description
+                FROM " . DB_PREFIX . "product_descriptions 
+                WHERE product_id = " . (int)$product_id . " 
+                AND language_id = " . (int)$language_id . "
+                LIMIT 1
+            ");
             
-            // Priorizar blurb si está disponible, sino usar description
-            if (!empty($row['blurb'])) {
-                return strip_tags(html_entity_decode($row['blurb']));
-            } elseif (!empty($row['description'])) {
-                return strip_tags(html_entity_decode($row['description']));
+            if ($fallback_query->num_rows) {
+                return strip_tags($fallback_query->row['description']);
             }
         }
-        
+
         return '';
     }
 
     /**
-     * Extrae shippingDetails de others_content
+     * Obtiene calificación agregada del producto
      */
-    private function getShippingDetailsFromOthers($saved_content)
+    private function getAggregateRating($that, $product_info)
     {
-        if (!$saved_content || empty($saved_content['others_content'])) {
-            // Retornar default si no hay contenido guardado
-            return [
-                "@type" => "OfferShippingDetails",
-                "shippingRate" => [
-                    "@type" => "MonetaryAmount",
-                    "value" => "5.99",
-                    "currency" => "USD"
-                ],
-                "shippingDestination" => [
-                    "@type" => "DefinedRegion",
-                    "addressCountry" => "US"
-                ],
-                "deliveryTime" => [
-                    "@type" => "ShippingDeliveryTime",
-                    "handlingTime" => [
-                        "@type" => "QuantitativeValue",
-                        "minValue" => 1,
-                        "maxValue" => 2,
-                        "unitCode" => "d"
-                    ],
-                    "transitTime" => [
-                        "@type" => "QuantitativeValue",
-                        "minValue" => 3,
-                        "maxValue" => 5,
-                        "unitCode" => "d"
-                    ]
-                ]
-            ];
-        }
-        
-        $others_data = json_decode($saved_content['others_content'], true);
-        if (is_array($others_data) && isset($others_data['shippingDetails'])) {
-            return $others_data['shippingDetails'];
-        }
-        
-        return null;
-    }
-
-    /**
-     * Extrae returnPolicy de others_content
-     */
-    private function getReturnPolicyFromOthers($saved_content)
-    {
-        if (!$saved_content || empty($saved_content['others_content'])) {
-            // Retornar default si no hay contenido guardado
-            return [
-                "@type" => "MerchantReturnPolicy",
-                "applicableCountry" => "US",
-                "returnPolicyCategory" => "https://schema.org/MerchantReturnFiniteReturnWindow",
-                "merchantReturnDays" => 30,
-                "returnMethod" => "https://schema.org/ReturnByMail",
-                "returnFees" => "https://schema.org/FreeReturn"
-            ];
-        }
-        
-        $others_data = json_decode($saved_content['others_content'], true);
-        if (is_array($others_data) && isset($others_data['hasMerchantReturnPolicy'])) {
-            return $others_data['hasMerchantReturnPolicy'];
-        }
-        
-        return null;
-    }
-
-    /**
-     * Calcula precio de variante según prefix mejorado (% y $)
-     */
-    private function calculateVariantPrice($basePrice, $variantPrice, $prefix)
-    {
-        switch ($prefix) {
-            case '%':
-                // Porcentaje: precio_base * (1 + precio_variante)
-                return $basePrice * (1 + $variantPrice);
-            case '$':
-                // Suma fija: precio_base + precio_variante
-                return $basePrice + $variantPrice;
-            case '+':
-                // Compatibilidad con sistema anterior
-                return $basePrice + $variantPrice;
-            case '-':
-                // Compatibilidad con sistema anterior
-                return $basePrice - $variantPrice;
-            default:
-                // Sin modificación
-                return $basePrice;
-        }
-    }
-
-    /**
-     * Determina disponibilidad de variante
-     */
-    private function getVariantAvailability($quantity)
-    {
-        if ($quantity > 0) {
-            return "https://schema.org/InStock";
-        } else {
-            return "https://schema.org/OutOfStock";
-        }
-    }
-
-    /**
-     * Obtiene idioma por defecto del admin
-     */
-    private function getAdminDefaultLanguageId($that)
-    {
-        $db = $that->db;
-        $config = $that->config;
-
-        $query = $db->query("
-            SELECT l.language_id 
-            FROM " . DB_PREFIX . "settings s
-            INNER JOIN " . DB_PREFIX . "languages l ON s.value = l.code
-            WHERE s.key = 'admin_language'
-            LIMIT 1
-        ");
-        
-        if ($query->num_rows) {
-            return (int)$query->row['language_id'];
-        }
-        
-        // Fallback al idioma por defecto de configuración
-        return (int)$config->get('config_language_id');
-    }
-
-    /**
-     * Descripción optimizada con IA opcional - CON PERSISTENCIA
-     */
-    private function getOptimizedDescription($that, $product_info, $saved_content = null)
-    {
-        // PRIORIDAD 1: Contenido personalizado guardado
-        if ($saved_content && !empty($saved_content['custom_description'])) {
-            return trim($saved_content['custom_description']);
-        }
-
-        // PRIORIDAD 2: Lógica original de configuración
-        $description = '';
-        if ($that->config->get('smart_seo_schema_description') == 'auto') {
-            if ($product_info['blurb']) {
-                $description = strip_tags(html_entity_decode($product_info['blurb']));
-            } else {
-                $description = strip_tags(html_entity_decode($product_info['description']));
-            }
-        } elseif ($that->config->get('smart_seo_schema_description') == 'blurb') {
-            $description = strip_tags(html_entity_decode($product_info['blurb']));
-        } elseif ($that->config->get('smart_seo_schema_description') == 'description') {
-            $description = strip_tags(html_entity_decode($product_info['description']));
-        }
-
-        // PRIORIDAD 3: Mejora con IA si está habilitada (solo si no hay contenido guardado)
-        if ($that->config->get('smart_seo_schema_ai_auto_generate') && !$saved_content) {
-            $ai_description = $this->generateAIDescription($product_info, $description, $that);
-            if ($ai_description) {
-                $description = $ai_description;
-            }
-        }
-
-        return $description;
-    }
-
-    /**
-     * Genera descripción mejorada con Groq IA
-     */
-    private function generateAIDescription($product_info, $original_description, $that)
-    {
-        $api_key = $that->config->get('smart_seo_schema_groq_api_key');
-        $model = $that->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
-
-        if (!$api_key) {
-            return null;
-        }
-
-        $prompt = "Improve this product description for SEO and Schema.org structured data. Make it concise but informative, focusing on key features and benefits. Original: " . $original_description . " Product name: " . $product_info['name'];
-
-        try {
-            $response = $this->callGroqAPI($api_key, $model, $prompt, $that);
-            return $response ?: $original_description;
-        } catch (Exception $e) {
-            // Log error y usar descripción original
-            return $original_description;
-        }
-    }
-
-    /**
-     * Cliente API para Groq
-     */
-    private function callGroqAPI($api_key, $model, $prompt, $that)
-    {
-        $url = 'https://api.groq.com/openai/v1/chat/completions';
-        
-        $data = [
-            'model' => $model,
-            'messages' => [
-                [
-                    'role' => 'user',
-                    'content' => $prompt
-                ]
-            ],
-            'max_tokens' => 200,
-            'temperature' => 0.7
-        ];
-
-        $headers = [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $api_key
-        ];
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-
-        $response = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($http_code == 200 && $response) {
-            $decoded = json_decode($response, true);
-            return $decoded['choices'][0]['message']['content'] ?? null;
-        }
-
-        return null;
-    }
-
-    /**
-     * Obtiene rating del producto
-     */
-    private function getProductRating($that, $product_info)
-    {
-        $rating = $that->data['average'] ?? $product_info['rating'] ?? null;
+        $rating = $that->data['average'] ?? null;
         
         if (!$rating) {
             return null;
@@ -662,15 +562,17 @@ class ExtensionSmartSeoSchema extends Extension
 
         // Agregar shippingDetails desde others_content o default
         $shipping_details = $this->getShippingDetailsFromOthers($saved_content);
-        if ($shipping_details) {
-            $offer["shippingDetails"] = $shipping_details;
+        if (!$shipping_details) {
+            $shipping_details = $this->getDefaultShippingDetails();
         }
+        $offer["shippingDetails"] = $shipping_details;
 
         // Agregar returnPolicy desde others_content o default
         $return_policy = $this->getReturnPolicyFromOthers($saved_content);
-        if ($return_policy) {
-            $offer["hasMerchantReturnPolicy"] = $return_policy;
+        if (!$return_policy) {
+            $return_policy = $this->getDefaultReturnPolicy();
         }
+        $offer["hasMerchantReturnPolicy"] = $return_policy;
 
         return $offer;
     }
@@ -764,7 +666,7 @@ class ExtensionSmartSeoSchema extends Extension
                     "name" => "What is " . $product_info['name'] . "?",
                     "acceptedAnswer" => [
                         "@type" => "Answer",
-                        "text" => "This is a high-quality " . $product_info['name'] . " designed for professional use."
+                        "text" => "Basic information about " . $product_info['name']
                     ]
                 ]
             ]
@@ -788,37 +690,36 @@ class ExtensionSmartSeoSchema extends Extension
             "step" => [
                 [
                     "@type" => "HowToStep",
-                    "text" => "Follow the manufacturer instructions for proper usage."
+                    "name" => "Step 1",
+                    "text" => "Basic usage instructions for " . $product_info['name']
                 ]
             ]
         ];
     }
 
     /**
-     * Genera Review Schema - CON PERSISTENCIA
+     * Genera Review Schema básico
      */
     private function generateReviewSchema($product_info, $saved_content = null)
     {
-        $review_content = "This is a high-quality product with excellent features.";
-        
         // USAR CONTENIDO GUARDADO SI EXISTE
         if ($saved_content && !empty($saved_content['review_content'])) {
-            $review_content = trim($saved_content['review_content']);
+            return [
+                "@type" => "Review",
+                "reviewBody" => $saved_content['review_content'],
+                "author" => [
+                    "@type" => "Person",
+                    "name" => "Verified Customer"
+                ],
+                "reviewRating" => [
+                    "@type" => "Rating",
+                    "ratingValue" => "5",
+                    "bestRating" => "5"
+                ]
+            ];
         }
 
-        return [
-            "@type" => "Review",
-            "reviewBody" => $review_content,
-            "reviewRating" => [
-                "@type" => "Rating",
-                "ratingValue" => "5",
-                "bestRating" => "5"
-            ],
-            "author" => [
-                "@type" => "Person",
-                "name" => "Technical Review"
-            ]
-        ];
+        return null;
     }
 
     /**
@@ -828,16 +729,17 @@ class ExtensionSmartSeoSchema extends Extension
     {
         $questions = [];
         $lines = explode("\n", $faq_content);
-        $current_question = null;
-        $current_answer = null;
+        
+        $current_question = '';
+        $current_answer = '';
+        $expecting_answer = false;
         
         foreach ($lines as $line) {
             $line = trim($line);
             if (empty($line)) continue;
             
-            // Detectar pregunta (Q: o Question:)
-            if (preg_match('/^Q:\s*(.+)$/i', $line, $matches) || 
-                preg_match('/^Question:\s*(.+)$/i', $line, $matches)) {
+            // Detectar pregunta (Q:, Question:, ¿, ?)
+            if (preg_match('/^(?:Q:|Question:|¿)(.+)$/i', $line, $matches) || substr($line, -1) === '?') {
                 // Guardar pregunta anterior si existe
                 if ($current_question && $current_answer) {
                     $questions[] = [
@@ -849,20 +751,18 @@ class ExtensionSmartSeoSchema extends Extension
                         ]
                     ];
                 }
-                $current_question = trim($matches[1]);
-                $current_answer = null;
+                
+                $current_question = isset($matches[1]) ? trim($matches[1]) : $line;
+                $current_answer = '';
+                $expecting_answer = true;
             }
-            // Detectar respuesta (A: o Answer:)
-            elseif (preg_match('/^A:\s*(.+)$/i', $line, $matches) || 
-                    preg_match('/^Answer:\s*(.+)$/i', $line, $matches)) {
+            // Detectar respuesta (A:, Answer:, o línea normal después de pregunta)
+            elseif (preg_match('/^(?:A:|Answer:)(.+)$/i', $line, $matches)) {
                 $current_answer = trim($matches[1]);
+                $expecting_answer = false;
             }
-            // Continuar respuesta en múltiples líneas
-            elseif ($current_question && !$current_answer) {
-                $current_answer = $line;
-            }
-            elseif ($current_answer) {
-                $current_answer .= ' ' . $line;
+            elseif ($expecting_answer || !empty($current_question)) {
+                $current_answer .= ($current_answer ? ' ' : '') . $line;
             }
         }
         
@@ -996,28 +896,114 @@ class ExtensionSmartSeoSchema extends Extension
                                          JOIN " . DB_PREFIX . "resource_descriptions rd ON rm.resource_id = rd.resource_id
                                          WHERE rm.object_name = 'products' AND rm.object_id = " . (int)$product_id . " 
                                          AND rd.resource_path != '" . $db->escape($mainImage) . "'
-                                         ORDER BY rm.sort_order
-                                         LIMIT 5";
-                $additionalImagesStmt = $db->query($additionalImagesQuery);
+                                         ORDER BY rm.sort_order 
+                                         LIMIT 4";
+                $additionalStmt = $db->query($additionalImagesQuery);
                 
-                $images = [$imageUrl]; // Empezar con imagen principal
+                $images = [$imageUrl];
                 
-                if ($additionalImagesStmt->num_rows) {
-                    foreach ($additionalImagesStmt->rows as $row) {
-                        if (!empty($row['resource_path'])) {
-                            $images[] = $storeUrl . '/resources/image/' . $row['resource_path'];
-                        }
+                if ($additionalStmt->num_rows) {
+                    foreach ($additionalStmt->rows as $row) {
+                        $images[] = $storeUrl . '/resources/image/' . $row['resource_path'];
                     }
                 }
                 
-                return count($images) > 1 ? $images : $imageUrl;
+                return $images;
             }
             
-            return $imageUrl;
+            return [$imageUrl];
         }
         
-        // Fallback: usar imagen por defecto o placeholder
-        $storeUrl = rtrim($config->get('config_ssl_url') ?: $config->get('config_url'), '/');
-        return $storeUrl . '/image/no_image.jpg';
+        return [];
+    }
+
+    /**
+     * Extrae shippingDetails de others_content
+     */
+    private function getShippingDetailsFromOthers($saved_content)
+    {
+        if (!$saved_content || empty($saved_content['others_content'])) {
+            return null;
+        }
+        
+        $others_data = json_decode($saved_content['others_content'], true);
+        if (is_array($others_data) && isset($others_data['shippingDetails'])) {
+            return $others_data['shippingDetails'];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Extrae returnPolicy de others_content
+     */
+    private function getReturnPolicyFromOthers($saved_content)
+    {
+        if (!$saved_content || empty($saved_content['others_content'])) {
+            return null;
+        }
+        
+        $others_data = json_decode($saved_content['others_content'], true);
+        if (is_array($others_data) && isset($others_data['hasMerchantReturnPolicy'])) {
+            return $others_data['hasMerchantReturnPolicy'];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Calcula precio de variante según prefix mejorado (% y $)
+     */
+    private function calculateVariantPrice($basePrice, $variantPrice, $prefix)
+    {
+        switch ($prefix) {
+            case '%':
+                // Porcentaje: precio_base * (1 + precio_variante)
+                return $basePrice * (1 + $variantPrice);
+            case '$':
+                // Suma fija: precio_base + precio_variante
+                return $basePrice + $variantPrice;
+            case '+':
+                // Compatibilidad con sistema anterior
+                return $basePrice + $variantPrice;
+            case '-':
+                // Compatibilidad con sistema anterior
+                return $basePrice - $variantPrice;
+            default:
+                // Sin modificación
+                return $basePrice;
+        }
+    }
+
+    /**
+     * Determina disponibilidad de variante
+     */
+    private function getVariantAvailability($quantity)
+    {
+        if ($quantity > 0) {
+            return "https://schema.org/InStock";
+        } else {
+            return "https://schema.org/OutOfStock";
+        }
+    }
+
+    /**
+     * Obtiene idioma por defecto del admin
+     */
+    private function getAdminDefaultLanguageId($that)
+    {
+        $db = $that->db;
+        $config = $that->config;
+
+        $query = $db->query("
+            SELECT l.language_id 
+            FROM " . DB_PREFIX . "settings s
+            INNER JOIN " . DB_PREFIX . "languages l ON s.value = l.code
+            WHERE s.key = 'config_storefront_language' 
+            AND s.store_id = 0 
+            LIMIT 1
+        ");
+
+        return $query->num_rows ? $query->row['language_id'] : 1;
     }
 }
