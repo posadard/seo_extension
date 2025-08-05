@@ -236,6 +236,54 @@
             </div>
         </div>
 
+        <!-- Others Content Section - NUEVO CAMPO PARA DATOS ADICIONALES -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4 class="panel-title">
+                    <i class="fa fa-code"></i> Additional Schema Properties
+                    <small class="text-muted">- JSON data for enhanced Rich Results</small>
+                </h4>
+            </div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label class="control-label col-sm-3 col-xs-12" for="others_content">
+                        Additional Properties:<br>
+                        <span class="help">JSON data for productGroupID, additionalProperty, shippingDetails, etc.</span>
+                    </label>
+                    <div class="input-group afield col-sm-7 col-xs-12">
+                        <textarea 
+                            id="others_content" 
+                            name="others_content" 
+                            class="form-control large-field" 
+                            rows="8" 
+                            placeholder='{"productGroupID": "ABC123", "additionalProperty": [], "isCompatibleWith": []}'><?php echo $schema_settings['others_content'] ?? ''; ?></textarea>
+                    </div>
+                    <div class="col-sm-2 col-xs-12">
+                        <div class="alert alert-info" style="margin-top: 0; padding: 10px;">
+                            <small>
+                                <strong>Examples:</strong><br>
+                                • productGroupID<br>
+                                • additionalProperty<br>
+                                • isCompatibleWith<br>
+                                • Custom offers<br>
+                                • Rich snippets data
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- JSON Validation Button -->
+                <div class="form-group">
+                    <div class="col-sm-offset-3 col-sm-7">
+                        <button type="button" id="validate_json" class="btn btn-warning" onclick="validateOthersContentJSON()">
+                            <i class="fa fa-check-circle"></i> Validate JSON Format
+                        </button>
+                        <div id="json_validation_result" class="help-block"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Schema Preview Section -->
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -778,11 +826,39 @@ function loadVariantsPreview() {
     });
 }
 
+function validateOthersContentJSON() {
+    var jsonText = $('#others_content').val().trim();
+    var resultDiv = $('#json_validation_result');
+    
+    if (jsonText === '') {
+        resultDiv.html('<span class="text-info"><i class="fa fa-info-circle"></i> JSON field is empty - this is OK.</span>');
+        return;
+    }
+    
+    try {
+        var parsed = JSON.parse(jsonText);
+        resultDiv.html('<span class="text-success"><i class="fa fa-check-circle"></i> Valid JSON format! Ready for Schema.org enhancement.</span>');
+        $('#others_content').removeClass('highlight-error').addClass('highlight-success');
+        
+        setTimeout(function() {
+            $('#others_content').removeClass('highlight-success');
+        }, 3000);
+        
+    } catch (e) {
+        resultDiv.html('<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> Invalid JSON: ' + e.message + '</span>');
+        $('#others_content').removeClass('highlight-success').addClass('highlight-error');
+        
+        setTimeout(function() {
+            $('#others_content').removeClass('highlight-error');
+        }, 5000);
+    }
+}
+
 // Función auxiliar para debug de campos
 function debugFormFields() {
     console.log('=== DEBUG CAMPOS FORMULARIO CON TOKENS ===');
     
-    var expectedFields = ['custom_description', 'faq_content', 'howto_content', 'review_content'];
+    var expectedFields = ['custom_description', 'faq_content', 'howto_content', 'review_content', 'others_content'];
     
     expectedFields.forEach(function(fieldName) {
         var byId = $('#' + fieldName);

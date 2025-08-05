@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `ac_seo_schema_content` (
     `faq_content` text DEFAULT NULL,
     `howto_content` text DEFAULT NULL,
     `review_content` text DEFAULT NULL,
+    `others_content` text DEFAULT NULL COMMENT 'JSON data for additional Schema.org properties',
     `enable_variants` tinyint(1) DEFAULT 1,
     `enable_faq` tinyint(1) DEFAULT 0,
     `enable_howto` tinyint(1) DEFAULT 0,

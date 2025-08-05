@@ -57,8 +57,50 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
+     * Genera Schema.org completo PARA EL PREVIEW ADMIN
+     */
+    public function generateCompleteSchemaForProduct($product_info)
+    {
+        // Cargar registry y dependencias necesarias
+        $registry = Registry::getInstance();
+        $db = $registry->get('db');
+        $config = $registry->get('config');
+        
+        // Crear un objeto mock del controlador con las propiedades necesarias
+        $mock_controller = new stdClass();
+        $mock_controller->config = $config;
+        $mock_controller->db = $db;
+        $mock_controller->currency = $registry->get('currency');
+        $mock_controller->language = $registry->get('language');
+        
+        // Mock de load->library para AJson
+        $mock_controller->load = new stdClass();
+        $mock_controller->load->library = function($library) {
+            if ($library === 'json') {
+                return true;
+            }
+        };
+        
+        // Mock de model_catalog_review si no existe
+        $mock_controller->model_catalog_review = new stdClass();
+        $mock_controller->model_catalog_review->getTotalReviewsByProductId = function($product_id) {
+            return 0;
+        };
+        
+        // Datos del producto mock si no se pasan todos
+        $mock_controller->data = [
+            'product_info' => $product_info,
+            'average' => $product_info['rating'] ?? null,
+            'stock' => 'In Stock',
+            'product_review_url' => ''
+        ];
+        
+        return $this->generateCompleteSchema($mock_controller);
+    }
+
+    /**
      * Genera Schema.org completo con hasVariant[], IA y esquemas adicionales
-     * VERSIÓN CON PERSISTENCIA DE DATOS
+     * VERSIÓN CON PERSISTENCIA DE DATOS Y OTHERS_CONTENT
      */
     private function generateCompleteSchema($that)
     {
@@ -124,6 +166,19 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
+        // APLICAR OTHERS_CONTENT - Propiedades adicionales desde JSON
+        if ($saved_content && !empty($saved_content['others_content'])) {
+            $others_data = json_decode($saved_content['others_content'], true);
+            if (is_array($others_data)) {
+                foreach ($others_data as $key => $value) {
+                    // Solo agregar si no existe ya en el schema principal
+                    if (!isset($product_snippet[$key]) && !empty($value)) {
+                        $product_snippet[$key] = $value;
+                    }
+                }
+            }
+        }
+
         // Esquemas adicionales con IA (USAR CONTENIDO GUARDADO)
         $additional_schemas = $this->generateAdditionalSchemas($product_info, $that, $saved_content);
         
@@ -131,7 +186,7 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Cargar contenido Schema guardado de la base de datos
+     * Cargar contenido Schema guardado de la base de datos - INCLUYE OTHERS_CONTENT
      */
     private function getSavedSchemaContent($product_id)
     {
@@ -144,6 +199,7 @@ class ExtensionSmartSeoSchema extends Extension
                     faq_content,
                     howto_content,
                     review_content,
+                    others_content,
                     enable_variants,
                     enable_faq,
                     enable_howto,
@@ -773,7 +829,7 @@ class ExtensionSmartSeoSchema extends Extension
     }
 
     /**
-     * Obtiene imágenes del producto (principal y adicionales)
+     * Obtiene imágenes del producto (principal y adicionales) - CORREGIDO PARA ABANTECART
      */
     private function getProductImages($that, $product_info)
     {
@@ -781,13 +837,13 @@ class ExtensionSmartSeoSchema extends Extension
         $config = $that->config;
         $product_id = $product_info['product_id'];
         
-        // Obtener imagen principal
+        // Obtener imagen principal - SINTAXIS COMPATIBLE CON ABANTECART
         $imageQuery = "SELECT rd.resource_path 
                       FROM " . DB_PREFIX . "resource_map rm 
                       JOIN " . DB_PREFIX . "resource_descriptions rd ON rm.resource_id = rd.resource_id
-                      WHERE rm.object_name = 'products' AND rm.object_id = ? AND rm.sort_order = 1
+                      WHERE rm.object_name = 'products' AND rm.object_id = " . (int)$product_id . " AND rm.sort_order = 1
                       LIMIT 1";
-        $imageStmt = $db->query($imageQuery, [$product_id]);
+        $imageStmt = $db->query($imageQuery);
         $mainImage = $imageStmt->num_rows ? $imageStmt->row['resource_path'] : null;
         
         if ($mainImage) {
@@ -796,15 +852,15 @@ class ExtensionSmartSeoSchema extends Extension
             
             // Verificar si necesitamos imágenes adicionales
             if ($that->config->get('smart_seo_schema_show_image')) {
-                // Obtener imágenes adicionales (máximo 5)
+                // Obtener imágenes adicionales (máximo 5) - SINTAXIS COMPATIBLE
                 $additionalImagesQuery = "SELECT DISTINCT rd.resource_path 
                                          FROM " . DB_PREFIX . "resource_map rm 
                                          JOIN " . DB_PREFIX . "resource_descriptions rd ON rm.resource_id = rd.resource_id
-                                         WHERE rm.object_name = 'products' AND rm.object_id = ? 
-                                         AND rd.resource_path != ?
+                                         WHERE rm.object_name = 'products' AND rm.object_id = " . (int)$product_id . " 
+                                         AND rd.resource_path != '" . $db->escape($mainImage) . "'
                                          ORDER BY rm.sort_order
                                          LIMIT 5";
-                $additionalImagesStmt = $db->query($additionalImagesQuery, [$product_id, $mainImage]);
+                $additionalImagesStmt = $db->query($additionalImagesQuery);
                 
                 $images = [$imageUrl]; // Empezar con imagen principal
                 

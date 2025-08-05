@@ -283,7 +283,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * AJAX endpoint for schema preview - CORREGIDO
+     * AJAX endpoint for schema preview - CORREGIDO CON OTHERS_CONTENT
      */
     public function previewSchema()
     {
@@ -333,6 +333,65 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 )
             );
             $this->logDebug("Error generando schema: " . $e->getMessage());
+        }
+
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    /**
+     * NUEVO: AJAX endpoint para generar y actualizar others_content automáticamente
+     */
+    public function generateOthersContent()
+    {
+        // Limpiar cualquier output previo
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        // Forzar JSON headers
+        header('Content-Type: application/json; charset=utf-8');
+        
+        try {
+            $product_id = $this->request->get['product_id'];
+            
+            if (!$product_id) {
+                throw new Exception('Missing product_id parameter');
+            }
+            
+            $this->loadModel('catalog/product');
+            $product_info = $this->model_catalog_product->getProduct($product_id);
+            
+            if (!$product_info) {
+                throw new Exception('Product not found: ' . $product_id);
+            }
+            
+            // Generar others_content con datos técnicos y de Rich Results
+            $others_content = $this->generateOthersContentData($product_info);
+            
+            // Guardar en base de datos
+            $this->updateOthersContent($product_id, $others_content);
+            
+            $json = array(
+                'error' => false,
+                'message' => 'Others content generated and saved successfully',
+                'others_content' => $others_content,
+                'timestamp' => date('Y-m-d H:i:s')
+            );
+            
+            $this->logDebug("Others content generado exitosamente para producto: " . $product_id);
+            
+        } catch (Exception $e) {
+            $json = array(
+                'error' => true,
+                'message' => 'Others content generation failed: ' . $e->getMessage(),
+                'debug' => array(
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                )
+            );
+            $this->logDebug("Error generando others content: " . $e->getMessage());
         }
 
         echo json_encode($json, JSON_UNESCAPED_UNICODE);
@@ -492,7 +551,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Get current schema settings for product - IMPLEMENTADO
+     * Get current schema settings for product - INCLUYE OTHERS_CONTENT
      */
     private function getSchemaSettings($product_id)
     {
@@ -505,6 +564,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                     faq_content,
                     howto_content,
                     review_content,
+                    others_content,
                     enable_variants,
                     enable_faq,
                     enable_howto,
@@ -530,7 +590,8 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                         $settings['custom_description'] ? 'description' : null,
                         $settings['faq_content'] ? 'faq' : null,
                         $settings['howto_content'] ? 'howto' : null,
-                        $settings['review_content'] ? 'review' : null
+                        $settings['review_content'] ? 'review' : null,
+                        $settings['others_content'] ? 'others' : null
                     ]))
                 );
                 
@@ -544,6 +605,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                     'faq_content' => '',
                     'howto_content' => '',
                     'review_content' => '',
+                    'others_content' => '',
                     'enable_variants' => true,
                     'enable_faq' => false,
                     'enable_howto' => false,
@@ -559,6 +621,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 'faq_content' => '',
                 'howto_content' => '',
                 'review_content' => '',
+                'others_content' => '',
                 'enable_variants' => true,
                 'enable_faq' => false,
                 'enable_howto' => false,
@@ -568,11 +631,11 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     }
 
     /**
-     * Save schema settings for product - IMPLEMENTADO
+     * Save schema settings for product - INCLUYE OTHERS_CONTENT
      */
     private function saveSchemaSettings($product_id)
     {
-        $this->logDebug("=== GUARDANDO CONFIGURACIÓN SCHEMA ===");
+        $this->logDebug("=== GUARDANDO CONFIGURACIÓN SCHEMA CON OTHERS_CONTENT ===");
         $this->logDebug("Producto ID: " . $product_id);
         $this->logDebug("POST data: " . print_r($this->request->post, true));
         
@@ -591,6 +654,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 'faq_content' => trim($this->request->post['faq_content'] ?? ''),
                 'howto_content' => trim($this->request->post['howto_content'] ?? ''),
                 'review_content' => trim($this->request->post['review_content'] ?? ''),
+                'others_content' => trim($this->request->post['others_content'] ?? ''),
                 'enable_variants' => isset($this->request->post['enable_variants']) ? 1 : 0,
                 'enable_faq' => !empty($this->request->post['faq_content']) ? 1 : 0,
                 'enable_howto' => !empty($this->request->post['howto_content']) ? 1 : 0,
@@ -610,6 +674,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                         faq_content = '" . $this->db->escape($data['faq_content']) . "',
                         howto_content = '" . $this->db->escape($data['howto_content']) . "',
                         review_content = '" . $this->db->escape($data['review_content']) . "',
+                        others_content = '" . $this->db->escape($data['others_content']) . "',
                         enable_variants = " . (int)$data['enable_variants'] . ",
                         enable_faq = " . (int)$data['enable_faq'] . ",
                         enable_howto = " . (int)$data['enable_howto'] . ",
@@ -633,6 +698,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                         faq_content, 
                         howto_content, 
                         review_content,
+                        others_content,
                         enable_variants,
                         enable_faq,
                         enable_howto,
@@ -645,6 +711,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                         '" . $this->db->escape($data['faq_content']) . "',
                         '" . $this->db->escape($data['howto_content']) . "',
                         '" . $this->db->escape($data['review_content']) . "',
+                        '" . $this->db->escape($data['others_content']) . "',
                         " . (int)$data['enable_variants'] . ",
                         " . (int)$data['enable_faq'] . ",
                         " . (int)$data['enable_howto'] . ",
@@ -665,6 +732,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                     LENGTH(faq_content) as faq_len,
                     LENGTH(howto_content) as howto_len,
                     LENGTH(review_content) as review_len,
+                    LENGTH(others_content) as others_len,
                     updated_date
                 FROM " . DB_PREFIX . "seo_schema_content 
                 WHERE product_id = " . (int)$product_id
@@ -672,7 +740,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             
             if ($verify_query->num_rows) {
                 $verification = $verify_query->row;
-                $this->logDebug("Verificación exitosa - Longitudes: desc={$verification['desc_len']}, faq={$verification['faq_len']}, howto={$verification['howto_len']}, review={$verification['review_len']}, updated={$verification['updated_date']}");
+                $this->logDebug("Verificación exitosa - Longitudes: desc={$verification['desc_len']}, faq={$verification['faq_len']}, howto={$verification['howto_len']}, review={$verification['review_len']}, others={$verification['others_len']}, updated={$verification['updated_date']}");
             }
 
         } catch (Exception $e) {
@@ -681,6 +749,119 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             
             // Re-lanzar la excepción para que sea manejada por el controlador principal
             throw new Exception("Error saving schema settings: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * NUEVO: Generar others_content con datos automáticos para Rich Results
+     */
+    private function generateOthersContentData($product_info)
+    {
+        $others_data = array();
+        
+        // productGroupID - Basado en modelo o categoría
+        if (!empty($product_info['model'])) {
+            $others_data['productGroupID'] = $product_info['model'];
+        }
+        
+        // additionalProperty - Propiedades técnicas
+        $additionalProperties = array();
+        
+        if (!empty($product_info['weight'])) {
+            $additionalProperties[] = array(
+                '@type' => 'PropertyValue',
+                'name' => 'Weight',
+                'value' => $product_info['weight'] . ' ' . ($product_info['weight_class'] ?? 'kg')
+            );
+        }
+        
+        if (!empty($product_info['length']) || !empty($product_info['width']) || !empty($product_info['height'])) {
+            $dimensions = trim(
+                ($product_info['length'] ?? '0') . ' x ' . 
+                ($product_info['width'] ?? '0') . ' x ' . 
+                ($product_info['height'] ?? '0')
+            );
+            if ($dimensions !== '0 x 0 x 0') {
+                $additionalProperties[] = array(
+                    '@type' => 'PropertyValue',
+                    'name' => 'Dimensions',
+                    'value' => $dimensions . ' ' . ($product_info['length_class'] ?? 'cm')
+                );
+            }
+        }
+        
+        if (!empty($additionalProperties)) {
+            $others_data['additionalProperty'] = $additionalProperties;
+        }
+        
+        // category - Información de categoría si está disponible
+        if (!empty($product_info['category_id'])) {
+            $others_data['category'] = 'Product Category ID: ' . $product_info['category_id'];
+        }
+        
+        // isAccessoryOrSparePartFor - Para productos relacionados
+        if (!empty($product_info['manufacturer'])) {
+            $others_data['brand'] = array(
+                '@type' => 'Brand',
+                'name' => $product_info['manufacturer']
+            );
+        }
+        
+        // Campos mejorados para SEO
+        $seo_enhancements = array(
+            'audience' => array(
+                '@type' => 'Audience',
+                'audienceType' => 'General Public'
+            ),
+            'offers' => array(
+                'priceSpecification' => array(
+                    '@type' => 'PriceSpecification',
+                    'validThrough' => date('Y-12-31', strtotime('+1 year'))
+                )
+            )
+        );
+        
+        $others_data = array_merge($others_data, $seo_enhancements);
+        
+        return $others_data;
+    }
+
+    /**
+     * NUEVO: Actualizar solo others_content en base de datos
+     */
+    private function updateOthersContent($product_id, $others_content)
+    {
+        $json_content = json_encode($others_content, JSON_UNESCAPED_UNICODE);
+        
+        // Verificar si existe registro
+        $query = $this->db->query("
+            SELECT id 
+            FROM " . DB_PREFIX . "seo_schema_content 
+            WHERE product_id = " . (int)$product_id . "
+            LIMIT 1
+        ");
+        
+        if ($query->num_rows) {
+            // Actualizar registro existente
+            $this->db->query("
+                UPDATE " . DB_PREFIX . "seo_schema_content 
+                SET 
+                    others_content = '" . $this->db->escape($json_content) . "',
+                    updated_date = NOW()
+                WHERE product_id = " . (int)$product_id
+            );
+        } else {
+            // Crear nuevo registro con solo others_content
+            $this->db->query("
+                INSERT INTO " . DB_PREFIX . "seo_schema_content 
+                (product_id, others_content, created_date, updated_date) 
+                VALUES (
+                    " . (int)$product_id . ",
+                    '" . $this->db->escape($json_content) . "',
+                    NOW(),
+                    NOW()
+                )
+            ");
         }
     }
 
