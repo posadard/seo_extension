@@ -1,16 +1,10 @@
 <div class="panel panel-default">
     <div class="panel-heading">
         <h4 class="panel-title">
-            <i class="fa fa-star"></i> Product Reviews Management
-            <small class="text-muted">- Real reviews from database with AI optimization</small>
+            <i class="fa fa-star"></i> Product Reviews
         </h4>
     </div>
     <div class="panel-body">
-        
-        <div class="alert alert-info">
-            <i class="fa fa-info-circle"></i> <strong>Manage actual product reviews</strong> from your database. 
-            Use AI to optimize existing reviews or generate example reviews for better Schema.org structured data.
-        </div>
 
         <div class="row" style="margin-bottom: 15px;">
             <div class="col-sm-6">
@@ -111,14 +105,14 @@
                                         <button type="button" 
                                                 class="btn btn-info btn-sm" 
                                                 onclick="editReview(<?php echo $review['review_id']; ?>)"
-                                                title="Edit review details - AI optimization available in edit form">
+                                                title="Edit review">
                                             <i class="fa fa-edit"></i> Edit
                                         </button>
                                         
                                         <button type="button" 
                                                 class="btn btn-danger btn-sm" 
                                                 onclick="deleteReview(<?php echo $review['review_id']; ?>)"
-                                                title="Delete this review">
+                                                title="Delete review">
                                             <i class="fa fa-trash"></i> Delete
                                         </button>
                                     </div>
@@ -130,19 +124,6 @@
                 </div>
                 
             <?php endif; ?>
-        </div>
-
-        <div class="row" style="margin-top: 20px;">
-            <div class="col-xs-12">
-                <div class="alert alert-success">
-                    <strong><i class="fa fa-lightbulb-o"></i> AI Features:</strong>
-                    <ul class="list-unstyled" style="margin-top: 10px; margin-bottom: 0;">
-                        <li><i class="fa fa-magic text-warning"></i> <strong>Optimize in Edit Form:</strong> Use AI to improve review content while editing - maintains authenticity</li>
-                        <li><i class="fa fa-star text-primary"></i> <strong>Generate Example:</strong> Create sample reviews (3-5 stars) based on product description</li>
-                        <li><i class="fa fa-database text-info"></i> <strong>Real Data:</strong> All reviews are stored in your database and used for Schema.org markup</li>
-                    </ul>
-                </div>
-            </div>
         </div>
 
     </div>

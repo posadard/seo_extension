@@ -22,7 +22,7 @@
                 </button>
 
                 <button type="button" id="generate_others_content" class="btn btn-primary tooltips" 
-                        title="Auto-generate shipping & return policy defaults">
+                        title="Auto-generate defaults">
                     <i class="fa fa-cogs fa-lg"></i> Auto-Generate Defaults
                 </button>
 
@@ -35,20 +35,6 @@
 
     <?php echo $form['form_open']; ?>
     <div class="panel-body panel-body-nopadding tab-content col-xs-12">
-
-        <div class="alert alert-info">
-            <div class="row">
-                <div class="col-md-8">
-                    <strong><i class="fa fa-info-circle"></i> Smart AI Generation:</strong><br>
-                    <span>Each content section uses intelligent AI generation. Custom Description automatically generates 150-160 character summaries focused on essential information.</span>
-                </div>
-                <div class="col-md-4 text-right">
-                    <strong>Description Target:</strong><br>
-                    <span class="label label-success" id="target_length_display">150-160 Characters</span><br>
-                    <span class="label label-info" style="margin-top: 3px;">Information Priority</span>
-                </div>
-            </div>
-        </div>
 
         <div id="ai_status_alert" class="alert alert-info" style="display: none;">
             <i class="fa fa-info-circle fa-fw fa-lg"></i>
@@ -74,7 +60,7 @@
                             class="form-control large-field" 
                             rows="4" 
                             maxlength="200"
-                            placeholder="AI will generate 150-160 character summary focusing on key product information..."><?php echo $schema_settings['custom_description'] ?? ''; ?></textarea>
+                            placeholder="Enter 150-160 character description for optimal SEO..."><?php echo $schema_settings['custom_description'] ?? ''; ?></textarea>
                         <div class="help-block">
                             <span id="char_counter" class="pull-right">0/160 characters</span>
                             <span id="char_status" class="text-muted">Enter 150-160 characters for optimal SEO</span>
@@ -84,13 +70,6 @@
                         <button type="button" id="generate_description_ai" class="btn btn-success btn-block" onclick="generateDescriptionAI()">
                             <i class="fa fa-magic"></i> Generate Description
                         </button>
-                        <div class="description-info-box" style="margin-top: 8px;">
-                            <small class="text-muted">
-                                <i class="fa fa-target"></i> Target: 150-160 chars<br>
-                                <i class="fa fa-info-circle"></i> Information over decoration<br>
-                                <i class="fa fa-compress"></i> Smart summarization
-                            </small>
-                        </div>
                     </div>
                 </div>
 
@@ -117,8 +96,7 @@
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h4 class="panel-title">
-                    <i class="fa fa-magic"></i> <?php echo $text_section_ai; ?> 
-                    <small class="text-muted">- Independent Generation</small>
+                    <i class="fa fa-magic"></i> <?php echo $text_section_ai; ?>
                 </h4>
             </div>
             <div class="panel-body">
@@ -139,12 +117,6 @@
                         <button type="button" id="generate_faq_ai" class="btn btn-success btn-block" onclick="generateFAQAI()">
                             <i class="fa fa-question-circle"></i> Generate FAQ
                         </button>
-                        <div class="token-info-box" style="margin-top: 8px;">
-                            <small class="text-muted">
-                                <i class="fa fa-info-circle"></i> FAQ questions & answers<br>
-                                <i class="fa fa-list-ol"></i> Based on product details
-                            </small>
-                        </div>
                     </div>
                 </div>
 
@@ -164,12 +136,6 @@
                         <button type="button" id="generate_howto_ai" class="btn btn-success btn-block" onclick="generateHowToAI()">
                             <i class="fa fa-list-ol"></i> Generate HowTo
                         </button>
-                        <div class="token-info-box" style="margin-top: 8px;">
-                            <small class="text-muted">
-                                <i class="fa fa-info-circle"></i> Step-by-step instructions<br>
-                                <i class="fa fa-wrench"></i> Usage and setup guide
-                            </small>
-                        </div>
                     </div>
                 </div>
 
@@ -182,19 +148,14 @@
             <div class="panel-heading">
                 <h4 class="panel-title">
                     <i class="fa fa-code"></i> Additional Schema Properties
-                    <small class="text-muted">- Editable shipping & return policy defaults</small>
                 </h4>
             </div>
             <div class="panel-body">
-                <div class="alert alert-info">
-                    <i class="fa fa-info-circle"></i> <strong>This field contains default shippingDetails and hasMerchantReturnPolicy</strong> 
-                    that apply to ALL product variants. You can customize the shipping rates, delivery times, and return policies here.
-                </div>
                 
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="others_content">
                         Additional Properties:<br>
-                        <span class="help">JSON data for shippingDetails, hasMerchantReturnPolicy, productGroupID, etc.</span>
+                        <span class="help">JSON data for shipping, returns, etc.</span>
                     </label>
                     <div class="col-sm-6 col-xs-12">
                         <textarea 
@@ -202,7 +163,7 @@
                             name="others_content" 
                             class="form-control large-field" 
                             rows="12" 
-                            placeholder='Click "Auto-Generate Defaults" to populate with shipping & return policy defaults'><?php echo $schema_settings['others_content'] ?? ''; ?></textarea>
+                            placeholder='Click "Auto-Generate Defaults" to populate with defaults'><?php echo $schema_settings['others_content'] ?? ''; ?></textarea>
                     </div>
                     <div class="col-sm-3 col-xs-12">
                         <div class="btn-group-vertical btn-block">
@@ -210,20 +171,8 @@
                                 <i class="fa fa-magic"></i> Auto-Generate Defaults
                             </button>
                             <button type="button" id="validate_json" class="btn btn-warning" onclick="validateOthersContentJSON()">
-                                <i class="fa fa-check-circle"></i> Validate JSON Format
+                                <i class="fa fa-check-circle"></i> Validate JSON
                             </button>
-                        </div>
-                        <div class="alert alert-info" style="margin-top: 10px; padding: 10px; font-size: 11px;">
-                            <strong>Default Fields:</strong><br>
-                            • shippingDetails ($5.99 USD)<br>
-                            • hasMerchantReturnPolicy (30 days)<br>
-                            • productGroupID (main SKU)<br>
-                            • additionalProperty<br>
-                            <hr style="margin: 8px 0;">
-                            <strong>Custom Fields:</strong><br>
-                            • isCompatibleWith<br>
-                            • Custom offers<br>
-                            • Rich snippets data
                         </div>
                         <div id="json_validation_result" class="help-block"></div>
                     </div>
@@ -318,14 +267,11 @@
                             <span class="input-group-btn" style="vertical-align: top;">
                                 <button type="button" id="optimize_review_modal" class="btn btn-warning" 
                                         onclick="optimizeReviewInModal()" 
-                                        title="Optimize this review with AI">
-                                    <i class="fa fa-magic"></i><br>Optimize<br>with AI
+                                        title="Optimize with AI">
+                                    <i class="fa fa-magic"></i><br>Optimize
                                 </button>
                             </span>
                         </div>
-                        <small class="help-block text-muted">
-                            <i class="fa fa-lightbulb-o"></i> Click "Optimize with AI" to improve the review content while maintaining authenticity
-                        </small>
                     </div>
                     
                     <div class="form-group">
@@ -378,17 +324,6 @@
     background-color: #f0f9ff !important;
     transition: all 0.3s ease;
 }
-.token-info-box, .description-info-box {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    padding: 8px;
-    margin-top: 5px;
-}
-.description-info-box {
-    background: #e8f5e8;
-    border-color: #c3e6c3;
-}
 .review-row {
     border-bottom: 1px solid #eee;
     padding: 10px 0;
@@ -415,7 +350,7 @@
     color: #d9534f;
 }
 #optimize_review_modal {
-    height: 100px;
+    height: 80px;
     vertical-align: top;
     font-size: 11px;
     text-align: center;
@@ -432,13 +367,11 @@ var aiDescriptionSettings = {
 };
 
 $(document).ready(function() {
-    console.log('=== INICIALIZANDO SMART SEO SCHEMA - DESCRIPCIÓN OPTIMIZADA ===');
+    console.log('=== INICIALIZANDO SMART SEO SCHEMA ===');
     
-    initializeDescriptionSettings();
     checkAIStatus();
     updateCharacterCounter();
     
-    // Configurar contador de caracteres en tiempo real
     $('#custom_description').on('input', updateCharacterCounter);
     
     if ($('#enable_variants').is(':checked')) {
@@ -454,14 +387,6 @@ $(document).ready(function() {
     });
 });
 
-function initializeDescriptionSettings() {
-    console.log('=== INICIALIZANDO CONFIGURACIÓN DE DESCRIPCIÓN (150-160 CHARS) ===');
-    
-    $('#target_length_display').text(aiDescriptionSettings.targetMin + '-' + aiDescriptionSettings.targetMax + ' Characters');
-    
-    console.log('Description settings inicializados:', aiDescriptionSettings);
-}
-
 function updateCharacterCounter() {
     var text = $('#custom_description').val();
     var length = text.length;
@@ -471,29 +396,24 @@ function updateCharacterCounter() {
     
     counter.text(length + '/' + aiDescriptionSettings.targetMax + ' characters');
     
-    // Remover clases anteriores
     counter.removeClass('optimal warning danger');
     textarea.removeClass('highlight-success highlight-error highlight-optimal');
     
     if (length === 0) {
         status.text('Enter 150-160 characters for optimal SEO').removeClass('text-success text-warning text-danger').addClass('text-muted');
     } else if (length >= aiDescriptionSettings.targetMin && length <= aiDescriptionSettings.targetMax) {
-        // Rango óptimo
         counter.addClass('optimal');
         textarea.addClass('highlight-optimal');
         status.text('✓ Optimal length for SEO!').removeClass('text-muted text-warning text-danger').addClass('text-success');
     } else if (length < aiDescriptionSettings.targetMin) {
-        // Muy corto
         var needed = aiDescriptionSettings.targetMin - length;
         counter.addClass('warning');
-        status.text('Need ' + needed + ' more characters for optimal SEO').removeClass('text-muted text-success text-danger').addClass('text-warning');
+        status.text('Need ' + needed + ' more characters').removeClass('text-muted text-success text-danger').addClass('text-warning');
     } else if (length > aiDescriptionSettings.targetMax && length <= 180) {
-        // Ligeramente largo pero aceptable
         var excess = length - aiDescriptionSettings.targetMax;
         counter.addClass('warning');
         status.text('Consider shortening by ' + excess + ' characters').removeClass('text-muted text-success text-danger').addClass('text-warning');
     } else {
-        // Demasiado largo
         var excess = length - aiDescriptionSettings.targetMax;
         counter.addClass('danger');
         textarea.addClass('highlight-error');
@@ -503,14 +423,12 @@ function updateCharacterCounter() {
 
 function checkAIStatus() {
     var apiKey = '<?php echo addslashes($smart_seo_schema_groq_api_key); ?>';
-    console.log('=== AI STATUS CHECK ===');
-    console.log('API Key configured:', apiKey.length > 0);
     
     if (!apiKey || apiKey.length < 10) {
         showAIStatus('warning', 'AI features require a valid Groq API key. Configure it in extension settings.');
         $('.btn-success[id*="generate_"]').prop('disabled', true);
     } else {
-        showAIStatus('success', 'API Key configured. Smart description generation ready (150-160 chars).');
+        showAIStatus('success', 'API Key configured. AI generation ready.');
     }
 }
 
@@ -521,13 +439,11 @@ function showAIStatus(type, message) {
 }
 
 function generateDescriptionAI() {
-    console.log('=== GENERANDO DESCRIPCIÓN OPTIMIZADA (150-160 CHARS) ===');
-    
     var $button = $('#generate_description_ai');
     var originalText = $button.html();
-    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Analyzing...');
+    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
     
-    $('#loading_message').text('Analyzing product and generating 150-160 character summary...');
+    $('#loading_message').text('Generating optimized description...');
     $('#loading_modal').modal('show');
     
     $.ajax({
@@ -544,19 +460,12 @@ function generateDescriptionAI() {
                 $('#custom_description').val(response.content);
                 updateCharacterCounter();
                 
-                // Resaltar según la longitud
                 if (response.optimal_length) {
                     $('#custom_description').addClass('highlight-optimal');
-                    success_alert('Perfect! Generated ' + response.length + ' character description in optimal range (150-160).');
+                    success_alert('✓ Generated ' + response.length + ' character description (optimal range)');
                 } else {
                     $('#custom_description').addClass('highlight-success');
-                    var message = 'Description generated (' + response.length + ' chars).';
-                    if (response.length < 150) {
-                        message += ' Consider expanding for better SEO.';
-                    } else if (response.length > 160) {
-                        message += ' Consider shortening for optimal SEO.';
-                    }
-                    success_alert(message);
+                    success_alert('Description generated (' + response.length + ' chars)');
                 }
                 
                 setTimeout(function() {
@@ -564,7 +473,7 @@ function generateDescriptionAI() {
                 }, 5000);
             }
         },
-        error: function(xhr, status, error) {
+        error: function() {
             $('#loading_modal').modal('hide');
             error_alert('Failed to generate description. Please try again.');
         },
@@ -575,8 +484,6 @@ function generateDescriptionAI() {
 }
 
 function generateFAQAI() {
-    console.log('=== GENERANDO FAQ CON IA INDIVIDUAL ===');
-    
     var $button = $('#generate_faq_ai');
     var originalText = $button.html();
     $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
@@ -603,7 +510,7 @@ function generateFAQAI() {
                 success_alert('FAQ content generated successfully!');
             }
         },
-        error: function(xhr, status, error) {
+        error: function() {
             $('#loading_modal').modal('hide');
             error_alert('Failed to generate FAQ. Please try again.');
         },
@@ -614,8 +521,6 @@ function generateFAQAI() {
 }
 
 function generateHowToAI() {
-    console.log('=== GENERANDO HOWTO CON IA INDIVIDUAL ===');
-    
     var $button = $('#generate_howto_ai');
     var originalText = $button.html();
     $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
@@ -642,7 +547,7 @@ function generateHowToAI() {
                 success_alert('HowTo instructions generated successfully!');
             }
         },
-        error: function(xhr, status, error) {
+        error: function() {
             $('#loading_modal').modal('hide');
             error_alert('Failed to generate HowTo. Please try again.');
         },
@@ -653,8 +558,6 @@ function generateHowToAI() {
 }
 
 function testAIConnection() {
-    console.log('=== TESTING AI CONNECTION ===');
-    
     $('#test_ai_connection').attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Testing...');
     
     $.ajax({
@@ -663,26 +566,20 @@ function testAIConnection() {
         dataType: 'json',
         timeout: 15000,
         success: function(response) {
-            console.log('AI test response:', response);
-            
             if (response.error) {
                 showAIStatus('danger', response.message);
                 error_alert(response.message);
             } else {
-                showAIStatus('success', response.message + ' Smart description generation ready.');
+                showAIStatus('success', response.message);
                 success_alert(response.message);
             }
         },
         error: function(xhr, status, error) {
-            console.log('AJAX Error:', {xhr: xhr, status: status, error: error});
-            
             var errorMsg = 'Connection test failed: ';
             if (status === 'timeout') {
-                errorMsg += 'Request timeout. API may be slow or unreachable.';
-            } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMsg += xhr.responseJSON.message;
+                errorMsg += 'Request timeout';
             } else {
-                errorMsg += error + ' (Status: ' + status + ')';
+                errorMsg += error;
             }
             
             showAIStatus('danger', errorMsg);
@@ -695,8 +592,6 @@ function testAIConnection() {
 }
 
 function autoGenerateOthersContent() {
-    console.log('=== AUTO-GENERANDO OTHERS CONTENT CON DEFAULTS ===');
-    
     $('#auto_generate_others').attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
     
     $.ajax({
@@ -705,10 +600,8 @@ function autoGenerateOthersContent() {
         dataType: 'json',
         timeout: 15000,
         success: function(response) {
-            console.log('Others content response:', response);
-            
             if (response.error) {
-                error_alert('Error generating others content: ' + response.message);
+                error_alert('Error generating content: ' + response.message);
             } else {
                 var formattedJson = JSON.stringify(response.others_content, null, 2);
                 $('#others_content').val(formattedJson);
@@ -718,16 +611,11 @@ function autoGenerateOthersContent() {
                     $('#others_content').removeClass('highlight-success');
                 }, 3000);
                 
-                $('html, body').animate({
-                    scrollTop: $('#others_content').offset().top - 100
-                }, 500);
-                
-                success_alert('Default shipping and return policy content generated successfully!');
+                success_alert('Default content generated successfully!');
             }
         },
-        error: function(xhr, status, error) {
-            console.log('Error generating others content:', {xhr: xhr, status: status, error: error});
-            error_alert('Failed to generate others content. Please try again.');
+        error: function() {
+            error_alert('Failed to generate content. Please try again.');
         },
         complete: function() {
             $('#auto_generate_others').attr('disabled', false).html('<i class="fa fa-magic"></i> Auto-Generate Defaults');
@@ -736,8 +624,6 @@ function autoGenerateOthersContent() {
 }
 
 function previewSchema() {
-    console.log('=== GENERATING SCHEMA PREVIEW ===');
-    
     $('#preview_schema').attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
     
     $.ajax({
@@ -782,7 +668,7 @@ function loadVariantsPreview() {
                 $('#variants_list').html(html);
                 $('#variants_preview').show();
             } else {
-                $('#variants_list').html('<p class="text-muted"><i class="fa fa-info-circle"></i> No variants found for this product.</p>');
+                $('#variants_list').html('<p class="text-muted"><i class="fa fa-info-circle"></i> No variants found.</p>');
                 $('#variants_preview').show();
             }
         },
@@ -798,13 +684,13 @@ function validateOthersContentJSON() {
     var resultDiv = $('#json_validation_result');
     
     if (jsonText === '') {
-        resultDiv.html('<span class="text-info"><i class="fa fa-info-circle"></i> JSON field is empty - this is OK.</span>');
+        resultDiv.html('<span class="text-info"><i class="fa fa-info-circle"></i> JSON field is empty.</span>');
         return;
     }
     
     try {
         var parsed = JSON.parse(jsonText);
-        resultDiv.html('<span class="text-success"><i class="fa fa-check-circle"></i> Valid JSON format! Ready for Schema.org enhancement.</span>');
+        resultDiv.html('<span class="text-success"><i class="fa fa-check-circle"></i> Valid JSON format!</span>');
         $('#others_content').removeClass('highlight-error').addClass('highlight-success');
         
         setTimeout(function() {
@@ -822,12 +708,10 @@ function validateOthersContentJSON() {
 }
 
 function optimizeReviewInModal() {
-    console.log('=== OPTIMIZING REVIEW IN MODAL ===');
-    
     var currentText = $('#review_text').val().trim();
     
     if (!currentText) {
-        error_alert('Please enter some review text before optimizing.');
+        error_alert('Please enter review text first.');
         return;
     }
     
@@ -853,10 +737,10 @@ function optimizeReviewInModal() {
                 setTimeout(function() {
                     $('#review_text').removeClass('highlight-success');
                 }, 3000);
-                success_alert('Review optimized successfully! Length: ' + response.optimized_length + ' chars');
+                success_alert('Review optimized successfully!');
             }
         },
-        error: function(xhr, status, error) {
+        error: function() {
             error_alert('Failed to optimize review. Please try again.');
         },
         complete: function() {
@@ -947,8 +831,6 @@ function deleteReview(reviewId) {
 }
 
 function generateExampleReview() {
-    console.log('=== GENERATING EXAMPLE REVIEW ===');
-    
     $('#generate_example_review').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
     
     $.ajax({

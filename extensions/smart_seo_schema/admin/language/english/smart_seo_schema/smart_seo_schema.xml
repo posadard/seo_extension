@@ -66,25 +66,26 @@
     <value><![CDATA[Product Description]]></value>
   </definition>
 
+  <!-- SIMPLIFIED FORM LABELS -->
   <definition>
     <key>entry_custom_description</key>
-    <value><![CDATA[Custom Description (150-160 chars):<br /><span class="help">AI-optimized product summary that extracts key information from original description, prioritizing essential features over decorative language</span>]]></value>
+    <value><![CDATA[Custom Description:<br /><span class="help">150-160 character optimized description</span>]]></value>
   </definition>
   <definition>
     <key>entry_enable_variants</key>
-    <value><![CDATA[Enable Product Variants:<br /><span class="help">Include product variants in Schema.org hasVariant markup for better SEO</span>]]></value>
+    <value><![CDATA[Enable Product Variants:<br /><span class="help">Include variants in Schema.org markup</span>]]></value>
   </definition>
   <definition>
     <key>entry_faq_content</key>
-    <value><![CDATA[FAQ Content:<br /><span class="help">Generate or enter FAQ content for FAQPage structured data</span>]]></value>
+    <value><![CDATA[FAQ Content:<br /><span class="help">Questions and answers for FAQPage schema</span>]]></value>
   </definition>
   <definition>
     <key>entry_howto_content</key>
-    <value><![CDATA[HowTo Instructions:<br /><span class="help">Generate or enter step-by-step instructions for HowTo structured data</span>]]></value>
+    <value><![CDATA[HowTo Instructions:<br /><span class="help">Step-by-step usage instructions</span>]]></value>
   </definition>
   <definition>
     <key>entry_product_reviews</key>
-    <value><![CDATA[Product Reviews:<br /><span class="help">Manage actual product reviews from database with AI optimization capabilities</span>]]></value>
+    <value><![CDATA[Product Reviews:<br /><span class="help">Manage database reviews with AI optimization</span>]]></value>
   </definition>
 
   <!-- Individual Generation Buttons -->
@@ -104,7 +105,7 @@
   <!-- Individual Generation Success Messages -->
   <definition>
     <key>success_description_generated</key>
-    <value><![CDATA[Smart description generated successfully! Optimized for 150-160 characters.]]></value>
+    <value><![CDATA[Description generated successfully! Optimized for 150-160 characters.]]></value>
   </definition>
   <definition>
     <key>success_faq_generated</key>
@@ -118,7 +119,7 @@
   <!-- Individual Generation Error Messages -->
   <definition>
     <key>error_description_generate_failed</key>
-    <value><![CDATA[Failed to generate smart description. Please check your AI configuration.]]></value>
+    <value><![CDATA[Failed to generate description. Please check your AI configuration.]]></value>
   </definition>
   <definition>
     <key>error_faq_generate_failed</key>
@@ -128,7 +129,6 @@
     <key>error_howto_generate_failed</key>
     <value><![CDATA[Failed to generate HowTo instructions. Please check your AI configuration.]]></value>
   </definition>
-
 
   <definition>
     <key>smart_seo_schema_groq_api_key</key>
@@ -241,7 +241,7 @@
     <value><![CDATA[Organization Phone:<br /><span class="help">Main phone number for customer contact in international format (+1-555-123-4567)</span>]]></value>
   </definition>
 
-  <!-- NUEVAS CONFIGURACIONES SHIPPING DETAILS -->
+  <!-- SHIPPING DETAILS -->
   <definition>
     <key>smart_seo_schema_shipping_rate</key>
     <value><![CDATA[Shipping Rate:<br /><span class="help">Default shipping cost for all products in your store (e.g., 5.99)</span>]]></value>
@@ -271,7 +271,7 @@
     <value><![CDATA[Transit Time (Max Days):<br /><span class="help">Maximum business days for delivery after shipping</span>]]></value>
   </definition>
 
-  <!-- NUEVAS CONFIGURACIONES RETURN POLICY -->
+  <!-- RETURN POLICY -->
   <definition>
     <key>smart_seo_schema_return_days</key>
     <value><![CDATA[Return Window (Days):<br /><span class="help">Number of days customers have to return products</span>]]></value>
@@ -289,7 +289,7 @@
     <value><![CDATA[Return Fees Policy:<br /><span class="help">Who pays for return shipping costs</span>]]></value>
   </definition>
 
-  <!-- OPCIONES PARA SELECTBOXES -->
+  <!-- SELECTBOX OPTIONS -->
   <definition>
     <key>smart_seo_schema_return_method_https://schema.org/ReturnByMail</key>
     <value><![CDATA[Return By Mail]]></value>
@@ -316,7 +316,7 @@
     <value><![CDATA[Return Shipping Fees Apply]]></value>
   </definition>
 
-  <!-- SECCIONES PARA ORGANIZAR CONFIGURACIONES -->
+  <!-- SECTION HEADERS -->
   <definition>
     <key>text_section_shipping</key>
     <value><![CDATA[Global Shipping Settings]]></value>
@@ -341,15 +341,15 @@
   </definition>
   <definition>
     <key>text_section_ai</key>
-    <value><![CDATA[AI Content Generation - Individual]]></value>
+    <value><![CDATA[AI Content Generation]]></value>
   </definition>
   <definition>
     <key>text_section_reviews</key>
-    <value><![CDATA[Product Reviews Management]]></value>
+    <value><![CDATA[Product Reviews]]></value>
   </definition>
   <definition>
     <key>text_section_variants</key>
-    <value><![CDATA[Product Variants (hasVariant)]]></value>
+    <value><![CDATA[Product Variants]]></value>
   </definition>
   <definition>
     <key>text_section_additional</key>
@@ -364,9 +364,10 @@
     <value><![CDATA[Debug & Monitoring]]></value>
   </definition>
 
+  <!-- SIMPLIFIED STATUS MESSAGES -->
   <definition>
     <key>text_ai_connection_success</key>
-    <value><![CDATA[AI connection successful! Smart description generation ready (150-160 chars).]]></value>
+    <value><![CDATA[AI connection successful!]]></value>
   </definition>
   <definition>
     <key>text_ai_connection_failed</key>
@@ -393,6 +394,7 @@
     <value><![CDATA[No product variants found. Only main product will be included in schema.]]></value>
   </definition>
 
+  <!-- BUTTONS -->
   <definition>
     <key>button_test_ai_connection</key>
     <value><![CDATA[Test AI Connection]]></value>
@@ -418,6 +420,7 @@
     <value><![CDATA[Cancel]]></value>
   </definition>
 
+  <!-- REVIEW MANAGEMENT -->
   <definition>
     <key>button_add_review</key>
     <value><![CDATA[Add New Review]]></value>
@@ -490,31 +493,11 @@
   </definition>
 
   <definition>
-    <key>text_review_optimization_help</key>
-    <value><![CDATA[Use AI to improve review content while editing - maintains authenticity and original sentiment]]></value>
-  </definition>
-  <definition>
-    <key>text_review_optimization_in_modal</key>
-    <value><![CDATA[Click "Optimize with AI" to improve the review content while maintaining authenticity]]></value>
-  </definition>
-  <definition>
-    <key>text_review_generation_help</key>
-    <value><![CDATA[Create sample reviews (3-5 stars) based on product description]]></value>
-  </definition>
-  <definition>
-    <key>text_review_database_help</key>
-    <value><![CDATA[All reviews are stored in your database and used for Schema.org markup]]></value>
-  </definition>
-  <definition>
-    <key>text_review_edit_help</key>
-    <value><![CDATA[Edit review details - AI optimization available in edit form]]></value>
-  </definition>
-
-  <definition>
     <key>confirm_delete_review</key>
     <value><![CDATA[Are you sure you want to delete this review?]]></value>
   </definition>
 
+  <!-- ERROR AND SUCCESS MESSAGES -->
   <definition>
     <key>error_review_save_failed</key>
     <value><![CDATA[Failed to save review. Please check all required fields.]]></value>
@@ -576,70 +559,5 @@
   <definition>
     <key>error_permission</key>
     <value><![CDATA[Warning: You do not have permission to modify Smart SEO Schema!]]></value>
-  </definition>
-
-  <definition>
-    <key>help_smart_description</key>
-    <value><![CDATA[Smart Description: AI analyzes your full product description and creates a 150-160 character summary that prioritizes essential information over decorative language. Perfect for SEO meta descriptions and Schema.org markup.]]></value>
-  </definition>
-  <definition>
-    <key>help_character_count</key>
-    <value><![CDATA[Character Count: 150-160 characters is the optimal range for search engine snippets. The counter shows real-time length and optimization status.]]></value>
-  </definition>
-  <definition>
-    <key>help_information_priority</key>
-    <value><![CDATA[Information Priority: AI focuses on core functionality, technical specifications, and key differentiators rather than marketing language for maximum SEO value.]]></value>
-  </definition>
-  <definition>
-    <key>help_schema_org</key>
-    <value><![CDATA[Schema.org is a structured data vocabulary that helps search engines understand your content better, leading to enhanced search results and better SEO.]]></value>
-  </definition>
-  <definition>
-    <key>help_groq_ai</key>
-    <value><![CDATA[Groq AI provides fast, high-quality language models for automatic content generation. This helps create better product descriptions, FAQ content, and structured data.]]></value>
-  </definition>
-  <definition>
-    <key>help_reviews_management</key>
-    <value><![CDATA[Manage real product reviews from your database. Use AI to optimize existing reviews in the edit form or generate example reviews for products without reviews. All reviews contribute to Schema.org structured data for better SEO.]]></value>
-  </definition>
-
-  <!-- Updated helpful texts for new review optimization flow -->
-  <definition>
-    <key>text_smart_description_info</key>
-    <value><![CDATA[Smart Description: AI extracts and summarizes the most important product information in exactly 150-160 characters for optimal SEO performance.]]></value>
-  </definition>
-  <definition>
-    <key>text_character_optimization_info</key>
-    <value><![CDATA[Character Optimization: Real-time counter shows optimal length (150-160 chars) with visual indicators for perfect SEO targeting.]]></value>
-  </definition>
-  <definition>
-    <key>text_description_length_optimal</key>
-    <value><![CDATA[✓ Optimal length for SEO!]]></value>
-  </definition>
-  <definition>
-    <key>text_description_length_short</key>
-    <value><![CDATA[Need more characters for optimal SEO]]></value>
-  </definition>
-  <definition>
-    <key>text_description_length_long</key>
-    <value><![CDATA[Consider shortening for optimal SEO]]></value>
-  </definition>
-  <definition>
-    <key>text_description_length_too_long</key>
-    <value><![CDATA[Too long! Remove excess characters]]></value>
-  </definition>
-
-  <!-- New AI Features updated for modal optimization -->
-  <definition>
-    <key>text_ai_features_optimize_in_edit</key>
-    <value><![CDATA[Optimize in Edit Form: Use AI to improve review content while editing - maintains authenticity]]></value>
-  </definition>
-  <definition>
-    <key>text_ai_features_generate_example</key>
-    <value><![CDATA[Generate Example: Create sample reviews (3-5 stars) based on product description]]></value>
-  </definition>
-  <definition>
-    <key>text_ai_features_real_data</key>
-    <value><![CDATA[Real Data: All reviews are stored in your database and used for Schema.org markup]]></value>
   </definition>
 </definitions>
