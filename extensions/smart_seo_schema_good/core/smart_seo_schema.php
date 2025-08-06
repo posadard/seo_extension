@@ -73,167 +73,10 @@ class ExtensionSmartSeoSchema extends Extension
             return;
         }
 
-        // Generate Schema.org JSON-LD
         $schema_data = $this->generateCompleteSchema($that);
+        
         $that->load->library('json');
         $that->view->assign('smart_seo_schema_data', AJson::encode($schema_data));
-
-        // Register frontend tabs if enabled
-        $this->registerProductTabs($that);
-    }
-
-    /**
-     * Register FAQ and HowTo tabs in the frontend product page
-     */
-    private function registerProductTabs($that)
-    {
-        $product_id = $that->request->get['product_id'];
-        
-        if (!$product_id) {
-            return;
-        }
-
-        // Load saved content settings for this product
-        $saved_content = $this->getSavedSchemaContent($product_id);
-        
-        if (!$saved_content) {
-            return;
-        }
-
-        // Load storefront language for tab titles
-        $that->loadLanguage('smart_seo_schema/smart_seo_schema');
-
-        $tabs_to_add = [];
-
-        // Register FAQ Tab if enabled and has content
-        if (!empty($saved_content['show_faq_tab_frontend']) && !empty($saved_content['faq_content'])) {
-            $tabs_to_add[] = [
-                'id' => 'faq_tab',
-                'title' => $that->language->get('tab_faq_title') ?: 'FAQ',
-                'content' => $this->processFAQContentForDisplay($saved_content['faq_content']),
-                'sort_order' => 50
-            ];
-        }
-
-        // Register HowTo Tab if enabled and has content
-        if (!empty($saved_content['show_howto_tab_frontend']) && !empty($saved_content['howto_content'])) {
-            $tabs_to_add[] = [
-                'id' => 'howto_tab', 
-                'title' => $that->language->get('tab_howto_title') ?: 'How to Use',
-                'content' => $this->processHowToContentForDisplay($saved_content['howto_content']),
-                'sort_order' => 51
-            ];
-        }
-
-        // Add tabs to the product page
-        if (!empty($tabs_to_add)) {
-            foreach ($tabs_to_add as $tab) {
-                $that->data['product_tabs'][] = $tab;
-            }
-
-            // Generate tab templates
-            $this->generateTabTemplates($that, $tabs_to_add);
-        }
-    }
-
-    /**
-     * Generate and assign tab templates to the view
-     */
-    private function generateTabTemplates($that, $tabs)
-    {
-        foreach ($tabs as $tab) {
-            $template_data = [
-                'tab_id' => $tab['id'],
-                'tab_title' => $tab['title'],
-                'tab_content' => $tab['content']
-            ];
-
-            // Create view for each tab
-            $view = new AView(Registry::getInstance(), 0);
-            $view->batchAssign($template_data);
-            
-            // Choose appropriate template based on tab type
-            if ($tab['id'] === 'faq_tab') {
-                $tab_html = $view->fetch('pages/product/faq_tab.tpl');
-            } elseif ($tab['id'] === 'howto_tab') {
-                $tab_html = $view->fetch('pages/product/howto_tab.tpl');
-            }
-
-            // Add to hook variables for template rendering
-            $that->view->addHookVar('product_tabs_' . $tab['id'], $tab_html);
-        }
-    }
-
-    /**
-     * Process FAQ content for frontend display
-     */
-    private function processFAQContentForDisplay($faq_content)
-    {
-        $lines = explode("\n", trim($faq_content));
-        $faqs = [];
-        
-        $current_question = null;
-        $current_answer = [];
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) continue;
-            
-            // Check if line ends with question mark (is a question)
-            if (substr($line, -1) === '?') {
-                // Save previous Q&A pair if exists
-                if ($current_question && !empty($current_answer)) {
-                    $faqs[] = [
-                        'question' => $current_question,
-                        'answer' => implode(' ', $current_answer)
-                    ];
-                }
-                
-                $current_question = $line;
-                $current_answer = [];
-            } else {
-                // This is part of an answer
-                $current_answer[] = $line;
-            }
-        }
-        
-        // Add the last Q&A pair
-        if ($current_question && !empty($current_answer)) {
-            $faqs[] = [
-                'question' => $current_question,
-                'answer' => implode(' ', $current_answer)
-            ];
-        }
-        
-        return $faqs;
-    }
-
-    /**
-     * Process HowTo content for frontend display
-     */
-    private function processHowToContentForDisplay($howto_content)
-    {
-        $lines = explode("\n", trim($howto_content));
-        $steps = [];
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) continue;
-            
-            // Check for numbered steps (e.g., "1. Step description")
-            if (preg_match('/^(\d+)\.\s*(.+)/', $line, $matches)) {
-                $steps[] = [
-                    'step_number' => $matches[1],
-                    'step_text' => trim($matches[2])
-                ];
-            } elseif (!empty($steps)) {
-                // Continue previous step if no number found
-                $last_key = count($steps) - 1;
-                $steps[$last_key]['step_text'] .= ' ' . $line;
-            }
-        }
-        
-        return $steps;
     }
 
     public function generateCompleteSchemaForProduct($product_info)
@@ -334,9 +177,7 @@ class ExtensionSmartSeoSchema extends Extension
                     enable_variants,
                     enable_faq,
                     enable_howto,
-                    enable_review,
-                    show_faq_tab_frontend,
-                    show_howto_tab_frontend
+                    enable_review
                 FROM " . DB_PREFIX . "seo_schema_content 
                 WHERE product_id = " . (int)$product_id . "
                 LIMIT 1
@@ -349,8 +190,6 @@ class ExtensionSmartSeoSchema extends Extension
                 $content['enable_faq'] = (bool)$content['enable_faq'];
                 $content['enable_howto'] = (bool)$content['enable_howto'];
                 $content['enable_review'] = (bool)$content['enable_review'];
-                $content['show_faq_tab_frontend'] = (bool)$content['show_faq_tab_frontend'];
-                $content['show_howto_tab_frontend'] = (bool)$content['show_howto_tab_frontend'];
                 
                 return $content;
             }
@@ -534,7 +373,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function getDefaultShippingDetails($that = null)
     {
-        // Si no tenemos acceso al controlador, usar configuraci¨®n desde registry
+        // Si no tenemos acceso al controlador, usar configuraciÃ³n desde registry
         if (!$that) {
             $config = $this->registry->get('config');
         } else {
@@ -572,7 +411,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function getDefaultReturnPolicy($that = null)
     {
-        // Si no tenemos acceso al controlador, usar configuraci¨®n desde registry
+        // Si no tenemos acceso al controlador, usar configuraciÃ³n desde registry
         if (!$that) {
             $config = $this->registry->get('config');
         } else {

@@ -18,8 +18,6 @@ $models = [
 $templates = [
     'storefront' => [
         'pages/product/product.post.tpl',
-        'pages/product/faq_tab.tpl',
-        'pages/product/howto_tab.tpl',
     ],
     'admin'      => [
         'pages/smart_seo_schema/smart_seo_schema_form.tpl',
@@ -28,9 +26,7 @@ $templates = [
     ],
 ];
 $languages = [
-    'storefront' => [
-        'english/smart_seo_schema/smart_seo_schema',
-    ],
+    'storefront' => [],
     'admin'      => [
         'english/smart_seo_schema/smart_seo_schema',
     ],

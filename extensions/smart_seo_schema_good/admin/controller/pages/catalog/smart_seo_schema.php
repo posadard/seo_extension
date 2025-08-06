@@ -1019,8 +1019,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         $this->data['entry_faq_content'] = $this->language->get('entry_faq_content') ?: 'FAQ Content:';
         $this->data['entry_howto_content'] = $this->language->get('entry_howto_content') ?: 'HowTo Content:';
         $this->data['entry_review_content'] = $this->language->get('entry_review_content') ?: 'Review Content:';
-        $this->data['entry_show_faq_tab_frontend'] = $this->language->get('entry_show_faq_tab_frontend') ?: 'Show FAQ Tab in Storefront:';
-        $this->data['entry_show_howto_tab_frontend'] = $this->language->get('entry_show_howto_tab_frontend') ?: 'Show HowTo Tab in Storefront:';
         
         $this->data['text_section_basic'] = $this->language->get('text_section_basic') ?: 'Basic Settings';
         $this->data['text_section_ai'] = $this->language->get('text_section_ai') ?: 'AI Content Generation';
@@ -1060,18 +1058,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'type' => 'checkbox',
             'name' => 'enable_variants',
             'value' => $this->data['schema_settings']['enable_variants'] ?? 1
-        ));
-
-        $this->data['form']['fields']['show_faq_tab_frontend'] = $form->getFieldHtml(array(
-            'type' => 'checkbox',
-            'name' => 'show_faq_tab_frontend',
-            'value' => $this->data['schema_settings']['show_faq_tab_frontend'] ?? 0
-        ));
-
-        $this->data['form']['fields']['show_howto_tab_frontend'] = $form->getFieldHtml(array(
-            'type' => 'checkbox',
-            'name' => 'show_howto_tab_frontend',
-            'value' => $this->data['schema_settings']['show_howto_tab_frontend'] ?? 0
         ));
     }
 
@@ -1119,8 +1105,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                     enable_faq,
                     enable_howto,
                     enable_review,
-                    show_faq_tab_frontend,
-                    show_howto_tab_frontend,
                     created_date,
                     updated_date
                 FROM " . DB_PREFIX . "seo_schema_content 
@@ -1135,8 +1119,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 $settings['enable_faq'] = (bool)$settings['enable_faq'];
                 $settings['enable_howto'] = (bool)$settings['enable_howto'];
                 $settings['enable_review'] = (bool)$settings['enable_review'];
-                $settings['show_faq_tab_frontend'] = (bool)$settings['show_faq_tab_frontend'];
-                $settings['show_howto_tab_frontend'] = (bool)$settings['show_howto_tab_frontend'];
                 
                 $this->logDebug("Configuración cargada exitosamente. Campos con contenido: " . 
                     implode(', ', array_filter([
@@ -1161,9 +1143,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                     'enable_variants' => true,
                     'enable_faq' => false,
                     'enable_howto' => false,
-                    'enable_review' => false,
-                    'show_faq_tab_frontend' => false,
-                    'show_howto_tab_frontend' => false
+                    'enable_review' => false
                 );
             }
         } catch (Exception $e) {
@@ -1178,9 +1158,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 'enable_variants' => true,
                 'enable_faq' => false,
                 'enable_howto' => false,
-                'enable_review' => false,
-                'show_faq_tab_frontend' => false,
-                'show_howto_tab_frontend' => false
+                'enable_review' => false
             );
         }
     }
@@ -1208,9 +1186,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 'enable_variants' => isset($this->request->post['enable_variants']) ? 1 : 0,
                 'enable_faq' => !empty($this->request->post['faq_content']) ? 1 : 0,
                 'enable_howto' => !empty($this->request->post['howto_content']) ? 1 : 0,
-                'enable_review' => !empty($this->request->post['review_content']) ? 1 : 0,
-                'show_faq_tab_frontend' => isset($this->request->post['show_faq_tab_frontend']) ? 1 : 0,
-                'show_howto_tab_frontend' => isset($this->request->post['show_howto_tab_frontend']) ? 1 : 0
+                'enable_review' => !empty($this->request->post['review_content']) ? 1 : 0
             );
 
             $this->logDebug("Datos procesados: " . print_r($data, true));
@@ -1230,8 +1206,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                         enable_faq = " . (int)$data['enable_faq'] . ",
                         enable_howto = " . (int)$data['enable_howto'] . ",
                         enable_review = " . (int)$data['enable_review'] . ",
-                        show_faq_tab_frontend = " . (int)$data['show_faq_tab_frontend'] . ",
-                        show_howto_tab_frontend = " . (int)$data['show_howto_tab_frontend'] . ",
                         updated_date = NOW()
                     WHERE product_id = " . (int)$product_id
                 ;
@@ -1255,8 +1229,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                         enable_faq,
                         enable_howto,
                         enable_review,
-                        show_faq_tab_frontend,
-                        show_howto_tab_frontend,
                         created_date,
                         updated_date
                     ) VALUES (
@@ -1270,8 +1242,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                         " . (int)$data['enable_faq'] . ",
                         " . (int)$data['enable_howto'] . ",
                         " . (int)$data['enable_review'] . ",
-                        " . (int)$data['show_faq_tab_frontend'] . ",
-                        " . (int)$data['show_howto_tab_frontend'] . ",
                         NOW(),
                         NOW()
                     )
@@ -1288,8 +1258,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                     LENGTH(howto_content) as howto_len,
                     LENGTH(review_content) as review_len,
                     LENGTH(others_content) as others_len,
-                    show_faq_tab_frontend,
-                    show_howto_tab_frontend,
                     updated_date
                 FROM " . DB_PREFIX . "seo_schema_content 
                 WHERE product_id = " . (int)$product_id
@@ -1297,7 +1265,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             
             if ($verify_query->num_rows) {
                 $verification = $verify_query->row;
-                $this->logDebug("Verificación exitosa - Longitudes: desc={$verification['desc_len']}, faq={$verification['faq_len']}, howto={$verification['howto_len']}, review={$verification['review_len']}, others={$verification['others_len']}, show_faq_tab={$verification['show_faq_tab_frontend']}, show_howto_tab={$verification['show_howto_tab_frontend']}, updated={$verification['updated_date']}");
+                $this->logDebug("Verificación exitosa - Longitudes: desc={$verification['desc_len']}, faq={$verification['faq_len']}, howto={$verification['howto_len']}, review={$verification['review_len']}, others={$verification['others_len']}, updated={$verification['updated_date']}");
             }
 
         } catch (Exception $e) {

@@ -30,8 +30,6 @@ $create_sql = "CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "seo_schema_content` 
     `enable_faq` tinyint(1) DEFAULT 0,
     `enable_howto` tinyint(1) DEFAULT 0,
     `enable_review` tinyint(1) DEFAULT 0,
-    `show_faq_tab_frontend` tinyint(1) DEFAULT 0 COMMENT 'Show FAQ tab in storefront product page',
-    `show_howto_tab_frontend` tinyint(1) DEFAULT 0 COMMENT 'Show HowTo tab in storefront product page',
     `created_date` timestamp DEFAULT CURRENT_TIMESTAMP,
     `updated_date` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),

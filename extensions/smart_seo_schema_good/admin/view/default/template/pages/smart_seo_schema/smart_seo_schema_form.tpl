@@ -116,18 +116,6 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="control-label col-sm-3 col-xs-12" for="show_faq_tab_frontend">
-                        <?php echo $entry_show_faq_tab_frontend; ?>
-                    </label>
-                    <div class="input-group afield col-sm-6 col-xs-12">
-                        <?php echo $form['fields']['show_faq_tab_frontend']; ?>
-                        <div class="help-block">
-                            <i class="fa fa-info-circle"></i> When enabled, FAQ content will appear as a tab on the product page
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="howto_content">
                         <?php echo $entry_howto_content; ?>
                     </label>
@@ -143,18 +131,6 @@
                         <button type="button" id="generate_howto_ai" class="btn btn-success btn-block" onclick="generateHowToAI()">
                             <i class="fa fa-list-ol"></i> Generate HowTo
                         </button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="control-label col-sm-3 col-xs-12" for="show_howto_tab_frontend">
-                        <?php echo $entry_show_howto_tab_frontend; ?>
-                    </label>
-                    <div class="input-group afield col-sm-6 col-xs-12">
-                        <?php echo $form['fields']['show_howto_tab_frontend']; ?>
-                        <div class="help-block">
-                            <i class="fa fa-info-circle"></i> When enabled, HowTo content will appear as a tab on the product page
-                        </div>
                     </div>
                 </div>
 
@@ -386,16 +362,6 @@
     pointer-events: none;
     opacity: 0.6;
 }
-.tab-option-section {
-    background-color: #f9f9f9;
-    padding: 10px;
-    border-left: 4px solid #5cb85c;
-    margin-top: 10px;
-    border-radius: 0 4px 4px 0;
-}
-.tab-option-section .help-block {
-    margin-bottom: 0;
-}
 </style>
 
 <script type="text/javascript">
@@ -437,36 +403,7 @@ $(document).ready(function() {
             $('#variants_preview').hide();
         }
     });
-
-    // Highlight frontend tab options when content is available
-    updateTabOptionHighlighting();
-    $('#faq_content, #howto_content').on('input', updateTabOptionHighlighting);
 });
-
-function updateTabOptionHighlighting() {
-    var faqContent = $('#faq_content').val().trim();
-    var howtoContent = $('#howto_content').val().trim();
-    
-    // Show/highlight FAQ tab option
-    var $faqTabGroup = $('label[for="show_faq_tab_frontend"]').closest('.form-group');
-    if (faqContent.length > 0) {
-        $faqTabGroup.addClass('tab-option-section');
-        $faqTabGroup.find('.help-block').html('<i class="fa fa-check-circle text-success"></i> FAQ content available - tab can be enabled');
-    } else {
-        $faqTabGroup.removeClass('tab-option-section');
-        $faqTabGroup.find('.help-block').html('<i class="fa fa-info-circle"></i> When enabled, FAQ content will appear as a tab on the product page');
-    }
-    
-    // Show/highlight HowTo tab option
-    var $howtoTabGroup = $('label[for="show_howto_tab_frontend"]').closest('.form-group');
-    if (howtoContent.length > 0) {
-        $howtoTabGroup.addClass('tab-option-section');
-        $howtoTabGroup.find('.help-block').html('<i class="fa fa-check-circle text-success"></i> HowTo content available - tab can be enabled');
-    } else {
-        $howtoTabGroup.removeClass('tab-option-section');
-        $howtoTabGroup.find('.help-block').html('<i class="fa fa-info-circle"></i> When enabled, HowTo content will appear as a tab on the product page');
-    }
-}
 
 function updateCharacterCounter() {
     var text = $('#custom_description').val();
@@ -625,7 +562,6 @@ function generateFAQAI() {
                     $('#faq_content').removeClass('highlight-success');
                 }, 3000);
                 success_alert('FAQ content generated successfully!');
-                updateTabOptionHighlighting();
             }
         },
         error: function() {
@@ -663,7 +599,6 @@ function generateHowToAI() {
                     $('#howto_content').removeClass('highlight-success');
                 }, 3000);
                 success_alert('HowTo instructions generated successfully!');
-                updateTabOptionHighlighting();
             }
         },
         error: function() {

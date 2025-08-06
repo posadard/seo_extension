@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension>
+	<id>smart_seo_schema</id>
+	<version>2.0.2</version>
+	<type>extension</type>
+	<category>marketing</category>
+	<cartversions>
+		<item>1.2</item>
+		<item>1.3</item>
+		<item>1.4</item>
+	</cartversions>
+	<priority>10</priority>
+	<settings>
+		<!-- Configuraciones básicas existentes -->
+		<item id="smart_seo_schema_status">
+			<type>checkbox</type>
+			<default_value>0</default_value>
+		</item>
+		<item id="smart_seo_schema_show_image">
+			<type>checkbox</type>
+			<default_value>1</default_value>
+		</item>
+		<item id="smart_seo_schema_show_review">
+			<type>checkbox</type>
+			<default_value>1</default_value>
+		</item>
+		<item id="smart_seo_schema_show_sku">
+			<type>checkbox</type>
+			<default_value>1</default_value>
+		</item>
+		<item id="smart_seo_schema_show_offer">
+			<type>checkbox</type>
+			<default_value>1</default_value>
+		</item>
+		<item id="smart_seo_schema_show_availability">
+			<type>checkbox</type>
+			<default_value>1</default_value>
+		</item>
+		<item id="smart_seo_schema_description">
+			<type>selectbox</type>
+			<variants>
+				<item>auto</item>
+				<item>description</item>
+				<item>blurb</item>
+			</variants>
+			<default_value>auto</default_value>
+		</item>
+
+		<!-- Configuraciones Groq IA OPTIMIZADAS -->
+		<item id="smart_seo_schema_groq_api_key">
+			<type>password</type>
+			<default_value></default_value>
+		</item>
+		<item id="smart_seo_schema_groq_model">
+			<type>input</type>
+			<default_value>llama-3.1-8b-instant</default_value>
+		</item>
+		<item id="smart_seo_schema_ai_auto_generate">
+			<type>checkbox</type>
+			<default_value>0</default_value>
+		</item>
+
+		<!-- Configuraciones IA Avanzadas CON DIVISIÓN DE TOKENS -->
+		<item id="smart_seo_schema_ai_temperature">
+			<type>input</type>
+			<default_value>0.7</default_value>
+		</item>
+		<item id="smart_seo_schema_ai_max_tokens">
+			<type>input</type>
+			<default_value>800</default_value>
+		</item>
+		<item id="smart_seo_schema_ai_timeout">
+			<type>input</type>
+			<default_value>30</default_value>
+		</item>
+		<item id="smart_seo_schema_ai_min_tokens_per_content">
+			<type>input</type>
+			<default_value>100</default_value>
+		</item>
+
+		<!-- Configuraciones FAQ específicas OPTIMIZADAS -->
+		<item id="smart_seo_schema_faq_count">
+			<type>input</type>
+			<default_value>3</default_value>
+		</item>
+		<item id="smart_seo_schema_howto_steps_count">
+			<type>input</type>
+			<default_value>5</default_value>
+		</item>
+
+		<!-- Configuraciones hasVariant[] -->
+		<item id="smart_seo_schema_enable_variants">
+			<type>checkbox</type>
+			<default_value>1</default_value>
+		</item>
+
+		<!-- Configuraciones Esquemas Adicionales -->
+		<item id="smart_seo_schema_enable_faq_schema">
+			<type>checkbox</type>
+			<default_value>0</default_value>
+		</item>
+		<item id="smart_seo_schema_enable_howto_schema">
+			<type>checkbox</type>
+			<default_value>0</default_value>
+		</item>
+		<item id="smart_seo_schema_enable_review_schema">
+			<type>checkbox</type>
+			<default_value>0</default_value>
+		</item>
+		<item id="smart_seo_schema_enable_organization">
+			<type>checkbox</type>
+			<default_value>1</default_value>
+		</item>
+
+		<!-- CONFIGURACIONES SHIPPING DETAILS -->
+		<item id="smart_seo_schema_shipping_rate">
+			<type>input</type>
+			<default_value>5.99</default_value>
+		</item>
+		<item id="smart_seo_schema_shipping_currency">
+			<type>input</type>
+			<default_value>USD</default_value>
+		</item>
+		<item id="smart_seo_schema_shipping_country">
+			<type>input</type>
+			<default_value>US</default_value>
+		</item>
+		<item id="smart_seo_schema_handling_min_days">
+			<type>input</type>
+			<default_value>1</default_value>
+		</item>
+		<item id="smart_seo_schema_handling_max_days">
+			<type>input</type>
+			<default_value>2</default_value>
+		</item>
+		<item id="smart_seo_schema_transit_min_days">
+			<type>input</type>
+			<default_value>3</default_value>
+		</item>
+		<item id="smart_seo_schema_transit_max_days">
+			<type>input</type>
+			<default_value>5</default_value>
+		</item>
+
+		<!-- CONFIGURACIONES RETURN POLICY -->
+		<item id="smart_seo_schema_return_days">
+			<type>input</type>
+			<default_value>30</default_value>
+		</item>
+		<item id="smart_seo_schema_return_country">
+			<type>input</type>
+			<default_value>US</default_value>
+		</item>
+		<item id="smart_seo_schema_return_method">
+			<type>selectbox</type>
+			<variants>
+				<item>https://schema.org/ReturnByMail</item>
+				<item>https://schema.org/ReturnInStore</item>
+				<item>https://schema.org/ReturnAtKiosk</item>
+			</variants>
+			<default_value>https://schema.org/ReturnByMail</default_value>
+		</item>
+		<item id="smart_seo_schema_return_fees">
+			<type>selectbox</type>
+			<variants>
+				<item>https://schema.org/FreeReturn</item>
+				<item>https://schema.org/ReturnFeesCustomerResponsibility</item>
+				<item>https://schema.org/ReturnShippingFees</item>
+			</variants>
+			<default_value>https://schema.org/FreeReturn</default_value>
+		</item>
+
+		<!-- Configuraciones Debug/Logging OPTIMIZADAS -->
+		<item id="smart_seo_schema_debug_mode">
+			<type>checkbox</type>
+			<default_value>1</default_value>
+		</item>
+		<item id="smart_seo_schema_log_ai_calls">
+			<type>checkbox</type>
+			<default_value>1</default_value>
+		</item>
+		<item id="smart_seo_schema_log_token_usage">
+			<type>checkbox</type>
+			<default_value>1</default_value>
+		</item>
+	</settings>
+	<install>
+		<sql>install.sql</sql>
+		<trigger>install.php</trigger>
+	</install>
+	<uninstall>
+		<sql>uninstall.sql</sql>
+		<trigger>uninstall.php</trigger>
+	</uninstall>
+	<note>true</note>
+	<help_link><![CDATA[https://console.groq.com/docs/overview]]></help_link>
+		
+</extension>

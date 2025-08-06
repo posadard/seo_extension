@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions>
+  <!-- FAQ Tab Content -->
+  <definition>
+    <key>text_faq_title</key>
+    <value><![CDATA[Frequently Asked Questions]]></value>
+  </definition>
+  <definition>
+    <key>text_faq_description</key>
+    <value><![CDATA[Find answers to the most common questions about this product.]]></value>
+  </definition>
+  <definition>
+    <key>text_faq_no_content_title</key>
+    <value><![CDATA[No FAQ Available]]></value>
+  </definition>
+  <definition>
+    <key>text_faq_no_content_message</key>
+    <value><![CDATA[There are currently no frequently asked questions available for this product.]]></value>
+  </definition>
+
+  <!-- HowTo Tab Content -->
+  <definition>
+    <key>text_howto_title</key>
+    <value><![CDATA[How to Use]]></value>
+  </definition>
+  <definition>
+    <key>text_howto_description</key>
+    <value><![CDATA[Follow these step-by-step instructions to get the most out of your product.]]></value>
+  </definition>
+  <definition>
+    <key>text_howto_completion</key>
+    <value><![CDATA[You're all set! Enjoy using your product.]]></value>
+  </definition>
+  <definition>
+    <key>text_howto_no_content_title</key>
+    <value><![CDATA[No Instructions Available]]></value>
+  </definition>
+  <definition>
+    <key>text_howto_no_content_message</key>
+    <value><![CDATA[There are currently no usage instructions available for this product.]]></value>
+  </definition>
+
+  <!-- Tab Titles (used in tab navigation) -->
+  <definition>
+    <key>tab_faq</key>
+    <value><![CDATA[FAQ]]></value>
+  </definition>
+  <definition>
+    <key>tab_howto</key>
+    <value><![CDATA[How to Use]]></value>
+  </definition>
+  <definition>
+    <key>tab_faq_full</key>
+    <value><![CDATA[Questions & Answers]]></value>
+  </definition>
+  <definition>
+    <key>tab_howto_full</key>
+    <value><![CDATA[Instructions]]></value>
+  </definition>
+
+  <!-- Alternative shorter titles for mobile/small screens -->
+  <definition>
+    <key>tab_faq_short</key>
+    <value><![CDATA[Q&A]]></value>
+  </definition>
+  <definition>
+    <key>tab_howto_short</key>
+    <value><![CDATA[Guide]]></value>
+  </definition>
+
+  <!-- Content Labels -->
+  <definition>
+    <key>text_question</key>
+    <value><![CDATA[Question]]></value>
+  </definition>
+  <definition>
+    <key>text_answer</key>
+    <value><![CDATA[Answer]]></value>
+  </definition>
+  <definition>
+    <key>text_step</key>
+    <value><![CDATA[Step]]></value>
+  </definition>
+  <definition>
+    <key>text_instructions</key>
+    <value><![CDATA[Instructions]]></value>
+  </definition>
+
+  <!-- Interactive Elements -->
+  <definition>
+    <key>text_click_to_expand</key>
+    <value><![CDATA[Click to expand]]></value>
+  </definition>
+  <definition>
+    <key>text_click_to_collapse</key>
+    <value><![CDATA[Click to collapse]]></value>
+  </definition>
+  <definition>
+    <key>text_show_more</key>
+    <value><![CDATA[Show more]]></value>
+  </definition>
+  <definition>
+    <key>text_show_less</key>
+    <value><![CDATA[Show less]]></value>
+  </definition>
+
+  <!-- Status Messages -->
+  <definition>
+    <key>text_loading_content</key>
+    <value><![CDATA[Loading content...]]></value>
+  </definition>
+  <definition>
+    <key>text_content_error</key>
+    <value><![CDATA[Unable to load content. Please try again.]]></value>
+  </definition>
+
+  <!-- Accessibility Labels -->
+  <definition>
+    <key>text_faq_toggle_aria</key>
+    <value><![CDATA[Toggle FAQ answer]]></value>
+  </definition>
+  <definition>
+    <key>text_step_number_aria</key>
+    <value><![CDATA[Step number]]></value>
+  </definition>
+  <definition>
+    <key>text_completed_step_aria</key>
+    <value><![CDATA[Completed step]]></value>
+  </definition>
+
+  <!-- Help Text -->
+  <definition>
+    <key>text_faq_help</key>
+    <value><![CDATA[Click on any question to view the answer.]]></value>
+  </definition>
+  <definition>
+    <key>text_howto_help</key>
+    <value><![CDATA[Follow these steps in order for best results.]]></value>
+  </definition>
+
+  <!-- Print-friendly Labels -->
+  <definition>
+    <key>text_print_faq_title</key>
+    <value><![CDATA[Product FAQ]]></value>
+  </definition>
+  <definition>
+    <key>text_print_howto_title</key>
+    <value><![CDATA[Product Instructions]]></value>
+  </definition>
+</definitions>

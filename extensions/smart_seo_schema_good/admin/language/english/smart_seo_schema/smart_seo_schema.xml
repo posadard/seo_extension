@@ -88,16 +88,6 @@
     <value><![CDATA[Product Reviews:<br /><span class="help">Manage database reviews with AI optimization</span>]]></value>
   </definition>
 
-  <!-- NEW FRONTEND TAB VISIBILITY CONTROLS -->
-  <definition>
-    <key>entry_show_faq_tab_frontend</key>
-    <value><![CDATA[Show FAQ Tab in Storefront:<br /><span class="help">Display FAQ content as a tab on the product page for customers</span>]]></value>
-  </definition>
-  <definition>
-    <key>entry_show_howto_tab_frontend</key>
-    <value><![CDATA[Show HowTo Tab in Storefront:<br /><span class="help">Display HowTo instructions as a tab on the product page for customers</span>]]></value>
-  </definition>
-
   <!-- Individual Generation Buttons -->
   <definition>
     <key>button_generate_description</key>
@@ -334,10 +324,6 @@
   <definition>
     <key>text_section_return_policy</key>
     <value><![CDATA[Global Return Policy Settings]]></value>
-  </definition>
-  <definition>
-    <key>text_section_frontend_tabs</key>
-    <value><![CDATA[Frontend Tab Display]]></value>
   </definition>
 
   <definition>
