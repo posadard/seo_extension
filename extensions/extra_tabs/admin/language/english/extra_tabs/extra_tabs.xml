@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<definitions>
+	<definition>
+		<key>extra_tabs_name</key>
+		<value><![CDATA[Extra Tabs]]></value>
+	</definition>
+	<definition>
+		<key>extra_tabs_status</key>
+		<value><![CDATA[Status:]]></value>
+	</definition>
+	<definition>
+		<key>extra_tabs_save_note</key>
+		<value><![CDATA[Hint save to see HTML editor!]]></value>
+	</definition>
+	<definition>
+		<key>extra_tabs_note</key>
+		<value><![CDATA[
+Tabs allows you to add multiple custom tabs to display additional text whilst still keeping your pages short enough to prevent customers having to scroll endlessly down a page.<br>
+<h3>Add Extra Tab to product </h3><a href="#admin#rt=catalog/product">Admin Catalog Products</a> Look for Extra Tabs on each product edit page.<br><br><br>
+You can set a template with default value for extra tabs so that whenever you add a new tab, the extra tab fields are already filled with the preset value.<br>
+<h3>Create Extra Tab Template </h3><a href="#admin#rt=catalog/attribute">Admin Catalog Global Attributes</a>
+]]></value>
+	</definition>
+	<definition>
+		<key>entry_element_type_extra</key>
+		<value><![CDATA[HTML:]]></value>
+	</definition>
+	<definition>
+		<key>entry_required_extra</key>
+		<value><![CDATA[Require login:<br /><span class="help">only registered users can see Tab</span>]]></value>
+	</definition>
+	<definition>
+		<key>entry_regexp_pattern_extra</key>
+		<value><![CDATA[regexp_pattern text:]]></value>
+	</definition>
+	<definition>
+		<key>entry_error_text_extra</key>
+		<value><![CDATA[Message text:]]></value>
+	</definition>
+	<definition>
+		<key>entry_admin_tab_name</key>
+		<value><![CDATA[Extra Tabs]]></value>
+	</definition>
+	<definition>
+		<key>entry_admin_tab_name_products</key>
+		<value><![CDATA[Product Extra Tabs:<span class="help">Select to edit</span>]]></value>
+	</definition>
+	<definition>
+		<key>entry_admin_tab_templates_select</key>
+		<value><![CDATA[Select Existing Tab Template or Create New Tab<span class="help">Create a new template Admin Catalog Global Attributes.</span>]]></value>
+	</definition>
+	<definition>
+		<key>entry_admin_new_tab_name</key>
+		<value><![CDATA[Tab name]]></value>
+	</definition>
+	<definition>
+		<key>entry_admin_require_login</key>
+		<value><![CDATA[Require login]]></value>
+	</definition>
+	<definition>
+		<key>entry_admin_add_tab_button</key>
+		<value><![CDATA[Add New Tab]]></value>
+	</definition>
+	<definition>
+		<key>entry_admin_tab_html</key>
+		<value><![CDATA[HTML]]></value>
+	</definition>
+	<definition>
+		<key>entry_admin_tab_settings</key>
+		<value><![CDATA[Tab settings]]></value>
+	</definition>
+	<definition>
+		<key>entry_admin_tab_remove</key>
+		<value><![CDATA[<span class="button1"><span>Remove tab</span></span>]]></value>
+	</definition>
+	<definition>
+		<key>entry_admin_tab_content</key>
+		<value><![CDATA[Tab content<br>
+			<span class="help" style="color: #a94442; font-size:13px !important;">add row and save to see HTML editor</span>]]></value>
+	</definition>
+		<definition>
+		<key>tab_extra_option</key>
+		<value><![CDATA[Additional Product Tabs]]></value>
+	</definition>
+	<definition>
+		<key>text_sort_order_extensions</key>
+		<value><![CDATA[Sort Order]]></value>
+	</definition>
+</definitions>

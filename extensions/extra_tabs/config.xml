@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<extension>
+  <id>extra_tabs</id>
+  <version>1.3.7</version>
+  <type>extensions</type>
+  <category>storefront</category>
+  <cartversions>
+    <item>1.4</item>
+  </cartversions>
+  <layout/>
+  <priority>1</priority>
+  <settings>
+    <item id="extra_tabs_status">
+      <type>checkbox</type>
+      <default_value>0</default_value>
+    </item>
+  </settings>
+  <note>true</note>
+  <preview>
+    <item>preview.jpg</item>
+    <item>preview1.jpg</item>
+    <item>preview2.jpg</item>
+    <item>preview3.jpg</item>
+    <item>preview4.jpg</item>
+    <item>preview5.jpg</item>
+  </preview>
+  <help_link><![CDATA[http://marketplace.abantecart.com/extra_tabs]]></help_link>
+  <install>
+    <trigger>install.php</trigger>
+  </install>
+  <uninstall>
+    <trigger>uninstall.php</trigger>
+  </uninstall>
+</extension>

@@ -1,0 +1,43 @@
+Adding lots of detailed information and instructions to your product and services can definitely help you make a sale, but not if it’s all crammed into your main description.<br />
+The Extra Product Tabs allows you to add multiple custom tabs to display additional text whilst still keeping your pages short enough to prevent customers having to scroll endlessly down a page
+<br />
+You can easily include instructions, specifications, terms or service, embed video or player code, embed Google Maps code or additional information on separate tabs. You can assign multiple tabs to each product, with your own titles and HTML descriptions.
+<br /><br />
+What to show YouTube video? Grab embed YouTube code and show YouTube player in extra tab.<br />
+What to show Embed a map Google Maps? Google Map site Click Share and embed map. Choose the embed size you want, then copy the HTML and grab the code.<br />
+The content WYSIWYG editor allows you to add and format text, insert equations and hyperlinks, tables to content.
+<br /><br />
+HTML description support JavaScript tags. The style tag also supports in HTML Tab description.
+<br />
+Extension supports AbanteCart built-In templates such as 'default' and 'default_html5' and templates that have a full implementation of AbanteCart hooks.<br /><br />
+
+Features<br />
+*Multiple language support<br />
+*Unlimited extra tabs<br />
+Add as many tabs as you like
+<br />
+*Sortable tabs<br />
+Custom sort any of the extra tabs
+<br />
+*Control tab status<br />
+Tab status can be controlled individually per product
+<br />
+*Require login<br />
+Option to hide tabs from customers who are not logged in
+<br />
+*Tab Templates<br />
+Add Tab Templates with default content<br />
+*HTML WYSIWYG cleditor<br />
+Supports the lightweight, full featured, cross browser, extensible, WYSIWYG HTML editor designed to simplify Extra Tab content creation.
+<br /><br />
+**********************************************<br />
+For template2 you need to upgrade ..\extensions\template2\storefront\view\template2\template\pages\product\product.tpl file<br />
+about line 208 after this line <br />
+(<?php echo count($related_products); ?>)</span><span class="tab_right"></span></a>
+<br />
+add<br />
+<?php echo $this->getHookVar('product_features_tab'); ?>
+<br /><br />
+and after line 282 add
+<?php echo $this->getHookVar('product_features'); ?><br />
+***************************************************<br />
