@@ -583,7 +583,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         exit();
     }
 
-    public function generateOthersContent()
+    public function validateOthersJSON()
     {
         if (ob_get_level()) {
             ob_clean();
@@ -592,43 +592,41 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         header('Content-Type: application/json; charset=utf-8');
         
         try {
-            $product_id = $this->request->get['product_id'];
+            $others_content = trim($this->request->post['others_content'] ?? '');
             
-            if (!$product_id) {
-                throw new Exception('Missing product_id parameter');
+            $json = array();
+            
+            if (empty($others_content)) {
+                $json = array(
+                    'error' => false,
+                    'valid' => true,
+                    'message' => 'JSON field is empty.'
+                );
+            } else {
+                $decoded = json_decode($others_content, true);
+                
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $json = array(
+                        'error' => false,
+                        'valid' => true,
+                        'message' => 'Valid JSON format!',
+                        'parsed_data' => $decoded
+                    );
+                } else {
+                    $json = array(
+                        'error' => true,
+                        'valid' => false,
+                        'message' => 'Invalid JSON: ' . json_last_error_msg()
+                    );
+                }
             }
-            
-            $this->loadModel('catalog/product');
-            $product_info = $this->model_catalog_product->getProduct($product_id);
-            
-            if (!$product_info) {
-                throw new Exception('Product not found: ' . $product_id);
-            }
-            
-            $others_content = $this->generateOthersContentData($product_info);
-            
-            $this->updateOthersContent($product_id, $others_content);
-            
-            $json = array(
-                'error' => false,
-                'message' => 'Others content generated and saved successfully',
-                'others_content' => $others_content,
-                'timestamp' => date('Y-m-d H:i:s')
-            );
-            
-            $this->logDebug("Others content generado exitosamente para producto: " . $product_id);
             
         } catch (Exception $e) {
             $json = array(
                 'error' => true,
-                'message' => 'Others content generation failed: ' . $e->getMessage(),
-                'debug' => array(
-                    'exception' => get_class($e),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine()
-                )
+                'valid' => false,
+                'message' => 'Validation error: ' . $e->getMessage()
             );
-            $this->logDebug("Error generando others content: " . $e->getMessage());
         }
 
         echo json_encode($json, JSON_UNESCAPED_UNICODE);
@@ -861,6 +859,103 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         );
     }
 
+    private function generateOthersContentData($product_info)
+    {
+        $others_data = array();
+        
+        // Generar automáticamente weight y dimensions desde la base de datos
+        $additionalProperties = $this->generateAutomaticAdditionalProperties($product_info);
+        
+        if (!empty($additionalProperties)) {
+            $others_data['additionalProperty'] = $additionalProperties;
+        }
+        
+        return $others_data;
+    }
+
+    private function generateAutomaticAdditionalProperties($product_info)
+    {
+        $additionalProperties = array();
+        
+        // Obtener weight con unidad desde la base de datos
+        if (!empty($product_info['weight']) && $product_info['weight'] > 0) {
+            $weight_unit = $this->getWeightUnit($product_info['weight_class_id']);
+            $additionalProperties[] = array(
+                '@type' => 'PropertyValue',
+                'name' => 'Weight',
+                'value' => $product_info['weight'] . ' ' . $weight_unit
+            );
+        }
+        
+        // Obtener dimensions con unidad desde la base de datos
+        $has_dimensions = (
+            (!empty($product_info['length']) && $product_info['length'] > 0) ||
+            (!empty($product_info['width']) && $product_info['width'] > 0) ||
+            (!empty($product_info['height']) && $product_info['height'] > 0)
+        );
+        
+        if ($has_dimensions) {
+            $length_unit = $this->getLengthUnit($product_info['length_class_id']);
+            $dimensions = trim(
+                ($product_info['length'] ?? '0') . ' x ' . 
+                ($product_info['width'] ?? '0') . ' x ' . 
+                ($product_info['height'] ?? '0')
+            );
+            
+            if ($dimensions !== '0 x 0 x 0') {
+                $additionalProperties[] = array(
+                    '@type' => 'PropertyValue',
+                    'name' => 'Dimensions',
+                    'value' => $dimensions . ' ' . $length_unit
+                );
+            }
+        }
+        
+        return $additionalProperties;
+    }
+
+    private function getWeightUnit($weight_class_id)
+    {
+        if (empty($weight_class_id)) {
+            return 'kg'; // default
+        }
+        
+        $query = $this->db->query("
+            SELECT unit 
+            FROM " . DB_PREFIX . "weight_class_descriptions 
+            WHERE weight_class_id = " . (int)$weight_class_id . " 
+            AND language_id = " . (int)$this->getAdminDefaultLanguageId() . "
+            LIMIT 1
+        ");
+        
+        if ($query->num_rows) {
+            return $query->row['unit'];
+        }
+        
+        return 'kg'; // fallback
+    }
+
+    private function getLengthUnit($length_class_id)
+    {
+        if (empty($length_class_id)) {
+            return 'cm'; // default
+        }
+        
+        $query = $this->db->query("
+            SELECT unit 
+            FROM " . DB_PREFIX . "length_class_descriptions 
+            WHERE length_class_id = " . (int)$length_class_id . " 
+            AND language_id = " . (int)$this->getAdminDefaultLanguageId() . "
+            LIMIT 1
+        ");
+        
+        if ($query->num_rows) {
+            return $query->row['unit'];
+        }
+        
+        return 'cm'; // fallback
+    }
+
     private function setupForm($product_id)
     {
         $form = new AForm('HT');
@@ -1070,7 +1165,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
 
     private function saveSchemaSettings($product_id)
     {
-        $this->logDebug("=== GUARDANDO CONFIGURACIÓN SCHEMA CON OTHERS_CONTENT ===");
+        $this->logDebug("=== GUARDANDO CONFIGURACIÓN SCHEMA ===");
         $this->logDebug("Producto ID: " . $product_id);
         $this->logDebug("POST data: " . print_r($this->request->post, true));
         
@@ -1514,28 +1609,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return $text;
     }
 
-    private function extractTextFromResponse($response, $product_name)
-    {
-        $lines = explode("\n", $response);
-        $text_lines = array();
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (!empty($line) && 
-                !preg_match('/^[\{\}\[\]"]/', $line) && 
-                !preg_match('/(author|rating|verified|status)/', $line) &&
-                strlen($line) > 20) {
-                $text_lines[] = $line;
-            }
-        }
-        
-        if (!empty($text_lines)) {
-            return implode(' ', array_slice($text_lines, 0, 3));
-        }
-        
-        return "Great product! The " . $product_name . " works exactly as described and meets all my expectations. Would definitely recommend to others.";
-    }
-
     private function createReview($product_id, $author, $text, $rating, $verified_purchase, $status)
     {
         $this->db->query("
@@ -1568,92 +1641,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 date_modified = NOW()
             WHERE review_id = " . (int)$review_id
         );
-    }
-
-    private function generateOthersContentData($product_info)
-    {
-        $others_data = array();
-        
-        // SOLO GENERAR CAMPOS ADICIONALES OPCIONALES
-        // Los campos automáticos (shippingDetails, hasMerchantReturnPolicy, productGroupID) 
-        // se generan automáticamente en el core, no van en "Additional Properties"
-        
-        $additionalProperties = array();
-        
-        if (!empty($product_info['weight'])) {
-            $additionalProperties[] = array(
-                '@type' => 'PropertyValue',
-                'name' => 'Weight',
-                'value' => $product_info['weight'] . ' ' . ($product_info['weight_class'] ?? 'kg')
-            );
-        }
-        
-        if (!empty($product_info['length']) || !empty($product_info['width']) || !empty($product_info['height'])) {
-            $dimensions = trim(
-                ($product_info['length'] ?? '0') . ' x ' . 
-                ($product_info['width'] ?? '0') . ' x ' . 
-                ($product_info['height'] ?? '0')
-            );
-            if ($dimensions !== '0 x 0 x 0') {
-                $additionalProperties[] = array(
-                    '@type' => 'PropertyValue',
-                    'name' => 'Dimensions',
-                    'value' => $dimensions . ' ' . ($product_info['length_class'] ?? 'cm')
-                );
-            }
-        }
-        
-        // Agregar campos de ejemplo personalizables que el usuario puede modificar
-        $others_data['isCompatibleWith'] = array(
-            "@type" => "Product",
-            "name" => "Compatible with most standard accessories"
-        );
-        
-        // Ejemplo de oferta especial personalizable
-        $others_data['eligibleQuantity'] = array(
-            "@type" => "QuantitativeValue",
-            "minValue" => 1,
-            "unitCode" => "C62"
-        );
-        
-        if (!empty($additionalProperties)) {
-            $others_data['additionalProperty'] = $additionalProperties;
-        }
-        
-        return $others_data;
-    }
-
-    private function updateOthersContent($product_id, $others_content)
-    {
-        $json_content = json_encode($others_content, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        
-        $query = $this->db->query("
-            SELECT id 
-            FROM " . DB_PREFIX . "seo_schema_content 
-            WHERE product_id = " . (int)$product_id . "
-            LIMIT 1
-        ");
-        
-        if ($query->num_rows) {
-            $this->db->query("
-                UPDATE " . DB_PREFIX . "seo_schema_content 
-                SET 
-                    others_content = '" . $this->db->escape($json_content) . "',
-                    updated_date = NOW()
-                WHERE product_id = " . (int)$product_id
-            );
-        } else {
-            $this->db->query("
-                INSERT INTO " . DB_PREFIX . "seo_schema_content 
-                (product_id, others_content, created_date, updated_date) 
-                VALUES (
-                    " . (int)$product_id . ",
-                    '" . $this->db->escape($json_content) . "',
-                    NOW(),
-                    NOW()
-                )
-            ");
-        }
     }
 
     private function getProductVariants($product_id)
@@ -1708,6 +1695,15 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     {
         if (!$this->user->hasPermission('modify', 'catalog/smart_seo_schema')) {
             $this->error['warning'] = $this->language->get('error_permission');
+        }
+
+        // Validar JSON antes de guardar
+        $others_content = trim($this->request->post['others_content'] ?? '');
+        if (!empty($others_content)) {
+            $decoded = json_decode($others_content, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $this->error['others_content'] = 'Invalid JSON format: ' . json_last_error_msg();
+            }
         }
 
         return !$this->error;

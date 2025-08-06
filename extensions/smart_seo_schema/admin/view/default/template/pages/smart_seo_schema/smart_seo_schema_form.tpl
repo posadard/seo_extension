@@ -21,11 +21,6 @@
                     <i class="fa fa-eye fa-lg"></i> <?php echo $button_preview_schema; ?>
                 </button>
 
-                <button type="button" id="generate_others_content" class="btn btn-primary tooltips" 
-                        title="Auto-generate defaults">
-                    <i class="fa fa-cogs fa-lg"></i> Auto-Generate Defaults
-                </button>
-
                 <?php echo $this->getHookVar('extension_toolbar_buttons'); ?>
             </div>
         </div>
@@ -155,7 +150,7 @@
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="others_content">
                         Additional Properties:<br>
-                        <span class="help">JSON data for shipping, returns, etc.</span>
+                        <span class="help">JSON for extra Schema.org properties</span>
                     </label>
                     <div class="col-sm-6 col-xs-12">
                         <textarea 
@@ -163,18 +158,25 @@
                             name="others_content" 
                             class="form-control large-field" 
                             rows="12" 
-                            placeholder='Click "Auto-Generate Defaults" to populate with defaults'><?php echo $schema_settings['others_content'] ?? ''; ?></textarea>
+                            placeholder='Enter valid JSON for additional properties...'><?php echo $schema_settings['others_content'] ?? ''; ?></textarea>
+                        <div class="help-block">
+                            <i class="fa fa-info-circle"></i> Weight and dimensions are generated automatically from product data.
+                            <br>
+                            <a href="https://validator.schema.org/" target="_blank" class="text-primary">
+                                <i class="fa fa-external-link"></i> Need help? Test your schema at validator.schema.org
+                            </a>
+                        </div>
                     </div>
                     <div class="col-sm-3 col-xs-12">
                         <div class="btn-group-vertical btn-block">
-                            <button type="button" id="auto_generate_others" class="btn btn-primary" onclick="autoGenerateOthersContent()">
-                                <i class="fa fa-magic"></i> Auto-Generate Defaults
-                            </button>
                             <button type="button" id="validate_json" class="btn btn-warning" onclick="validateOthersContentJSON()">
                                 <i class="fa fa-check-circle"></i> Validate JSON
                             </button>
                         </div>
                         <div id="json_validation_result" class="help-block"></div>
+                        <div id="json_save_blocker" class="alert alert-danger" style="display: none; margin-top: 10px;">
+                            <i class="fa fa-exclamation-triangle"></i> Cannot save with invalid JSON
+                        </div>
                     </div>
                 </div>
                 
@@ -202,7 +204,7 @@
 
     <div class="panel-footer col-xs-12">
         <div class="text-center">
-            <button class="btn btn-primary lock-on-click">
+            <button class="btn btn-primary lock-on-click" id="save_button" onclick="return validateBeforeSave()">
                 <i class="fa fa-save fa-fw"></i> <?php echo $form['submit']->text; ?>
             </button>
             <button class="btn btn-default" type="button" onclick="window.location='<?php echo $cancel; ?>'">
@@ -356,6 +358,10 @@
     text-align: center;
     white-space: nowrap;
 }
+.json-invalid {
+    pointer-events: none;
+    opacity: 0.6;
+}
 </style>
 
 <script type="text/javascript">
@@ -366,6 +372,11 @@ var aiDescriptionSettings = {
     maxLength: 200
 };
 
+var jsonValidationState = {
+    isValid: true,
+    lastValidated: ''
+};
+
 $(document).ready(function() {
     console.log('=== INICIALIZANDO SMART SEO SCHEMA ===');
     
@@ -373,6 +384,13 @@ $(document).ready(function() {
     updateCharacterCounter();
     
     $('#custom_description').on('input', updateCharacterCounter);
+    $('#others_content').on('input', function() {
+        // Reset validation state when content changes
+        jsonValidationState.isValid = true;
+        $('#json_save_blocker').hide();
+        $('#json_validation_result').empty();
+        updateSaveButtonState();
+    });
     
     if ($('#enable_variants').is(':checked')) {
         loadVariantsPreview();
@@ -419,6 +437,42 @@ function updateCharacterCounter() {
         textarea.addClass('highlight-error');
         status.text('Too long! Remove ' + excess + ' characters').removeClass('text-muted text-success text-warning').addClass('text-danger');
     }
+}
+
+function updateSaveButtonState() {
+    var saveButton = $('#save_button');
+    
+    if (!jsonValidationState.isValid) {
+        saveButton.addClass('json-invalid');
+        saveButton.prop('disabled', true);
+    } else {
+        saveButton.removeClass('json-invalid');
+        saveButton.prop('disabled', false);
+    }
+}
+
+function validateBeforeSave() {
+    var othersContent = $('#others_content').val().trim();
+    
+    if (othersContent !== '') {
+        try {
+            JSON.parse(othersContent);
+            jsonValidationState.isValid = true;
+        } catch (e) {
+            jsonValidationState.isValid = false;
+            error_alert('Cannot save: Invalid JSON in Additional Properties field. Please fix the JSON syntax first.');
+            $('#others_content').addClass('highlight-error');
+            $('#json_validation_result').html('<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> Invalid JSON: ' + e.message + '</span>');
+            $('#json_save_blocker').show();
+            updateSaveButtonState();
+            return false;
+        }
+    }
+    
+    jsonValidationState.isValid = true;
+    $('#json_save_blocker').hide();
+    updateSaveButtonState();
+    return true;
 }
 
 function checkAIStatus() {
@@ -591,38 +645,6 @@ function testAIConnection() {
     });
 }
 
-function autoGenerateOthersContent() {
-    $('#auto_generate_others').attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
-    
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateOthersContent", "&product_id=" . $product_id); ?>',
-        type: 'GET',
-        dataType: 'json',
-        timeout: 15000,
-        success: function(response) {
-            if (response.error) {
-                error_alert('Error generating content: ' + response.message);
-            } else {
-                var formattedJson = JSON.stringify(response.others_content, null, 2);
-                $('#others_content').val(formattedJson);
-                
-                $('#others_content').addClass('highlight-success');
-                setTimeout(function() {
-                    $('#others_content').removeClass('highlight-success');
-                }, 3000);
-                
-                success_alert('Default content generated successfully!');
-            }
-        },
-        error: function() {
-            error_alert('Failed to generate content. Please try again.');
-        },
-        complete: function() {
-            $('#auto_generate_others').attr('disabled', false).html('<i class="fa fa-magic"></i> Auto-Generate Defaults');
-        }
-    });
-}
-
 function previewSchema() {
     $('#preview_schema').attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
     
@@ -685,6 +707,9 @@ function validateOthersContentJSON() {
     
     if (jsonText === '') {
         resultDiv.html('<span class="text-info"><i class="fa fa-info-circle"></i> JSON field is empty.</span>');
+        jsonValidationState.isValid = true;
+        $('#json_save_blocker').hide();
+        updateSaveButtonState();
         return;
     }
     
@@ -693,6 +718,11 @@ function validateOthersContentJSON() {
         resultDiv.html('<span class="text-success"><i class="fa fa-check-circle"></i> Valid JSON format!</span>');
         $('#others_content').removeClass('highlight-error').addClass('highlight-success');
         
+        jsonValidationState.isValid = true;
+        jsonValidationState.lastValidated = jsonText;
+        $('#json_save_blocker').hide();
+        updateSaveButtonState();
+        
         setTimeout(function() {
             $('#others_content').removeClass('highlight-success');
         }, 3000);
@@ -700,6 +730,10 @@ function validateOthersContentJSON() {
     } catch (e) {
         resultDiv.html('<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> Invalid JSON: ' + e.message + '</span>');
         $('#others_content').removeClass('highlight-success').addClass('highlight-error');
+        
+        jsonValidationState.isValid = false;
+        $('#json_save_blocker').show();
+        updateSaveButtonState();
         
         setTimeout(function() {
             $('#others_content').removeClass('highlight-error');
@@ -865,6 +899,5 @@ function generateExampleReview() {
 
 $('#test_ai_connection').click(testAIConnection);
 $('#preview_schema').click(previewSchema);
-$('#generate_others_content').click(autoGenerateOthersContent);
 
 </script>
