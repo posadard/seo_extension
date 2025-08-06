@@ -328,8 +328,8 @@ class ExtensionSmartSeoSchema extends Extension
         }
 
         $main_image = $this->getProductMainImage($that, $product_id);
-        $default_shipping = $this->getDefaultShippingDetails();
-        $default_return_policy = $this->getDefaultReturnPolicy();
+        $default_shipping = $this->getDefaultShippingDetails($that);
+        $default_return_policy = $this->getDefaultReturnPolicy($that);
         
         $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $default_shipping;
         $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $default_return_policy;
@@ -371,46 +371,60 @@ class ExtensionSmartSeoSchema extends Extension
         return $variants;
     }
 
-    private function getDefaultShippingDetails()
+    private function getDefaultShippingDetails($that = null)
     {
+        // Si no tenemos acceso al controlador, usar configuración desde registry
+        if (!$that) {
+            $config = $this->registry->get('config');
+        } else {
+            $config = $that->config;
+        }
+
         return [
             "@type" => "OfferShippingDetails",
             "shippingRate" => [
                 "@type" => "MonetaryAmount",
-                "value" => "5.99",
-                "currency" => "USD"
+                "value" => $config->get('smart_seo_schema_shipping_rate') ?: "5.99",
+                "currency" => $config->get('smart_seo_schema_shipping_currency') ?: "USD"
             ],
             "shippingDestination" => [
                 "@type" => "DefinedRegion",
-                "addressCountry" => "US"
+                "addressCountry" => $config->get('smart_seo_schema_shipping_country') ?: "US"
             ],
             "deliveryTime" => [
                 "@type" => "ShippingDeliveryTime",
                 "handlingTime" => [
                     "@type" => "QuantitativeValue",
-                    "minValue" => 1,
-                    "maxValue" => 2,
+                    "minValue" => (int)($config->get('smart_seo_schema_handling_min_days') ?: 1),
+                    "maxValue" => (int)($config->get('smart_seo_schema_handling_max_days') ?: 2),
                     "unitCode" => "d"
                 ],
                 "transitTime" => [
                     "@type" => "QuantitativeValue",
-                    "minValue" => 3,
-                    "maxValue" => 5,
+                    "minValue" => (int)($config->get('smart_seo_schema_transit_min_days') ?: 3),
+                    "maxValue" => (int)($config->get('smart_seo_schema_transit_max_days') ?: 5),
                     "unitCode" => "d"
                 ]
             ]
         ];
     }
 
-    private function getDefaultReturnPolicy()
+    private function getDefaultReturnPolicy($that = null)
     {
+        // Si no tenemos acceso al controlador, usar configuración desde registry
+        if (!$that) {
+            $config = $this->registry->get('config');
+        } else {
+            $config = $that->config;
+        }
+
         return [
             "@type" => "MerchantReturnPolicy",
-            "applicableCountry" => "US",
+            "applicableCountry" => $config->get('smart_seo_schema_return_country') ?: "US",
             "returnPolicyCategory" => "https://schema.org/MerchantReturnFiniteReturnWindow",
-            "merchantReturnDays" => 30,
-            "returnMethod" => "https://schema.org/ReturnByMail",
-            "returnFees" => "https://schema.org/FreeReturn"
+            "merchantReturnDays" => (int)($config->get('smart_seo_schema_return_days') ?: 30),
+            "returnMethod" => $config->get('smart_seo_schema_return_method') ?: "https://schema.org/ReturnByMail",
+            "returnFees" => $config->get('smart_seo_schema_return_fees') ?: "https://schema.org/FreeReturn"
         ];
     }
 
@@ -536,8 +550,8 @@ class ExtensionSmartSeoSchema extends Extension
             }
         }
 
-        $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $this->getDefaultShippingDetails();
-        $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $this->getDefaultReturnPolicy();
+        $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $this->getDefaultShippingDetails($that);
+        $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $this->getDefaultReturnPolicy($that);
         $price_valid_until = date('Y-m-d', strtotime('+1 year'));
 
         $offer = [

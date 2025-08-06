@@ -241,6 +241,91 @@
     <value><![CDATA[Organization Phone:<br /><span class="help">Main phone number for customer contact in international format (+1-555-123-4567)</span>]]></value>
   </definition>
 
+  <!-- NUEVAS CONFIGURACIONES SHIPPING DETAILS -->
+  <definition>
+    <key>smart_seo_schema_shipping_rate</key>
+    <value><![CDATA[Shipping Rate:<br /><span class="help">Default shipping cost for all products in your store (e.g., 5.99)</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_shipping_currency</key>
+    <value><![CDATA[Shipping Currency:<br /><span class="help">Currency code for shipping rates (e.g., USD, EUR, GBP)</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_shipping_country</key>
+    <value><![CDATA[Shipping Destination Country:<br /><span class="help">Primary shipping destination country code (e.g., US, CA, GB)</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_handling_min_days</key>
+    <value><![CDATA[Handling Time (Min Days):<br /><span class="help">Minimum business days to process orders before shipping</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_handling_max_days</key>
+    <value><![CDATA[Handling Time (Max Days):<br /><span class="help">Maximum business days to process orders before shipping</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_transit_min_days</key>
+    <value><![CDATA[Transit Time (Min Days):<br /><span class="help">Minimum business days for delivery after shipping</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_transit_max_days</key>
+    <value><![CDATA[Transit Time (Max Days):<br /><span class="help">Maximum business days for delivery after shipping</span>]]></value>
+  </definition>
+
+  <!-- NUEVAS CONFIGURACIONES RETURN POLICY -->
+  <definition>
+    <key>smart_seo_schema_return_days</key>
+    <value><![CDATA[Return Window (Days):<br /><span class="help">Number of days customers have to return products</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_return_country</key>
+    <value><![CDATA[Return Policy Country:<br /><span class="help">Country where return policy applies (e.g., US, CA, GB)</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_return_method</key>
+    <value><![CDATA[Return Method:<br /><span class="help">How customers can return products</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_return_fees</key>
+    <value><![CDATA[Return Fees Policy:<br /><span class="help">Who pays for return shipping costs</span>]]></value>
+  </definition>
+
+  <!-- OPCIONES PARA SELECTBOXES -->
+  <definition>
+    <key>smart_seo_schema_return_method_https://schema.org/ReturnByMail</key>
+    <value><![CDATA[Return By Mail]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_return_method_https://schema.org/ReturnInStore</key>
+    <value><![CDATA[Return In Store]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_return_method_https://schema.org/ReturnAtKiosk</key>
+    <value><![CDATA[Return At Kiosk]]></value>
+  </definition>
+
+  <definition>
+    <key>smart_seo_schema_return_fees_https://schema.org/FreeReturn</key>
+    <value><![CDATA[Free Return]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_return_fees_https://schema.org/ReturnFeesCustomerResponsibility</key>
+    <value><![CDATA[Customer Pays Return Fees]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_return_fees_https://schema.org/ReturnShippingFees</key>
+    <value><![CDATA[Return Shipping Fees Apply]]></value>
+  </definition>
+
+  <!-- SECCIONES PARA ORGANIZAR CONFIGURACIONES -->
+  <definition>
+    <key>text_section_shipping</key>
+    <value><![CDATA[Global Shipping Settings]]></value>
+  </definition>
+  <definition>
+    <key>text_section_return_policy</key>
+    <value><![CDATA[Global Return Policy Settings]]></value>
+  </definition>
+
   <definition>
     <key>smart_seo_schema_debug_mode</key>
     <value><![CDATA[Debug Mode:<br /><span class="help">Enable debugging output for Schema.org generation (for developers only)</span>]]></value>

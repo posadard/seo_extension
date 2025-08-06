@@ -1574,48 +1574,9 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
     {
         $others_data = array();
         
-        $others_data['shippingDetails'] = array(
-            "@type" => "OfferShippingDetails",
-            "shippingRate" => array(
-                "@type" => "MonetaryAmount",
-                "value" => "5.99",
-                "currency" => "USD"
-            ),
-            "shippingDestination" => array(
-                "@type" => "DefinedRegion",
-                "addressCountry" => "US"
-            ),
-            "deliveryTime" => array(
-                "@type" => "ShippingDeliveryTime",
-                "handlingTime" => array(
-                    "@type" => "QuantitativeValue",
-                    "minValue" => 1,
-                    "maxValue" => 2,
-                    "unitCode" => "d"
-                ),
-                "transitTime" => array(
-                    "@type" => "QuantitativeValue",
-                    "minValue" => 3,
-                    "maxValue" => 5,
-                    "unitCode" => "d"
-                )
-            )
-        );
-        
-        $others_data['hasMerchantReturnPolicy'] = array(
-            "@type" => "MerchantReturnPolicy",
-            "applicableCountry" => "US",
-            "returnPolicyCategory" => "https://schema.org/MerchantReturnFiniteReturnWindow",
-            "merchantReturnDays" => 30,
-            "returnMethod" => "https://schema.org/ReturnByMail",
-            "returnFees" => "https://schema.org/FreeReturn"
-        );
-        
-        if (!empty($product_info['model'])) {
-            $others_data['productGroupID'] = $product_info['model'];
-        } elseif (!empty($product_info['sku'])) {
-            $others_data['productGroupID'] = $product_info['sku'];
-        }
+        // SOLO GENERAR CAMPOS ADICIONALES OPCIONALES
+        // Los campos automáticos (shippingDetails, hasMerchantReturnPolicy, productGroupID) 
+        // se generan automáticamente en el core, no van en "Additional Properties"
         
         $additionalProperties = array();
         
@@ -1641,6 +1602,19 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 );
             }
         }
+        
+        // Agregar campos de ejemplo personalizables que el usuario puede modificar
+        $others_data['isCompatibleWith'] = array(
+            "@type" => "Product",
+            "name" => "Compatible with most standard accessories"
+        );
+        
+        // Ejemplo de oferta especial personalizable
+        $others_data['eligibleQuantity'] = array(
+            "@type" => "QuantitativeValue",
+            "minValue" => 1,
+            "unitCode" => "C62"
+        );
         
         if (!empty($additionalProperties)) {
             $others_data['additionalProperty'] = $additionalProperties;

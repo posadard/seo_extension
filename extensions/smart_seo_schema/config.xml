@@ -112,6 +112,64 @@
 			<default_value>1</default_value>
 		</item>
 
+		<!-- CONFIGURACIONES SHIPPING DETAILS -->
+		<item id="smart_seo_schema_shipping_rate">
+			<type>input</type>
+			<default_value>5.99</default_value>
+		</item>
+		<item id="smart_seo_schema_shipping_currency">
+			<type>input</type>
+			<default_value>USD</default_value>
+		</item>
+		<item id="smart_seo_schema_shipping_country">
+			<type>input</type>
+			<default_value>US</default_value>
+		</item>
+		<item id="smart_seo_schema_handling_min_days">
+			<type>input</type>
+			<default_value>1</default_value>
+		</item>
+		<item id="smart_seo_schema_handling_max_days">
+			<type>input</type>
+			<default_value>2</default_value>
+		</item>
+		<item id="smart_seo_schema_transit_min_days">
+			<type>input</type>
+			<default_value>3</default_value>
+		</item>
+		<item id="smart_seo_schema_transit_max_days">
+			<type>input</type>
+			<default_value>5</default_value>
+		</item>
+
+		<!-- CONFIGURACIONES RETURN POLICY -->
+		<item id="smart_seo_schema_return_days">
+			<type>input</type>
+			<default_value>30</default_value>
+		</item>
+		<item id="smart_seo_schema_return_country">
+			<type>input</type>
+			<default_value>US</default_value>
+		</item>
+		<item id="smart_seo_schema_return_method">
+			<type>selectbox</type>
+			<variants>
+				<item>https://schema.org/ReturnByMail</item>
+				<item>https://schema.org/ReturnInStore</item>
+				<item>https://schema.org/ReturnAtKiosk</item>
+			</variants>
+			<default_value>https://schema.org/ReturnByMail</default_value>
+		</item>
+		<item id="smart_seo_schema_return_fees">
+			<type>selectbox</type>
+			<variants>
+				<item>https://schema.org/FreeReturn</item>
+				<item>https://schema.org/ReturnFeesCustomerResponsibility</item>
+				<item>https://schema.org/ReturnShippingFees</item>
+			</variants>
+			<default_value>https://schema.org/FreeReturn</default_value>
+		</item>
+
 		<!-- Configuraciones Debug/Logging OPTIMIZADAS -->
 		<item id="smart_seo_schema_debug_mode">
 			<type>checkbox</type>
@@ -135,7 +193,6 @@
 		<trigger>uninstall.php</trigger>
 	</uninstall>
 	<note>true</note>
-
 	<help_link><![CDATA[https://console.groq.com/docs/overview]]></help_link>
 		
 </extension>
