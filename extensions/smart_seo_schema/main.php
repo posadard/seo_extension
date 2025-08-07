@@ -12,14 +12,16 @@ $controllers = [
     ],
 ];
 $models = [
-    'storefront' => [],
+    'storefront' => [
+        'smart_seo_schema/smart_seo_schema_tabs',
+    ],
     'admin'      => [],
 ];
 $templates = [
     'storefront' => [
         'pages/product/product.post.tpl',
-        'pages/product/faq_tab.tpl',
-        'pages/product/howto_tab.tpl',
+        'pages/smart_seo_schema/faq_tab.tpl',
+        'pages/smart_seo_schema/faq_content.tpl',
     ],
     'admin'      => [
         'pages/smart_seo_schema/smart_seo_schema_form.tpl',

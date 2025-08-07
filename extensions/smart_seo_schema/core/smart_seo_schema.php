@@ -82,158 +82,128 @@ class ExtensionSmartSeoSchema extends Extension
         $this->registerProductTabs($that);
     }
 
-    /**
-     * Register FAQ and HowTo tabs in the frontend product page
-     */
-    private function registerProductTabs($that)
+    public function onControllerPagesProductProduct_InitData()
     {
-        $product_id = $that->request->get['product_id'];
+        if (!$this->baseObject->config->get('smart_seo_schema_status')) {
+            return;
+        }
+
+        $this->baseObject->loadModel('smart_seo_schema/smart_seo_schema_tabs');
+        $product_id = $this->baseObject->request->get['product_id'];
         
+        if (empty($product_id)) {
+            $product_id = $this->baseObject->request->get['key'];
+        }
+
         if (!$product_id) {
             return;
         }
 
-        // Load saved content settings for this product
-        $saved_content = $this->getSavedSchemaContent($product_id);
-        
-        if (!$saved_content) {
+        $schema_tabs = $this->baseObject->model_smart_seo_schema_smart_seo_schema_tabs->getProductSchemaTabs((int) $product_id);
+
+        if (!$schema_tabs['faq'] && !$schema_tabs['howto']) {
             return;
         }
 
-        // Load storefront language for tab titles
-        $that->loadLanguage('smart_seo_schema/smart_seo_schema');
-
-        $tabs_to_add = [];
-
-        // Register FAQ Tab if enabled and has content
-        if (!empty($saved_content['show_faq_tab_frontend']) && !empty($saved_content['faq_content'])) {
-            $tabs_to_add[] = [
-                'id' => 'faq_tab',
-                'title' => $that->language->get('tab_faq_title') ?: 'FAQ',
-                'content' => $this->processFAQContentForDisplay($saved_content['faq_content']),
-                'sort_order' => 50
-            ];
-        }
-
-        // Register HowTo Tab if enabled and has content
-        if (!empty($saved_content['show_howto_tab_frontend']) && !empty($saved_content['howto_content'])) {
-            $tabs_to_add[] = [
-                'id' => 'howto_tab', 
-                'title' => $that->language->get('tab_howto_title') ?: 'How to Use',
-                'content' => $this->processHowToContentForDisplay($saved_content['howto_content']),
-                'sort_order' => 51
-            ];
-        }
-
-        // Add tabs to the product page
-        if (!empty($tabs_to_add)) {
-            foreach ($tabs_to_add as $tab) {
-                $that->data['product_tabs'][] = $tab;
-            }
-
-            // Generate tab templates
-            $this->generateTabTemplates($that, $tabs_to_add);
-        }
+        $this->injectTabsForCurrentTemplate($schema_tabs);
     }
 
-    /**
-     * Generate and assign tab templates to the view
-     */
-    private function generateTabTemplates($that, $tabs)
+    private function injectTabsForCurrentTemplate($schema_tabs)
     {
-        foreach ($tabs as $tab) {
-            $template_data = [
-                'tab_id' => $tab['id'],
-                'tab_title' => $tab['title'],
-                'tab_content' => $tab['content']
-            ];
-
-            // Create view for each tab
-            $view = new AView(Registry::getInstance(), 0);
-            $view->batchAssign($template_data);
-            
-            // Choose appropriate template based on tab type
-            if ($tab['id'] === 'faq_tab') {
-                $tab_html = $view->fetch('pages/product/faq_tab.tpl');
-            } elseif ($tab['id'] === 'howto_tab') {
-                $tab_html = $view->fetch('pages/product/howto_tab.tpl');
-            }
-
-            // Add to hook variables for template rendering
-            $that->view->addHookVar('product_tabs_' . $tab['id'], $tab_html);
-        }
-    }
-
-    /**
-     * Process FAQ content for frontend display
-     */
-    private function processFAQContentForDisplay($faq_content)
-    {
-        $lines = explode("\n", trim($faq_content));
-        $faqs = [];
+        $template = $this->baseObject->config->get('config_storefront_template');
         
-        $current_question = null;
-        $current_answer = [];
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) continue;
-            
-            // Check if line ends with question mark (is a question)
-            if (substr($line, -1) === '?') {
-                // Save previous Q&A pair if exists
-                if ($current_question && !empty($current_answer)) {
-                    $faqs[] = [
-                        'question' => $current_question,
-                        'answer' => implode(' ', $current_answer)
-                    ];
-                }
+        switch ($template) {
+            case 'foxy_template':
+            case 'foxy':
+                $this->injectForFoxy($schema_tabs);
+                break;
                 
-                $current_question = $line;
-                $current_answer = [];
-            } else {
-                // This is part of an answer
-                $current_answer[] = $line;
-            }
+            default:
+                $this->injectForDefault($schema_tabs);
         }
+    }
+
+    private function injectForFoxy($schema_tabs)
+    {
+        $view = new AView($this->registry, 0);
+        $data = [];
         
-        // Add the last Q&A pair
-        if ($current_question && !empty($current_answer)) {
-            $faqs[] = [
-                'question' => $current_question,
-                'answer' => implode(' ', $current_answer)
+        // Simular estructura similar a extra_tabs
+        $data['all_options'] = [];
+        
+        if ($schema_tabs['faq']) {
+            $data['all_options'][] = [
+                'product_option_id' => 'smart_seo_faq',
+                'name' => $schema_tabs['faq']['title'],
+                'error_text' => $schema_tabs['faq']['title'],
+                'required' => 0,
+                'option_value' => [
+                    ['name' => $schema_tabs['faq']['content']]
+                ]
             ];
         }
         
-        return $faqs;
-    }
-
-    /**
-     * Process HowTo content for frontend display
-     */
-    private function processHowToContentForDisplay($howto_content)
-    {
-        $lines = explode("\n", trim($howto_content));
-        $steps = [];
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) continue;
-            
-            // Check for numbered steps (e.g., "1. Step description")
-            if (preg_match('/^(\d+)\.\s*(.+)/', $line, $matches)) {
-                $steps[] = [
-                    'step_number' => $matches[1],
-                    'step_text' => trim($matches[2])
-                ];
-            } elseif (!empty($steps)) {
-                // Continue previous step if no number found
-                $last_key = count($steps) - 1;
-                $steps[$last_key]['step_text'] .= ' ' . $line;
-            }
+        if ($schema_tabs['howto']) {
+            $data['all_options'][] = [
+                'product_option_id' => 'smart_seo_howto',
+                'name' => $schema_tabs['howto']['title'],
+                'error_text' => $schema_tabs['howto']['title'],
+                'required' => 0,
+                'option_value' => [
+                    ['name' => $schema_tabs['howto']['content']]
+                ]
+            ];
         }
         
-        return $steps;
+        if (!empty($data['all_options'])) {
+            $view->batchAssign($data);
+            $tab_headers = $view->fetch('pages/smart_seo_schema/faq_tab.tpl');
+            $tab_content = $view->fetch('pages/smart_seo_schema/faq_content.tpl');
+            
+            $this->baseObject->view->addHookVar('product_features_tab', $tab_headers);
+            $this->baseObject->view->addHookVar('product_features', $tab_content);
+        }
+    }
+
+    private function injectForDefault($schema_tabs)
+    {
+        $view = new AView($this->registry, 0);
+        $data = [];
+        
+        $data['all_options'] = [];
+        
+        if ($schema_tabs['faq']) {
+            $data['all_options'][] = [
+                'product_option_id' => 'smart_seo_faq',
+                'name' => $schema_tabs['faq']['title'],
+                'error_text' => $schema_tabs['faq']['title'],
+                'required' => 0,
+                'option_value' => [
+                    ['name' => $schema_tabs['faq']['content']]
+                ]
+            ];
+        }
+        
+        if ($schema_tabs['howto']) {
+            $data['all_options'][] = [
+                'product_option_id' => 'smart_seo_howto',
+                'name' => $schema_tabs['howto']['title'],
+                'error_text' => $schema_tabs['howto']['title'],
+                'required' => 0,
+                'option_value' => [
+                    ['name' => $schema_tabs['howto']['content']]
+                ]
+            ];
+        }
+        
+        if (!empty($data['all_options'])) {
+            $view->batchAssign($data);
+            $tab_headers = $view->fetch('pages/smart_seo_schema/faq_tab.tpl');
+            $tab_content = $view->fetch('pages/smart_seo_schema/faq_content.tpl');
+            
+            $this->baseObject->view->addHookVar('product_features_tab', $tab_headers);
+            $this->baseObject->view->addHookVar('product_features', $tab_content);
+        }
     }
 
     public function generateCompleteSchemaForProduct($product_info)
@@ -534,7 +504,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function getDefaultShippingDetails($that = null)
     {
-        // Si no tenemos acceso al controlador, usar configuraci¨®n desde registry
+        // Si no tenemos acceso al controlador, usar configuraciÃ³n desde registry
         if (!$that) {
             $config = $this->registry->get('config');
         } else {
@@ -572,7 +542,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function getDefaultReturnPolicy($that = null)
     {
-        // Si no tenemos acceso al controlador, usar configuraci¨®n desde registry
+        // Si no tenemos acceso al controlador, usar configuraciÃ³n desde registry
         if (!$that) {
             $config = $this->registry->get('config');
         } else {
