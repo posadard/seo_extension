@@ -1,0 +1,1243 @@
+# Informe Completo: Sistema de Tabs Smart SEO Schema para AbanteCart
+
+## 1. ANÁLISIS DE LA SITUACIÓN ACTUAL
+
+### 1.1 Estado de la Extensión Smart SEO Schema
+
+#### Funcionalidad Existente ✅
+- **Sistema admin completo**: Controlador robusto con funciones AJAX
+- **Base de datos establecida**: Tabla `seo_schema_content` con estructura completa
+- **Generación Schema.org**: Markup JSON-LD para SEO
+- **Integración IA**: API Groq para generación automática de contenido
+- **Sistema de reviews**: Con variaciones automáticas y diversificación
+- **Configuración avanzada**: Más de 40 parámetros configurables
+
+#### Elementos Faltantes Críticos ❌
+- **Archivo core principal**: `core/smart_seo_schema.php` (clase principal)
+- **Funcionalidad storefront**: No hay visualización de tabs en frontend
+- **Templates específicos**: No existen templates por template de AbanteCart
+- **Hooks storefront**: No hay integración con página de producto
+- **Templates conflictivos**: Existen referencias a templates obsoletos
+
+#### Estructura de Base de Datos
+```sql
+CREATE TABLE seo_schema_content (
+    id int(11) AUTO_INCREMENT,
+    product_id int(11) NOT NULL,
+    custom_description text DEFAULT NULL,
+    faq_content text DEFAULT NULL,           -- ⭐ USADO POR TABS
+    howto_content text DEFAULT NULL,         -- ⭐ USADO POR TABS
+    review_content text DEFAULT NULL,
+    others_content text DEFAULT NULL,
+    enable_variants tinyint(1) DEFAULT 1,
+    enable_faq tinyint(1) DEFAULT 0,
+    enable_howto tinyint(1) DEFAULT 0,
+    enable_review tinyint(1) DEFAULT 0,
+    show_faq_tab_frontend tinyint(1) DEFAULT 0,   -- ⭐ CONTROL TABS FAQ
+    show_howto_tab_frontend tinyint(1) DEFAULT 0, -- ⭐ CONTROL TABS HOWTO
+    created_date timestamp DEFAULT CURRENT_TIMESTAMP,
+    updated_date timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY product_id (product_id)
+);
+```
+
+### 1.2 Análisis de Extra Tabs (Extensión de Referencia)
+
+#### Arquitectura Exitosa Identificada
+- **Sistema de hooks**: Implementación robusta y probada
+- **Soporte multi-template**: Funcionando en producción
+- **Integración transparente**: No interfiere con funcionalidad existente
+- **Modelo de datos flexible**: Adaptable a diferentes necesidades
+
+#### Hooks Implementados en Extra Tabs
+```php
+// Hooks identificados en ExtensionExtraTabs
+public function onControllerCommonListingGrid_InitData()    // Admin grid actions
+public function onControllerCommonHead_InitData()          // CSS/JS assets  
+public function onControllerPagesProductProduct_InitData() // ⭐ STOREFRONT TABS
+```
+
+#### Patrón de Templates Exitoso
+```
+extensions/extra_tabs/storefront/view/
+├── foxy_template/template/pages/extra_tabs/
+│   ├── extra_tabs_tab.tpl      (headers de tabs)
+│   └── extra_tabs_content.tpl  (contenido de tabs)
+├── novator/template/pages/extra_tabs/
+│   ├── extra_tabs_tab.tpl      (accordion headers)
+│   └── extra_tabs_content.tpl  (accordion content)
+└── default/template/pages/extra_tabs/
+    ├── extra_tabs_tab.tpl      (headers estándar)
+    └── extra_tabs_content.tpl  (contenido estándar)
+```
+
+## 2. ANÁLISIS DETALLADO POR TEMPLATE
+
+### 2.1 Foxy Template Analysis
+
+#### Características Técnicas Identificadas
+- **Estructura HTML**: Simple y directa
+- **Sistema de tabs**: Estándar con `<li><a href="#tab_ID">`
+- **Compatibilidad JavaScript**: Nativo de tabs
+- **Enfoque de diseño**: Minimalista y funcional
+
+#### Patrón de Implementación Observado
+```php
+// foxy_template/template/pages/extra_tabs/extra_tabs_tab.tpl
+foreach ($all_options as $value) {
+    if ($value['required'] == 1 && $this->customer->isLogged()) {
+        echo '<li><a href="#tab_' . $value['product_option_id'] . '">' . $value['name'] . '</a></li>';
+    } elseif ($value['required'] == 0) {
+        echo '<li><a href="#tab_' . $value['product_option_id'] . '">' . $value['name'] . '</a></li>';
+    }
+}
+```
+
+#### Requerimientos para Smart SEO Schema
+- **IDs únicos**: `#smart_seo_faq`, `#smart_seo_howto`
+- **Títulos configurables**: "FAQ", "How To Use"
+- **Control de visibilidad**: Basado en `show_*_tab_frontend`
+- **Estructura limpia**: HTML semántico y accesible
+
+### 2.2 Novator Template Analysis
+
+#### Características Técnicas Identificadas
+- **Sistema accordion**: En lugar de tabs tradicionales
+- **CSS inline específico**: Para styling personalizado
+- **Estructura compleja**: Con `accordion__item` y `js-contentToggle`
+- **JavaScript integrado**: Para funcionalidad accordion
+
+#### Patrón de Implementación Observado
+```php
+// novator/template/pages/extra_tabs/extra_tabs_tab.tpl
+echo '<style>
+    a[href^="#collapsetab_"] {
+        color: inherit;
+        text-decoration: none; 
+    }
+</style>';
+
+foreach ($all_options as $value) {
+    if ($value['required'] == 0 || ($value['required'] == 1 && $this->customer->isLogged())) {
+        echo $value['name']; // Implementación simplificada en novator
+    }
+}
+```
+
+#### Requerimientos para Smart SEO Schema
+- **Adaptación accordion**: Usar `accordion__item` y `js-contentToggle`
+- **CSS específico**: Integración con sistema de styling de Novator
+- **Estados**: Manejo de expandido/colapsado
+- **JavaScript**: Compatibilidad con librería accordion existente
+
+### 2.3 Default Template Analysis
+
+#### Características Técnicas Identificadas
+- **Estructura estándar**: AbanteCart nativo
+- **Sistema tabs clásico**: Con `tab-pane` estándar
+- **Compatibilidad máxima**: Fallback universal
+- **HTML semántico**: Estructura limpia y accesible
+
+#### Patrón de Implementación Observado
+```php
+// Estructura típica de content para default
+echo '<div id="tab_' . $value['product_option_id'] . '" class="tab-pane">
+    <div class="content">
+        <table width="95%">
+            <tr><th align="left">' . $value['error_text'] . '</th></tr>
+            <tr><td>' . html_entity_decode($data['name'], ENT_QUOTES, 'UTF-8') . '</td></tr>
+        </table>
+    </div>
+</div>';
+```
+
+#### Requerimientos para Smart SEO Schema
+- **Estructura `tab-pane`**: Estándar de AbanteCart
+- **HTML semántico**: Accesible y válido
+- **Fallback confiable**: Para templates no soportados
+- **CSS básico**: Styling compatible con tema default
+
+## 3. ESTRATEGIA DE IMPLEMENTACIÓN CORREGIDA
+
+### 3.1 Principios de Diseño Revisados
+
+#### Separación Total de Responsabilidades
+- **Funcionalidad tabs**: Completamente independiente de Schema.org markup
+- **Única conexión**: 5 campos específicos de tabla `seo_schema_content`
+- **Cero modificaciones**: A funcionalidad existente de la extensión
+- **Sistema modular**: Cada componente con responsabilidad única
+
+#### Eliminación de Conflictos (CRÍTICO)
+- **Templates obsoletos**: Eliminar `pages/product/faq_tab.tpl` y `pages/product/howto_tab.tpl`
+- **Namespace específico**: Todos los templates en `pages/smart_seo_schema/`
+- **Paths únicos**: Sin duplicaciones o ambigüedades
+- **Separación de tipos**: FAQ y HowTo como tabs independientes
+
+#### Puntos de Conexión Mínimos
+```sql
+-- INTERFAZ ÚNICA ENTRE SISTEMAS:
+SELECT product_id, faq_content, howto_content, 
+       show_faq_tab_frontend, show_howto_tab_frontend
+FROM seo_schema_content
+WHERE product_id = ? 
+  AND (show_faq_tab_frontend = 1 OR show_howto_tab_frontend = 1)
+```
+
+### 3.2 Arquitectura Final Propuesta
+
+#### Estructura de Archivos Corregida
+```
+extensions/smart_seo_schema/
+├── core/
+│   ├── smart_seo_schema.php          (FALTANTE - funcionalidad principal)
+│   └── smart_seo_schema_tabs.php     (NUEVO - solo funcionalidad tabs)
+│
+├── storefront/
+│   ├── model/smart_seo_schema/
+│   │   └── smart_seo_schema_tabs.php (NUEVO - modelo independiente)
+│   │
+│   └── view/
+│       ├── foxy_template/template/pages/smart_seo_schema/
+│       │   ├── faq_tab.tpl           (NUEVO - header FAQ foxy)
+│       │   ├── faq_content.tpl       (NUEVO - contenido FAQ foxy)
+│       │   ├── howto_tab.tpl         (NUEVO - header HowTo foxy)
+│       │   └── howto_content.tpl     (NUEVO - contenido HowTo foxy)
+│       │
+│       ├── default/template/pages/smart_seo_schema/
+│       │   ├── faq_tab.tpl           (NUEVO - header FAQ default)
+│       │   ├── faq_content.tpl       (NUEVO - contenido FAQ default)
+│       │   ├── howto_tab.tpl         (NUEVO - header HowTo default)
+│       │   └── howto_content.tpl     (NUEVO - contenido HowTo default)
+│       │
+│       ├── novator/template/pages/smart_seo_schema/
+│       │   ├── faq_tab.tpl           (NUEVO - accordion FAQ novator)
+│       │   ├── faq_content.tpl       (NUEVO - contenido FAQ novator)
+│       │   ├── howto_tab.tpl         (NUEVO - accordion HowTo novator)
+│       │   └── howto_content.tpl     (NUEVO - contenido HowTo novator)
+│       │
+│       └── css/
+│           ├── smart_seo_schema_foxy.css     (CSS específico Foxy)
+│           ├── smart_seo_schema_default.css  (CSS específico Default)
+│           └── smart_seo_schema_novator.css  (CSS específico Novator)
+│
+├── main.php                          (MODIFICAR - correcciones mínimas)
+└── [resto de archivos existentes sin modificar]
+```
+
+#### Flujo de Datos Revisado
+```
+1. Admin Smart SEO Schema (EXISTENTE)
+   ↓ Guarda contenido y configuración
+   
+2. Tabla seo_schema_content (EXISTENTE)
+   ↓ 5 campos específicos: product_id, faq_content, howto_content, 
+     show_faq_tab_frontend, show_howto_tab_frontend
+   
+3. Modelo Tabs Independiente (NUEVO)
+   ↓ Query específico, sin dependencias
+   
+4. Core Tabs Hook (NUEVO)
+   ↓ Detección de template y preparación de datos
+   
+5. Templates Específicos por Tipo (NUEVOS)
+   ↓ FAQ independiente, HowTo independiente
+   
+6. Frontend Tabs Separados (RESULTADO)
+   ↓ Cada tipo en su propia tab
+```
+
+### 3.3 Implementación Técnica Detallada
+
+#### A. Modelo Storefront Independiente
+
+```php
+<?php
+// storefront/model/smart_seo_schema/smart_seo_schema_tabs.php
+class ModelSmartSeoSchemaSmartSeoSchemaTabs extends Model
+{
+    /**
+     * Obtiene configuración de tabs para un producto específico
+     * RETORNA: Array con FAQ y HowTo como elementos independientes
+     */
+    public function getProductSchemaTabs($product_id)
+    {
+        $query = $this->db->query("
+            SELECT faq_content, howto_content, 
+                   show_faq_tab_frontend, show_howto_tab_frontend
+            FROM " . DB_PREFIX . "seo_schema_content 
+            WHERE product_id = " . (int)$product_id . "
+            AND (show_faq_tab_frontend = 1 OR show_howto_tab_frontend = 1)
+            LIMIT 1
+        ");
+        
+        if (!$query->num_rows) {
+            return ['faq' => null, 'howto' => null];
+        }
+        
+        $data = $query->row;
+        $tabs = ['faq' => null, 'howto' => null];
+        
+        // FAQ Tab - COMPLETAMENTE INDEPENDIENTE
+        if ($data['show_faq_tab_frontend'] && !empty(trim($data['faq_content']))) {
+            $tabs['faq'] = [
+                'id' => 'smart_seo_faq',
+                'title' => 'FAQ',
+                'content' => $data['faq_content'],
+                'enabled' => true,
+                'type' => 'faq'
+            ];
+        }
+        
+        // HowTo Tab - COMPLETAMENTE INDEPENDIENTE  
+        if ($data['show_howto_tab_frontend'] && !empty(trim($data['howto_content']))) {
+            $tabs['howto'] = [
+                'id' => 'smart_seo_howto',
+                'title' => 'How To Use',
+                'content' => $data['howto_content'],
+                'enabled' => true,
+                'type' => 'howto'
+            ];
+        }
+        
+        return $tabs;
+    }
+    
+    /**
+     * Verificar estado de extensión principal
+     */
+    public function isSchemaExtensionEnabled()
+    {
+        return (bool)$this->config->get('smart_seo_schema_status');
+    }
+    
+    /**
+     * Obtener solo FAQ si está habilitado
+     */
+    public function getFaqTabData($product_id)
+    {
+        $tabs = $this->getProductSchemaTabs($product_id);
+        return $tabs['faq'];
+    }
+    
+    /**
+     * Obtener solo HowTo si está habilitado
+     */
+    public function getHowToTabData($product_id)
+    {
+        $tabs = $this->getProductSchemaTabs($product_id);
+        return $tabs['howto'];
+    }
+}
+```
+
+#### B. Core Hook Independiente
+
+```php
+<?php
+// core/smart_seo_schema_tabs.php
+if (!defined('DIR_CORE')) {
+    header('Location: static_pages/');
+}
+
+class ExtensionSmartSeoSchemaTabs extends Extension
+{
+    public $data = [];
+    
+    public function __construct()
+    {
+        $this->registry = Registry::getInstance();
+    }
+    
+    /**
+     * Hook principal para página de producto en storefront
+     * SOLO se ejecuta si extensión principal está habilitada
+     */
+    public function onControllerPagesProductProduct_InitData()
+    {
+        $this->baseObject->loadModel('smart_seo_schema/smart_seo_schema_tabs');
+        
+        // Verificación de estado - depende de extensión principal
+        if (!$this->baseObject->model_smart_seo_schema_smart_seo_schema_tabs->isSchemaExtensionEnabled()) {
+            return;
+        }
+        
+        // Obtener product_id de la request
+        $product_id = $this->baseObject->request->get['product_id'];
+        if (empty($product_id)) {
+            $product_id = $this->baseObject->request->get['key'];
+        }
+        
+        if (!$product_id) {
+            return;
+        }
+        
+        // Cargar configuración de tabs para este producto
+        $schema_tabs = $this->baseObject->model_smart_seo_schema_smart_seo_schema_tabs->getProductSchemaTabs($product_id);
+        
+        // Solo proceder si hay al menos un tab habilitado
+        if ($schema_tabs['faq'] || $schema_tabs['howto']) {
+            $this->injectTabsForCurrentTemplate($schema_tabs);
+        }
+    }
+    
+    /**
+     * Hook para cargar CSS específico por template
+     */
+    public function onControllerCommonHead_InitData()
+    {
+        if (IS_ADMIN) {
+            return; // Solo storefront
+        }
+        
+        $this->baseObject->loadModel('smart_seo_schema/smart_seo_schema_tabs');
+        
+        if (!$this->baseObject->model_smart_seo_schema_smart_seo_schema_tabs->isSchemaExtensionEnabled()) {
+            return;
+        }
+        
+        $template = $this->baseObject->config->get('config_storefront_template');
+        $css_file = $this->getCSSFileForTemplate($template);
+        
+        if ($css_file && file_exists(DIR_EXT . 'smart_seo_schema/storefront/view/css/' . $css_file)) {
+            $this->baseObject->document->addStyle([
+                'href' => DIR_EXTENSIONS . 'smart_seo_schema/storefront/view/css/' . $css_file,
+                'rel' => 'stylesheet',
+                'media' => 'screen',
+            ]);
+        }
+    }
+    
+    /**
+     * Inyección específica por template detectado
+     */
+    private function injectTabsForCurrentTemplate($schema_tabs)
+    {
+        $template = $this->baseObject->config->get('config_storefront_template');
+        
+        switch ($template) {
+            case 'foxy_template':
+            case 'foxy':
+                $this->injectForFoxy($schema_tabs);
+                break;
+                
+            case 'novator':
+                $this->injectForNovator($schema_tabs);
+                break;
+                
+            default:
+                $this->injectForDefault($schema_tabs);
+        }
+    }
+    
+    /**
+     * Inyección para Foxy Template - TABS SEPARADOS
+     */
+    private function injectForFoxy($schema_tabs)
+    {
+        $view = new AView($this->registry, 0);
+        
+        $tab_headers = '';
+        $tab_content = '';
+        
+        // FAQ Tab - Si está habilitado y tiene contenido
+        if ($schema_tabs['faq']) {
+            $view->batchAssign(['faq_data' => $schema_tabs['faq']]);
+            $tab_headers .= $view->fetch('pages/smart_seo_schema/faq_tab.tpl');
+            $tab_content .= $view->fetch('pages/smart_seo_schema/faq_content.tpl');
+        }
+        
+        // HowTo Tab - Si está habilitado y tiene contenido
+        if ($schema_tabs['howto']) {
+            $view->batchAssign(['howto_data' => $schema_tabs['howto']]);
+            $tab_headers .= $view->fetch('pages/smart_seo_schema/howto_tab.tpl');
+            $tab_content .= $view->fetch('pages/smart_seo_schema/howto_content.tpl');
+        }
+        
+        // Inyectar solo si hay contenido
+        if (!empty($tab_headers)) {
+            $this->baseObject->view->addHookVar('product_features_tab', $tab_headers);
+        }
+        if (!empty($tab_content)) {
+            $this->baseObject->view->addHookVar('product_features', $tab_content);
+        }
+    }
+    
+    /**
+     * Inyección para Novator Template - ACCORDION SEPARADO
+     */
+    private function injectForNovator($schema_tabs)
+    {
+        $view = new AView($this->registry, 0);
+        $accordion_content = '';
+        
+        // FAQ Accordion - Si está habilitado
+        if ($schema_tabs['faq']) {
+            $view->batchAssign(['faq_data' => $schema_tabs['faq']]);
+            $accordion_content .= $view->fetch('pages/smart_seo_schema/faq_tab.tpl');
+        }
+        
+        // HowTo Accordion - Si está habilitado  
+        if ($schema_tabs['howto']) {
+            $view->batchAssign(['howto_data' => $schema_tabs['howto']]);
+            $accordion_content .= $view->fetch('pages/smart_seo_schema/howto_tab.tpl');
+        }
+        
+        if (!empty($accordion_content)) {
+            $this->baseObject->view->addHookVar('product_features_tab', $accordion_content);
+            // Novator no necesita separación de content, todo va en tab
+            $this->baseObject->view->addHookVar('product_features', '');
+        }
+    }
+    
+    /**
+     * Inyección para Default Template - TABS SEPARADOS (y fallback universal)
+     */
+    private function injectForDefault($schema_tabs)
+    {
+        $view = new AView($this->registry, 0);
+        
+        $tab_headers = '';
+        $tab_content = '';
+        
+        // FAQ Tab
+        if ($schema_tabs['faq']) {
+            $view->batchAssign(['faq_data' => $schema_tabs['faq']]);
+            $tab_headers .= $view->fetch('pages/smart_seo_schema/faq_tab.tpl');
+            $tab_content .= $view->fetch('pages/smart_seo_schema/faq_content.tpl');
+        }
+        
+        // HowTo Tab
+        if ($schema_tabs['howto']) {
+            $view->batchAssign(['howto_data' => $schema_tabs['howto']]);
+            $tab_headers .= $view->fetch('pages/smart_seo_schema/howto_tab.tpl');
+            $tab_content .= $view->fetch('pages/smart_seo_schema/howto_content.tpl');
+        }
+        
+        if (!empty($tab_headers)) {
+            $this->baseObject->view->addHookVar('product_features_tab', $tab_headers);
+        }
+        if (!empty($tab_content)) {
+            $this->baseObject->view->addHookVar('product_features', $tab_content);
+        }
+    }
+    
+    /**
+     * Mapeo de archivos CSS específicos por template
+     */
+    private function getCSSFileForTemplate($template)
+    {
+        $css_files = [
+            'foxy_template' => 'smart_seo_schema_foxy.css',
+            'foxy' => 'smart_seo_schema_foxy.css',
+            'novator' => 'smart_seo_schema_novator.css',
+            'default' => 'smart_seo_schema_default.css'
+        ];
+        
+        return isset($css_files[$template]) ? $css_files[$template] : 'smart_seo_schema_default.css';
+    }
+}
+```
+
+#### C. Templates Específicos por Template y Tipo
+
+##### Template Foxy - FAQ Independiente
+
+```php
+<?php
+// foxy_template/template/pages/smart_seo_schema/faq_tab.tpl
+if (!empty($faq_data) && $faq_data['enabled']) { ?>
+<li class="smart-seo-faq-tab">
+    <a href="#<?php echo $faq_data['id']; ?>" class="smart-seo-tab-link">
+        <?php echo $faq_data['title']; ?>
+    </a>
+</li>
+<?php } ?>
+```
+
+```php
+<?php
+// foxy_template/template/pages/smart_seo_schema/faq_content.tpl
+if (!empty($faq_data) && $faq_data['enabled']) { ?>
+<div id="<?php echo $faq_data['id']; ?>" class="tab-pane smart-seo-tab-content">
+    <div class="content">
+        <div class="smart-seo-faq-content">
+            <?php echo $faq_data['content']; ?>
+        </div>
+    </div>
+</div>
+<?php } ?>
+```
+
+##### Template Foxy - HowTo Independiente
+
+```php
+<?php
+// foxy_template/template/pages/smart_seo_schema/howto_tab.tpl
+if (!empty($howto_data) && $howto_data['enabled']) { ?>
+<li class="smart-seo-howto-tab">
+    <a href="#<?php echo $howto_data['id']; ?>" class="smart-seo-tab-link">
+        <?php echo $howto_data['title']; ?>
+    </a>
+</li>
+<?php } ?>
+```
+
+```php
+<?php
+// foxy_template/template/pages/smart_seo_schema/howto_content.tpl
+if (!empty($howto_data) && $howto_data['enabled']) { ?>
+<div id="<?php echo $howto_data['id']; ?>" class="tab-pane smart-seo-tab-content">
+    <div class="content">
+        <div class="smart-seo-howto-content">
+            <?php echo $howto_data['content']; ?>
+        </div>
+    </div>
+</div>
+<?php } ?>
+```
+
+##### Template Novator - FAQ Accordion
+
+```php
+<?php
+// novator/template/pages/smart_seo_schema/faq_tab.tpl
+if (!empty($faq_data) && $faq_data['enabled']) { ?>
+<li class="accordion__item js-contentToggle smart-seo-faq-accordion" data-default-state="close">
+    <button class="accordion__trigger js-contentToggle__trigger smart-seo-accordion-trigger" type="button">
+        <?php echo $faq_data['title']; ?>
+        <i class="fa fa-caret-down pull-right" aria-hidden="true"></i>
+    </button>
+    <div class="accordion__content is-hidden js-contentToggle__content">
+        <div class="content smart-seo-faq-content">
+            <?php echo $faq_data['content']; ?>
+        </div>
+    </div>
+</li>
+<style>
+.smart-seo-faq-accordion .smart-seo-accordion-trigger {
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    padding: 10px 15px;
+}
+.smart-seo-faq-content {
+    padding: 15px;
+    line-height: 1.6;
+}
+</style>
+<?php } ?>
+```
+
+##### Template Novator - HowTo Accordion
+
+```php
+<?php
+// novator/template/pages/smart_seo_schema/howto_tab.tpl
+if (!empty($howto_data) && $howto_data['enabled']) { ?>
+<li class="accordion__item js-contentToggle smart-seo-howto-accordion" data-default-state="close">
+    <button class="accordion__trigger js-contentToggle__trigger smart-seo-accordion-trigger" type="button">
+        <?php echo $howto_data['title']; ?>
+        <i class="fa fa-caret-down pull-right" aria-hidden="true"></i>
+    </button>
+    <div class="accordion__content is-hidden js-contentToggle__content">
+        <div class="content smart-seo-howto-content">
+            <?php echo $howto_data['content']; ?>
+        </div>
+    </div>
+</li>
+<style>
+.smart-seo-howto-accordion .smart-seo-accordion-trigger {
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    padding: 10px 15px;
+}
+.smart-seo-howto-content {
+    padding: 15px;
+    line-height: 1.6;
+}
+.smart-seo-howto-content ol,
+.smart-seo-howto-content ul {
+    margin-left: 20px;
+}
+</style>
+<?php } ?>
+```
+
+##### Template Default - FAQ y HowTo
+
+```php
+<?php
+// default/template/pages/smart_seo_schema/faq_tab.tpl
+if (!empty($faq_data) && $faq_data['enabled']) { ?>
+<li class="smart-seo-faq-tab">
+    <a href="#<?php echo $faq_data['id']; ?>" class="smart-seo-tab-link">
+        <?php echo $faq_data['title']; ?>
+    </a>
+</li>
+<?php } ?>
+```
+
+```php
+<?php
+// default/template/pages/smart_seo_schema/faq_content.tpl
+if (!empty($faq_data) && $faq_data['enabled']) { ?>
+<div id="<?php echo $faq_data['id']; ?>" class="tab-pane smart-seo-tab-content">
+    <div class="content">
+        <div class="smart-seo-faq-content faq-content-default">
+            <?php echo $faq_data['content']; ?>
+        </div>
+    </div>
+</div>
+<?php } ?>
+```
+
+```php
+<?php
+// default/template/pages/smart_seo_schema/howto_tab.tpl
+if (!empty($howto_data) && $howto_data['enabled']) { ?>
+<li class="smart-seo-howto-tab">
+    <a href="#<?php echo $howto_data['id']; ?>" class="smart-seo-tab-link">
+        <?php echo $howto_data['title']; ?>
+    </a>
+</li>
+<?php } ?>
+```
+
+```php
+<?php
+// default/template/pages/smart_seo_schema/howto_content.tpl
+if (!empty($howto_data) && $howto_data['enabled']) { ?>
+<div id="<?php echo $howto_data['id']; ?>" class="tab-pane smart-seo-tab-content">
+    <div class="content">
+        <div class="smart-seo-howto-content howto-content-default">
+            <?php echo $howto_data['content']; ?>
+        </div>
+    </div>
+</div>
+<?php } ?>
+```
+
+### 3.4 Modificaciones del main.php (CORREGIDAS)
+
+```php
+<?php
+// main.php - VERSIÓN CORREGIDA SIN CONFLICTOS
+if (!defined('DIR_CORE')) {
+    header('Location: static_pages/');
+}
+if (!class_exists('ExtensionSmartSeoSchema')) {
+    require_once(DIR_EXT . 'smart_seo_schema/core/smart_seo_schema.php');
+}
+
+// ⭐ AGREGAR: Funcionalidad tabs independiente
+if (!class_exists('ExtensionSmartSeoSchemaTabs')) {
+    require_once(DIR_EXT . 'smart_seo_schema/core/smart_seo_schema_tabs.php');
+}
+
+$controllers = [
+    'storefront' => [],
+    'admin' => [
+        'pages/catalog/smart_seo_schema',
+    ],
+];
+
+$models = [
+    'storefront' => [
+        'smart_seo_schema/smart_seo_schema_tabs', // ⭐ AGREGAR
+    ],
+    'admin' => [],
+];
+
+$templates = [
+    'storefront' => [
+        'pages/product/product.post.tpl',
+        // ❌ ELIMINADO: 'pages/product/faq_tab.tpl',     (conflictivo)
+        // ❌ ELIMINADO: 'pages/product/howto_tab.tpl',   (conflictivo)
+        
+        // ⭐ AGREGAR: Templates específicos independientes por tipo
+        'pages/smart_seo_schema/faq_tab.tpl',      // FAQ header
+        'pages/smart_seo_schema/faq_content.tpl',  // FAQ content
+        'pages/smart_seo_schema/howto_tab.tpl',    // HowTo header  
+        'pages/smart_seo_schema/howto_content.tpl', // HowTo content
+    ],
+    'admin' => [
+        'pages/smart_seo_schema/smart_seo_schema_form.tpl',
+        'pages/smart_seo_schema/reviews_section.tpl',
+        'pages/smart_seo_schema/tabs.tpl',
+    ],
+];
+
+$languages = [
+    'storefront' => [
+        'english/smart_seo_schema/smart_seo_schema',
+    ],
+    'admin' => [
+        'english/smart_seo_schema/smart_seo_schema',
+    ],
+];
+```
+
+### 3.5 Archivos CSS Específicos por Template
+
+#### Foxy CSS
+```css
+/* smart_seo_schema/storefront/view/css/smart_seo_schema_foxy.css */
+.smart-seo-tab-content {
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.smart-seo-faq-content h3,
+.smart-seo-howto-content h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 5px;
+}
+
+.smart-seo-faq-content .faq-item {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-left: 4px solid #3498db;
+}
+
+.smart-seo-howto-content ol {
+    padding-left: 20px;
+}
+
+.smart-seo-howto-content li {
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+```
+
+#### Novator CSS
+```css
+/* smart_seo_schema/storefront/view/css/smart_seo_schema_novator.css */
+.smart-seo-faq-accordion,
+.smart-seo-howto-accordion {
+    margin-top: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+.smart-seo-accordion-trigger {
+    transition: background-color 0.3s ease;
+}
+
+.smart-seo-accordion-trigger:hover {
+    background-color: #f5f5f5;
+}
+
+.smart-seo-faq-content,
+.smart-seo-howto-content {
+    background: #ffffff;
+    border-top: 1px solid #e0e0e0;
+}
+
+.smart-seo-faq-content h3,
+.smart-seo-howto-content h3 {
+    color: #333;
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
+```
+
+#### Default CSS
+```css
+/* smart_seo_schema/storefront/view/css/smart_seo_schema_default.css */
+.smart-seo-tab-content {
+    padding: 15px;
+    min-height: 200px;
+}
+
+.faq-content-default h3,
+.howto-content-default h3 {
+    color: #444;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+}
+
+.faq-content-default .faq-item {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+}
+
+.howto-content-default ol,
+.howto-content-default ul {
+    margin-left: 25px;
+}
+
+.howto-content-default li {
+    margin-bottom: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .smart-seo-tab-content {
+        padding: 10px;
+    }
+}
+```
+
+## 4. BENEFICIOS Y VENTAJAS DE LA ESTRATEGIA CORREGIDA
+
+### 4.1 Eliminación Total de Conflictos
+
+#### Resolución de Problemas Identificados
+- **✅ Templates conflictivos eliminados**: No más `pages/product/faq_tab.tpl` y `pages/product/howto_tab.tpl`
+- **✅ Namespace específico**: Todos los templates en `pages/smart_seo_schema/`
+- **✅ Paths únicos**: Sin duplicaciones entre extensiones
+- **✅ Separación real**: FAQ y HowTo como tabs completamente independientes
+
+#### Beneficios de Arquitectura
+- **✅ Acoplamiento ultra-mínimo**: Solo 5 campos compartidos en base de datos
+- **✅ Responsabilidad única**: Cada módulo tiene propósito específico
+- **✅ Extensibilidad**: Fácil agregar nuevos tipos de tabs
+- **✅ Compatibilidad**: Cero impacto en funcionalidad existente
+
+### 4.2 Separación Real por Tipo de Contenido
+
+#### FAQ Independiente
+- **Tab separado**: FAQ aparece en su propia pestaña
+- **Control granular**: Se puede habilitar/deshabilitar independientemente
+- **Styling específico**: CSS optimizado para contenido FAQ
+- **Templates dedicados**: Header y content específicos para FAQ
+
+#### HowTo Independiente  
+- **Tab separado**: HowTo aparece en su propia pestaña
+- **Control granular**: Se puede habilitar/deshabilitar independientemente
+- **Styling específico**: CSS optimizado para instrucciones paso a paso
+- **Templates dedicados**: Header y content específicos para HowTo
+
+### 4.3 Compatibilidad Multi-Template Optimizada
+
+#### Foxy Template
+- **✅ Implementación nativa**: Estructura de tabs estándar
+- **✅ CSS específico**: Styling que combina con diseño Foxy
+- **✅ JavaScript compatible**: Sin conflictos con librerías existentes
+- **✅ Performance**: Carga optimizada de assets
+
+#### Novator Template
+- **✅ Sistema accordion**: Implementación específica para accordion
+- **✅ JavaScript integrado**: Compatible con `js-contentToggle`
+- **✅ Styling nativo**: Usa clases existentes de Novator
+- **✅ UX consistente**: Comportamiento acorde al template
+
+#### Default Template (Fallback Universal)
+- **✅ Compatibilidad máxima**: Funciona con cualquier template
+- **✅ HTML semántico**: Estructura accesible y válida
+- **✅ CSS básico**: Styling compatible con tema base
+- **✅ Fallback confiable**: Para templates no soportados específicamente
+
+### 4.4 Performance y Eficiencia
+
+#### Optimizaciones de Carga
+- **✅ Query específico**: Solo consulta campos necesarios para tabs
+- **✅ Carga condicional**: Solo ejecuta si hay tabs habilitados
+- **✅ Assets bajo demanda**: CSS específico por template
+- **✅ Sin overhead**: No afecta performance de funcionalidad principal
+
+#### Optimizaciones de Memoria
+- **✅ Datos mínimos**: Solo carga contenido que se va a mostrar
+- **✅ Templates modulares**: Carga solo templates necesarios
+- **✅ Verificaciones tempranas**: Exit early si no hay contenido
+
+## 5. RIESGOS, MITIGACIONES Y ESTRATEGIAS DE CONTINGENCIA
+
+### 5.1 Riesgos Técnicos Identificados
+
+#### Conflictos de CSS/JavaScript
+- **⚠️ Riesgo**: Styling puede conflictuar con themes existentes
+- **🛡️ Mitigación**: CSS con namespace específico y selectores únicos
+- **🔧 Contingencia**: CSS inline como fallback en templates
+
+#### Incompatibilidades de Hooks
+- **⚠️ Riesgo**: Algunos templates pueden no soportar hooks utilizados
+- **🛡️ Mitigación**: Verificación de métodos antes de uso
+- **🔧 Contingencia**: Sistema de detección y fallback automático
+
+#### Conflictos con Otras Extensiones
+- **⚠️ Riesgo**: Otras extensiones pueden usar mismos hooks
+- **🛡️ Mitigación**: Inyección aditiva, sin sobrescribir contenido existente
+- **🔧 Contingencia**: Logging detallado para debugging
+
+### 5.2 Riesgos Funcionales
+
+#### Contenido HTML Malformado
+- **⚠️ Riesgo**: Usuarios pueden insertar HTML que rompe layout
+- **🛡️ Mitigación**: Sanitización básica en modelo
+- **🔧 Contingencia**: Validación adicional en templates
+
+#### Visibilidad Inesperada
+- **⚠️ Riesgo**: Tabs pueden aparecer en páginas incorrectas
+- **🛡️ Mitigación**: Verificación específica de página de producto
+- **🔧 Contingencia**: Whitelist de rutas permitidas
+
+### 5.3 Estrategias de Mitigación Implementadas
+
+#### Código Defensivo
+```php
+// Verificación de compatibilidad
+if (method_exists($this->baseObject->view, 'addHookVar')) {
+    $this->baseObject->view->addHookVar('product_features_tab', $content);
+} else {
+    // Log warning y graceful degradation
+    $this->logWarning('Hook addHookVar not available in current template');
+}
+```
+
+#### CSS con Namespace
+```css
+/* Evitar conflictos con selectores específicos */
+.smart-seo-schema-content .smart-seo-faq-content {
+    /* Estilos aislados */
+}
+```
+
+#### Sanitización de Contenido
+```php
+// Sanitización básica pero permisiva
+$safe_content = strip_tags($content, '<p><br><strong><em><ul><li><ol><h3><h4><h5><h6><blockquote>');
+```
+
+#### Sistema de Fallback
+```php
+// Detección automática y fallback
+$supported_templates = ['foxy_template', 'foxy', 'novator', 'default'];
+if (!in_array($current_template, $supported_templates)) {
+    $this->injectForDefault($schema_tabs); // Fallback universal
+}
+```
+
+## 6. PLAN DE IMPLEMENTACIÓN DETALLADO
+
+### 6.1 Fases de Desarrollo
+
+#### Fase 1: Fundamentos (2 días)
+**Objetivos:**
+- Crear estructura base independiente
+- Implementar modelo storefront
+- Testing con datos mock
+
+**Entregables:**
+- `storefront/model/smart_seo_schema/smart_seo_schema_tabs.php`
+- `core/smart_seo_schema_tabs.php` (estructura básica)
+- Testing unitario del modelo
+
+**Criterios de Éxito:**
+- Modelo retorna datos correctos de base de datos
+- Hook básico funciona sin errores
+- No hay regresiones en funcionalidad existente
+
+#### Fase 2: Template Foxy (2 días)
+**Objetivos:**
+- Implementación completa para Foxy
+- CSS específico y optimizado
+- Testing exhaustivo en Foxy
+
+**Entregables:**
+- Templates Foxy: `faq_tab.tpl`, `faq_content.tpl`, `howto_tab.tpl`, `howto_content.tpl`
+- CSS: `smart_seo_schema_foxy.css`
+- Inyección específica para Foxy en core
+
+**Criterios de Éxito:**
+- Tabs aparecen correctamente en Foxy
+- Styling integra perfectamente con diseño Foxy
+- Control de visibilidad funciona
+- No hay conflictos JavaScript
+
+#### Fase 3: Template Default (1 día)
+**Objetivos:**
+- Implementación de fallback universal
+- CSS básico compatible
+- Testing de compatibilidad
+
+**Entregables:**
+- Templates Default completos
+- CSS: `smart_seo_schema_default.css`
+- Sistema de fallback en core
+
+**Criterios de Éxito:**
+- Funciona como fallback universal
+- Compatible con templates no soportados específicamente
+- HTML semántico y accesible
+
+#### Fase 4: Template Novator (2 días)
+**Objetivos:**
+- Adaptación a sistema accordion
+- Integración JavaScript específica
+- CSS optimizado para Novator
+
+**Entregables:**
+- Templates Novator con accordion
+- CSS: `smart_seo_schema_novator.css`
+- JavaScript integration testing
+
+**Criterios de Éxito:**
+- Accordion funciona con JavaScript nativo Novator
+- UX consistente con template Novator
+- Styling integrado perfectamente
+
+#### Fase 5: Integration & Testing (1 día)
+**Objetivos:**
+- Testing multi-template
+- Verificación de no-regresión
+- Performance testing
+- Documentation
+
+**Entregables:**
+- Testing completo multi-template
+- Performance benchmarks
+- Documentación de usuario
+- Guía de troubleshooting
+
+**Criterios de Éxito:**
+- Funciona en todos los templates soportados
+- No hay regresiones en funcionalidad principal
+- Performance dentro de parámetros aceptables
+- Documentación completa
+
+### 6.2 Criterios de Éxito Detallados
+
+#### Funcionales
+- **✅ Visibilidad correcta**: Tabs aparecen solo cuando están habilitados
+- **✅ Contenido apropiado**: FAQ y HowTo se muestran en tabs separados
+- **✅ Control granular**: Cada tipo se puede habilitar/deshabilitar independientemente
+- **✅ Integración transparente**: No interfiere con tabs existentes
+
+#### Técnicos
+- **✅ No regresiones**: Funcionalidad Schema.org existente sin cambios
+- **✅ Performance**: Overhead < 5% en página de producto
+- **✅ Compatibilidad CSS**: Sin conflictos con themes existentes
+- **✅ Fallback funcional**: Default template funciona universalmente
+
+#### UX/UI
+- **✅ Consistencia visual**: Styling integrado con cada template
+- **✅ Responsive**: Funciona en dispositivos móviles
+- **✅ Accesibilidad**: HTML semántico y compatible con screen readers
+- **✅ Usabilidad**: UX intuitiva y consistente
+
+### 6.3 Métricas de Éxito
+
+#### Performance
+- **Tiempo de carga**: < 50ms adicionales
+- **Queries DB**: Máximo 1 query adicional
+- **Tamaño CSS**: < 5KB por template
+- **Memory usage**: < 1MB adicional
+
+#### Funcionalidad
+- **Cobertura templates**: 100% en Foxy, Default, Novator
+- **Control granular**: 100% funcional FAQ/HowTo independientes
+- **Fallback**: 100% funcional en templates no soportados
+- **No regresiones**: 0 impactos en funcionalidad existente
+
+## 7. DOCUMENTACIÓN DE USUARIO Y MANTENIMIENTO
+
+### 7.1 Configuración para Usuarios
+
+#### Habilitación de Tabs
+1. **Extensión principal habilitada**: `smart_seo_schema_status = 1`
+2. **Contenido configurado**: FAQ y/o HowTo content en admin
+3. **Visibilidad habilitada**: `show_faq_tab_frontend = 1` y/o `show_howto_tab_frontend = 1`
+
+#### Flujo de Configuración
+```
+1. Admin → Extensions → Smart SEO Schema → Enable
+2. Admin → Catalog → Products → [Product] → Smart SEO Schema Tab
+3. Configure FAQ Content + Enable "Show FAQ Tab in Storefront"
+4. Configure HowTo Content + Enable "Show HowTo Tab in Storefront"  
+5. Save → Visit product page → Verify tabs appear
+```
+
+### 7.2 Troubleshooting Guide
+
+#### Tabs No Aparecen
+1. **Verificar extensión principal**: `smart_seo_schema_status = 1`
+2. **Verificar contenido**: FAQ/HowTo content no está vacío
+3. **Verificar visibilidad**: Checkboxes de frontend habilitados
+4. **Verificar template**: Template soportado (Foxy, Default, Novator)
+
+#### Styling Incorrecto
+1. **Verificar CSS**: Archivo CSS específico del template cargado
+2. **Verificar conflictos**: Inspect element para conflictos CSS
+3. **Verificar cache**: Clear cache de template y browser
+4. **Verificar path**: CSS file exists en ruta correcta
+
+#### JavaScript No Funciona (Novator)
+1. **Verificar librerías**: `js-contentToggle` disponible
+2. **Verificar clases**: `accordion__item` y `accordion__trigger` presentes
+3. **Verificar console**: JavaScript errors en browser console
+4. **Verificar versión**: Novator template version compatible
+
+### 7.3 Mantenimiento a Largo Plazo
+
+#### Actualizaciones de Template
+- **Monitoring**: Verificar compatibilidad en updates de templates
+- **Testing**: Testing automático en updates de AbanteCart
+- **Adaptación**: Modificar templates específicos si es necesario
+
+#### Performance Monitoring
+- **Queries**: Monitor additional DB queries
+- **Memory**: Monitor memory usage
+- **Load times**: Monitor page load impact
+
+#### Extensibilidad Futura
+- **Nuevos tipos**: Fácil agregar nuevos tipos de tabs
+- **Nuevos templates**: Patrón establecido para nuevos templates
+- **Nuevas features**: Base sólida para extensiones futuras
+
+## 8. CONCLUSIONES Y VALOR ESTRATÉGICO
+
+### 8.1 Conclusiones Técnicas Finales
+
+La estrategia corregida de **separación total por tipo de contenido** con **eliminación de conflictos** es óptima porque:
+
+1. **✅ Elimina todos los riesgos** de conflictos con templates existentes
+2. **✅ Proporciona control granular** sobre cada tipo de contenido
+3. **✅ Mantiene compatibilidad total** con funcionalidad existente
+4. **✅ Facilita mantenimiento** y extensiones futuras
+5. **✅ Optimiza performance** con carga condicional
+6. **✅ Asegura flexibilidad** para requirements futuros
+
+### 8.2 Valor de Negocio
+
+#### Para Usuarios Finales
+- **✅ Información organizada**: FAQ y HowTo en tabs separados y claros
+- **✅ Experiencia consistente**: UX integrada con template nativo
+- **✅ Acceso fácil**: Información adicional sin cluttering de página
+- **✅ Mobile-friendly**: Responsive en todos los dispositivos
+
+#### Para Administradores
+- **✅ Control granular**: Habilitar/deshabilitar cada tipo independientemente
+- **✅ Gestión centralizada**: Todo desde panel de Smart SEO Schema
+- **✅ Flexibility**: Adaptar contenido por producto
+- **✅ SEO benefits**: Structured data + user experience optimizada
+
+#### Para Desarrolladores
+- **✅ Arquitectura limpia**: Código modular y mantenible
+- **✅ Extensibilidad**: Fácil agregar nuevos tipos de tabs
+- **✅ Testing simplificado**: Componentes independientes
+- **✅ Documentation completa**: Guías detalladas para customización
+
+### 8.3 Impacto Estratégico
+
+Esta implementación proporciona:
+
+- **🎯 Funcionalidad FAQ/HowTo**: Nativa en storefront sin extensiones adicionales
+- **🎯 Compatibilidad multi-template**: Sin comprometer performance o UX
+- **🎯 Base escalable**: Para extensiones futuras de Schema.org
+- **🎯 Separación clara**: Entre markup SEO y visualización frontend
+- **🎯 ROI positivo**: Mejor UX + SEO benefits + mantenibilidad
+
+
+
