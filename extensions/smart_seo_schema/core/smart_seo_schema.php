@@ -380,7 +380,54 @@ class ExtensionSmartSeoSchema extends Extension
             ];
         }
 
+        $category = $this->getProductCategory($product_info['product_id'], $that);
+        if (!empty($category)) {
+            $product_snippet["category"] = $category;
+        }
+
         return $product_snippet;
+    }
+
+    private function getProductCategory($product_id, $that)
+    {
+        $db = $that->db;
+        
+        $query = $db->query("
+            SELECT cd.name
+            FROM " . DB_PREFIX . "category_descriptions cd
+            INNER JOIN " . DB_PREFIX . "products_to_categories p2c 
+              ON cd.category_id = p2c.category_id
+            INNER JOIN " . DB_PREFIX . "categories c 
+              ON cd.category_id = c.category_id
+            WHERE p2c.product_id = " . (int)$product_id . " 
+              AND cd.language_id = 1
+              AND c.status = 1
+              AND c.category_id NOT IN (
+                  SELECT DISTINCT parent_id 
+                  FROM " . DB_PREFIX . "categories 
+                  WHERE parent_id > 0
+              )
+            ORDER BY c.sort_order ASC
+            LIMIT 1
+        ");
+
+        if (!$query->num_rows) {
+            $query = $db->query("
+                SELECT cd.name
+                FROM " . DB_PREFIX . "category_descriptions cd
+                INNER JOIN " . DB_PREFIX . "products_to_categories p2c 
+                  ON cd.category_id = p2c.category_id
+                INNER JOIN " . DB_PREFIX . "categories c 
+                  ON cd.category_id = c.category_id
+                WHERE p2c.product_id = " . (int)$product_id . " 
+                  AND cd.language_id = 1
+                  AND c.status = 1
+                ORDER BY c.sort_order ASC
+                LIMIT 1
+            ");
+        }
+
+        return $query->num_rows ? trim($query->row['name']) : null;
     }
 
     private function getProductBrand($that, $product_info)
