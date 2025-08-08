@@ -1060,21 +1060,21 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'type' => 'checkbox',
             'name' => 'enable_variants',
             'value' => 1,
-            'checked' => $this->data['schema_settings']['enable_variants'] ? true : false
+            'checked' => ($this->data['schema_settings']['enable_variants'] ?? true) ? true : false
         ));
 
         $this->data['form']['fields']['show_faq_tab_frontend'] = $form->getFieldHtml(array(
             'type' => 'checkbox',
             'name' => 'show_faq_tab_frontend',
             'value' => 1,
-            'checked' => $this->data['schema_settings']['show_faq_tab_frontend'] ? true : false
+            'checked' => ($this->data['schema_settings']['show_faq_tab_frontend'] ?? false) ? true : false
         ));
 
         $this->data['form']['fields']['show_howto_tab_frontend'] = $form->getFieldHtml(array(
             'type' => 'checkbox',
             'name' => 'show_howto_tab_frontend',
             'value' => 1,
-            'checked' => $this->data['schema_settings']['show_howto_tab_frontend'] ? true : false
+            'checked' => ($this->data['schema_settings']['show_howto_tab_frontend'] ?? false) ? true : false
         ));
     }
 
@@ -1764,7 +1764,8 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         $headers = [
             'Content-Type: application/json',
             'Authorization: Bearer ' . $api_key,
-            'User-Agent: AbanteCart-SmartSEOSchema/2.0'
+            'User-Agent: AbanteCart-SmartSEOSchema/2.0',
+            'Accept: application/json'
         ];
 
         $this->logDebug("=== LLAMADA API INDIVIDUAL ===");
@@ -1786,6 +1787,8 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'AbanteCart-SmartSEOSchema/2.0');
+        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
         $response = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -1824,7 +1827,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                                   ", total=" . ($usage['total_tokens'] ?? 'N/A'));
                 }
                 
-                return $content;
+                return trim($content);
             } else {
                 $this->logDebug("Estructura de respuesta inesperada: " . print_r($decoded, true));
                 throw new Exception("Unexpected response structure from API. Missing choices[0].message.content");
