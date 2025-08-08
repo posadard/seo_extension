@@ -46,7 +46,7 @@
 			<default_value>auto</default_value>
 		</item>
 
-		<!-- Configuraciones Groq IA OPTIMIZADAS -->
+		<!-- Configuraciones Groq IA OPTIMIZADAS CON FALLBACK -->
 		<item id="smart_seo_schema_groq_api_key">
 			<type>password</type>
 			<default_value></default_value>
@@ -54,6 +54,14 @@
 		<item id="smart_seo_schema_groq_model">
 			<type>input</type>
 			<default_value>llama-3.1-8b-instant</default_value>
+		</item>
+		<item id="smart_seo_schema_groq_fallback_model_1">
+			<type>input</type>
+			<default_value>gemma2-9b-it</default_value>
+		</item>
+		<item id="smart_seo_schema_groq_fallback_model_2">
+			<type>input</type>
+			<default_value>llama-3.1-70b-versatile</default_value>
 		</item>
 		<item id="smart_seo_schema_ai_auto_generate">
 			<type>checkbox</type>

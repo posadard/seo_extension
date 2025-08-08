@@ -40,7 +40,8 @@
     To view the list of available AI models, visit the 
     <a href="https://console.groq.com/docs/models" target="_blank">Groq Model Documentation</a>.<br>
     To create or manage your API key, go to the 
-    <a href="https://console.groq.com/keys" target="_blank">Groq API Key Console</a>.
+    <a href="https://console.groq.com/keys" target="_blank">Groq API Key Console</a>.<br><br>
+    <strong>Fallback System:</strong> Configure backup models below to ensure AI generation continues working even if the primary model fails.
   ]]></value>
 </definition>
 <definition>
@@ -146,7 +147,17 @@
   </definition>
   <definition>
     <key>smart_seo_schema_groq_model</key>
-    <value><![CDATA[AI Model:<br /><span class="help">Enter the Groq AI model name (e.g., llama-3.1-8b-instant). For the latest available models, visit <a href="https://console.groq.com/docs/models" target="_blank">Groq Models Documentation</a>. Popular models: llama-3.1-8b-instant (fast), gemma2-9b-it (balanced), llama-3.3-70b-versatile (high quality).</span>]]></value>
+    <value><![CDATA[Primary AI Model:<br /><span class="help">Main Groq AI model (e.g., llama-3.1-8b-instant). For available models, visit <a href="https://console.groq.com/docs/models" target="_blank">Groq Models Documentation</a>. Popular models: llama-3.1-8b-instant (fast), gemma2-9b-it (balanced), llama-3.3-70b-versatile (high quality).</span>]]></value>
+  </definition>
+  
+  <!-- NEW FALLBACK MODEL DEFINITIONS -->
+  <definition>
+    <key>smart_seo_schema_groq_fallback_model_1</key>
+    <value><![CDATA[Fallback Model 1:<br /><span class="help">First backup model to try if primary model fails (recommended: gemma2-9b-it). Used automatically when server errors occur.</span>]]></value>
+  </definition>
+  <definition>
+    <key>smart_seo_schema_groq_fallback_model_2</key>
+    <value><![CDATA[Fallback Model 2:<br /><span class="help">Second backup model for maximum reliability (recommended: llama-3.1-70b-versatile). Used if both primary and first fallback fail.</span>]]></value>
   </definition>
   
   <definition>
@@ -186,7 +197,7 @@
   </definition>
   <definition>
     <key>smart_seo_schema_ai_timeout</key>
-    <value><![CDATA[API Timeout (seconds):<br /><span class="help">Maximum time to wait for AI response. Default: 30 seconds</span>]]></value>
+    <value><![CDATA[Primary API Timeout (seconds):<br /><span class="help">Maximum time to wait for primary model response. Fallback models use progressive timeouts (45s, 60s). Default: 30 seconds</span>]]></value>
   </definition>
 
   <definition>
@@ -339,6 +350,10 @@
     <key>text_section_frontend_tabs</key>
     <value><![CDATA[Frontend Tab Display]]></value>
   </definition>
+  <definition>
+    <key>text_section_fallback</key>
+    <value><![CDATA[AI Fallback Models]]></value>
+  </definition>
 
   <definition>
     <key>smart_seo_schema_debug_mode</key>
@@ -388,6 +403,10 @@
     <value><![CDATA[AI connection failed. Please check your API key and model name.]]></value>
   </definition>
   <definition>
+    <key>text_ai_connection_fallback_success</key>
+    <value><![CDATA[AI connection successful using fallback model!]]></value>
+  </definition>
+  <definition>
     <key>text_ai_model_invalid</key>
     <value><![CDATA[Invalid model name. Please check available models at the Groq documentation.]]></value>
   </definition>
@@ -398,6 +417,10 @@
   <definition>
     <key>text_ai_rate_limit</key>
     <value><![CDATA[Rate limit exceeded. Please try again later.]]></value>
+  </definition>
+  <definition>
+    <key>text_ai_all_models_failed</key>
+    <value><![CDATA[All AI models failed. Please check your configuration and try again.]]></value>
   </definition>
   <definition>
     <key>text_variants_found</key>

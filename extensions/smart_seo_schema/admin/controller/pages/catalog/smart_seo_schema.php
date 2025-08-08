@@ -83,23 +83,25 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 );
                 $this->logDebug("Error: No API key configurado");
             } else {
-                $this->logDebug("Llamando a Groq API...");
-                $response = $this->callGroqAPI($api_key, $model, 'Test connection - please respond with "Connection successful"', 50);
+                $this->logDebug("Llamando a Groq API con fallback...");
+                $response = $this->callGroqAPIWithFallback($api_key, $model, 'Test connection - please respond with "Connection successful"', 50);
                 
-                if ($response) {
+                if ($response['success']) {
                     $json = array(
                         'error' => false,
-                        'message' => "Connection successful! Model '{$model}' is working properly. Response: " . substr($response, 0, 100) . "...",
-                        'response_length' => strlen($response)
+                        'message' => "Connection successful! Model '{$response['model_used']}' is working properly. Response: " . substr($response['content'], 0, 100) . "...",
+                        'response_length' => strlen($response['content']),
+                        'model_used' => $response['model_used'],
+                        'fallback_used' => $response['fallback_used']
                     );
                     $this->logDebug("Éxito: " . $json['message']);
                 } else {
                     $json = array(
                         'error' => true,
-                        'message' => "Connection failed. No response from API. Check your API key and model '{$model}'.",
-                        'debug' => 'Empty response from API'
+                        'message' => "Connection failed after trying all models. " . $response['error'],
+                        'debug' => $response['debug'] ?? 'All fallback attempts failed'
                     );
-                    $this->logDebug("Error: Sin respuesta de la API");
+                    $this->logDebug("Error: " . $response['error']);
                 }
             }
         } catch (Exception $e) {
@@ -633,6 +635,111 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         exit();
     }
 
+    /**
+     * Groq API con sistema de fallback de modelos
+     * Intenta múltiples modelos en caso de errores 500/502/503/timeout
+     */
+    private function callGroqAPIWithFallback($api_key, $primary_model, $prompt, $max_tokens = null)
+    {
+        // Obtener modelos de fallback desde configuración
+        $fallback_model_1 = $this->config->get('smart_seo_schema_groq_fallback_model_1') ?: 'gemma2-9b-it';
+        $fallback_model_2 = $this->config->get('smart_seo_schema_groq_fallback_model_2') ?: 'llama-3.1-70b-versatile';
+        
+        // Array de modelos para intentar en orden
+        $models_to_try = [
+            ['model' => $primary_model, 'timeout' => 30, 'label' => 'primary'],
+            ['model' => $fallback_model_1, 'timeout' => 45, 'label' => 'fallback_1'],
+            ['model' => $fallback_model_2, 'timeout' => 60, 'label' => 'fallback_2']
+        ];
+        
+        $this->logDebug("=== INICIO LLAMADA API CON FALLBACK ===");
+        $this->logDebug("Modelo principal: " . $primary_model);
+        $this->logDebug("Fallback 1: " . $fallback_model_1);
+        $this->logDebug("Fallback 2: " . $fallback_model_2);
+        
+        $last_error = '';
+        $all_errors = [];
+        
+        foreach ($models_to_try as $index => $model_config) {
+            $model = $model_config['model'];
+            $timeout = $model_config['timeout'];
+            $label = $model_config['label'];
+            
+            $this->logDebug("--- Intento " . ($index + 1) . "/3: {$model} (timeout: {$timeout}s) ---");
+            
+            try {
+                $content = $this->callGroqAPI($api_key, $model, $prompt, $max_tokens, $timeout);
+                
+                if (!empty($content)) {
+                    $this->logDebug("ÉXITO con modelo: {$model} (" . strlen($content) . " caracteres)");
+                    
+                    return [
+                        'success' => true,
+                        'content' => $content,
+                        'model_used' => $model,
+                        'fallback_used' => ($index > 0),
+                        'attempt_number' => $index + 1,
+                        'total_attempts' => count($models_to_try)
+                    ];
+                }
+                
+            } catch (Exception $e) {
+                $error_msg = $e->getMessage();
+                $this->logDebug("FALLO modelo {$model}: " . $error_msg);
+                
+                $all_errors[] = "{$label} ({$model}): " . $error_msg;
+                $last_error = $error_msg;
+                
+                // Verificar si el error es recuperable (servidor) o fatal (auth/config)
+                if ($this->isFatalError($e)) {
+                    $this->logDebug("Error fatal detectado, abortando fallback: " . $error_msg);
+                    break;
+                }
+                
+                // Continuar con siguiente modelo si es error recuperable
+                $this->logDebug("Error recuperable, intentando siguiente modelo...");
+                continue;
+            }
+        }
+        
+        $this->logDebug("=== TODOS LOS MODELOS FALLARON ===");
+        $this->logDebug("Errores por modelo: " . print_r($all_errors, true));
+        
+        return [
+            'success' => false,
+            'error' => "All models failed. Last error: " . $last_error,
+            'all_errors' => $all_errors,
+            'models_tried' => array_column($models_to_try, 'model'),
+            'debug' => 'Tried ' . count($models_to_try) . ' models: ' . implode(', ', array_column($models_to_try, 'model'))
+        ];
+    }
+    
+    /**
+     * Determina si un error es fatal (no recuperable con fallback) o temporal
+     */
+    private function isFatalError($exception)
+    {
+        $message = $exception->getMessage();
+        
+        // Errores fatales que no se resuelven con fallback
+        $fatal_patterns = [
+            '/Invalid API key/',
+            '/Unauthorized/',
+            '/cURL Error/',
+            '/Network error/',
+            '/JSON decode error/',
+            '/cURL extension is not available/'
+        ];
+        
+        foreach ($fatal_patterns as $pattern) {
+            if (preg_match($pattern, $message)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     private function generateDescriptionWithAI($product_info)
     {
         $api_key = $this->config->get('smart_seo_schema_groq_api_key');
@@ -677,12 +784,14 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         $this->logDebug("Generando descripción con prompt optimizado para 150-160 caracteres");
         
-        $response = $this->callGroqAPI(
-            $api_key,
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt,
-            100 // Tokens limitados para forzar concisión
-        );
+        $model = $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
+        $result = $this->callGroqAPIWithFallback($api_key, $model, $prompt, 100);
+        
+        if (!$result['success']) {
+            throw new Exception('Failed to generate description: ' . $result['error']);
+        }
+        
+        $response = $result['content'];
         
         // Limpieza y validación de la respuesta
         $response = trim($response);
@@ -742,14 +851,14 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         $expand_prompt .= "Add approximately " . $needed_chars . " more characters with essential product details.\n";
         $expand_prompt .= "Return ONLY the expanded 150-160 character description:";
         
-        $expanded = $this->callGroqAPI(
-            $api_key,
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $expand_prompt,
-            80
-        );
+        $model = $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
+        $result = $this->callGroqAPIWithFallback($api_key, $model, $expand_prompt, 80);
         
-        $expanded = trim($expanded);
+        if (!$result['success']) {
+            return $short_description; // Devolver original si falla la expansión
+        }
+        
+        $expanded = trim($result['content']);
         $expanded = preg_replace('/\s+/', ' ', $expanded);
         
         // Si la expansión funcionó y está en rango, usarla
@@ -801,12 +910,14 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         $this->logDebug("Generando FAQ con {$min_tokens}-{$max_tokens} tokens, {$faq_count} preguntas");
         
-        return $this->callGroqAPI(
-            $api_key,
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt,
-            $max_tokens
-        );
+        $model = $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
+        $result = $this->callGroqAPIWithFallback($api_key, $model, $prompt, $max_tokens);
+        
+        if (!$result['success']) {
+            throw new Exception('Failed to generate FAQ: ' . $result['error']);
+        }
+        
+        return $result['content'];
     }
 
     private function generateHowToWithAI($product_info)
@@ -851,12 +962,14 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         $this->logDebug("Generando HowTo con {$min_tokens}-{$max_tokens} tokens, {$steps_count} pasos");
         
-        return $this->callGroqAPI(
-            $api_key,
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt,
-            $max_tokens
-        );
+        $model = $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
+        $result = $this->callGroqAPIWithFallback($api_key, $model, $prompt, $max_tokens);
+        
+        if (!$result['success']) {
+            throw new Exception('Failed to generate HowTo: ' . $result['error']);
+        }
+        
+        return $result['content'];
     }
 
     private function generateOthersContentData($product_info)
@@ -1415,12 +1528,14 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         $prompt = $this->buildOptimizationPrompt($review_text, $product_info, $profile);
         
-        return $this->callGroqAPI(
-            $api_key,
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt,
-            350
-        );
+        $model = $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
+        $result = $this->callGroqAPIWithFallback($api_key, $model, $prompt, 350);
+        
+        if (!$result['success']) {
+            throw new Exception('Failed to optimize review: ' . $result['error']);
+        }
+        
+        return $result['content'];
     }
 
     private function generateExampleReviewWithAI($product_info)
@@ -1436,14 +1551,14 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         $prompt = $this->buildGenerationPrompt($product_info, $rating, $profile);
         
-        $response = $this->callGroqAPI(
-            $api_key,
-            $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant',
-            $prompt,
-            450
-        );
+        $model = $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
+        $result = $this->callGroqAPIWithFallback($api_key, $model, $prompt, 450);
         
-        return $this->parseReviewResponse($response, $rating, $product_info['name']);
+        if (!$result['success']) {
+            throw new Exception('Failed to generate example review: ' . $result['error']);
+        }
+        
+        return $this->parseReviewResponse($result['content'], $rating, $product_info['name']);
     }
 
     private function buildOptimizationPrompt($review_text, $product_info, $profile)
@@ -1744,7 +1859,10 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return !$this->error;
     }
 
-    private function callGroqAPI($api_key, $model, $prompt, $max_tokens = null)
+    /**
+     * Función original callGroqAPI modificada para soportar timeout personalizado
+     */
+    private function callGroqAPI($api_key, $model, $prompt, $max_tokens = null, $timeout = null)
     {
         $url = 'https://api.groq.com/openai/v1/chat/completions';
         
@@ -1753,6 +1871,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         }
         
         $tokens_to_use = $max_tokens ?: (int)$this->config->get('smart_seo_schema_ai_max_tokens') ?: 800;
+        $timeout_to_use = $timeout ?: (int)$this->config->get('smart_seo_schema_ai_timeout') ?: 30;
         
         $data = [
             'model' => $model,
@@ -1767,10 +1886,11 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             'User-Agent: AbanteCart-SmartSEOSchema/2.0'
         ];
 
-        $this->logDebug("=== LLAMADA API INDIVIDUAL ===");
+        $this->logDebug("=== LLAMADA API ===");
         $this->logDebug("URL: " . $url);
         $this->logDebug("Modelo: " . $model);
         $this->logDebug("Max tokens: " . $tokens_to_use);
+        $this->logDebug("Timeout: " . $timeout_to_use . "s");
         $this->logDebug("Temperature: " . $data['temperature']);
         $this->logDebug("Prompt length: " . strlen($prompt) . " caracteres");
 
@@ -1780,7 +1900,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, (int)$this->config->get('smart_seo_schema_ai_timeout') ?: 30);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout_to_use);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
@@ -1836,6 +1956,12 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $error_details = json_decode($response, true);
         }
 
+        // Detectar errores recuperables para el sistema de fallback
+        $is_server_error = ($http_code >= 500 && $http_code <= 503) || $http_code == 0;
+        if ($is_server_error) {
+            $this->logDebug("Error de servidor detectado (HTTP {$http_code}) - candidato para fallback");
+        }
+
         switch ($http_code) {
             case 400:
                 $error_msg = "Bad Request. Model '{$model}' may not exist or request is malformed.";
@@ -1865,6 +1991,15 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                     $error_msg .= " API Error: " . $error_details['error']['message'];
                 }
                 $error_msg .= " Check https://console.groq.com/docs/models";
+                throw new Exception($error_msg);
+                
+            case 500:
+            case 502:
+            case 503:
+                $error_msg = "Server Error (HTTP {$http_code}). Temporary server issue.";
+                if ($error_details && isset($error_details['error']['message'])) {
+                    $error_msg .= " API Error: " . $error_details['error']['message'];
+                }
                 throw new Exception($error_msg);
                 
             case 0:
