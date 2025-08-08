@@ -1,0 +1,31 @@
+/* Smart SEO Schema - Default Template Styles */
+/* Minimal styles that inherit from default template */
+
+.smart-seo-tab-link {
+    /* Inherit all styles from default template */
+}
+
+.smart-seo-tab-content {
+    /* Use default tab-pane styles */
+}
+
+.smart-seo-faq-content .faq-item,
+.smart-seo-howto-content .howto-step {
+    /* Use default content styles */
+    margin-bottom: 15px;
+}
+
+.smart-seo-faq-content h3,
+.smart-seo-howto-content h3 {
+    /* Inherit from default h3 styles */
+    margin-bottom: 15px;
+}
+
+.smart-seo-faq-content h4 {
+    /* Inherit from default h4 styles */
+    margin-bottom: 10px;
+}
+
+.smart-seo-howto-content ol {
+    /* Use default ol styles */
+}

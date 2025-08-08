@@ -168,40 +168,26 @@ class ExtensionSmartSeoSchema extends Extension
     private function injectForDefault($schema_tabs)
     {
         $view = new AView($this->registry, 0);
-        $data = [];
         
-        $data['all_options'] = [];
+        $tab_headers = '';
+        $tab_content = '';
         
         if ($schema_tabs['faq']) {
-            $data['all_options'][] = [
-                'product_option_id' => 'smart_seo_faq',
-                'name' => $schema_tabs['faq']['title'],
-                'error_text' => $schema_tabs['faq']['title'],
-                'required' => 0,
-                'option_value' => [
-                    ['name' => $schema_tabs['faq']['content']]
-                ]
-            ];
+            $view->batchAssign(['faq_data' => $schema_tabs['faq']]);
+            $tab_headers .= $view->fetch('pages/smart_seo_schema/faq_tab.tpl');
+            $tab_content .= $view->fetch('pages/smart_seo_schema/faq_content.tpl');
         }
         
         if ($schema_tabs['howto']) {
-            $data['all_options'][] = [
-                'product_option_id' => 'smart_seo_howto',
-                'name' => $schema_tabs['howto']['title'],
-                'error_text' => $schema_tabs['howto']['title'],
-                'required' => 0,
-                'option_value' => [
-                    ['name' => $schema_tabs['howto']['content']]
-                ]
-            ];
+            $view->batchAssign(['howto_data' => $schema_tabs['howto']]);
+            $tab_headers .= $view->fetch('pages/smart_seo_schema/howto_tab.tpl');
+            $tab_content .= $view->fetch('pages/smart_seo_schema/howto_content.tpl');
         }
         
-        if (!empty($data['all_options'])) {
-            $view->batchAssign($data);
-            $tab_headers = $view->fetch('pages/smart_seo_schema/faq_tab.tpl');
-            $tab_content = $view->fetch('pages/smart_seo_schema/faq_content.tpl');
-            
+        if (!empty($tab_headers)) {
             $this->baseObject->view->addHookVar('product_features_tab', $tab_headers);
+        }
+        if (!empty($tab_content)) {
             $this->baseObject->view->addHookVar('product_features', $tab_content);
         }
     }
@@ -551,7 +537,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function getDefaultShippingDetails($that = null)
     {
-        // Si no tenemos acceso al controlador, usar configuraciÃ³n desde registry
+        // Si no tenemos acceso al controlador, usar configuraci¨®n desde registry
         if (!$that) {
             $config = $this->registry->get('config');
         } else {
@@ -589,7 +575,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function getDefaultReturnPolicy($that = null)
     {
-        // Si no tenemos acceso al controlador, usar configuraciÃ³n desde registry
+        // Si no tenemos acceso al controlador, usar configuraci¨®n desde registry
         if (!$that) {
             $config = $this->registry->get('config');
         } else {

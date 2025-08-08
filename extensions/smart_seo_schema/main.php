@@ -22,6 +22,8 @@ $templates = [
         'pages/product/product.post.tpl',
         'pages/smart_seo_schema/faq_tab.tpl',
         'pages/smart_seo_schema/faq_content.tpl',
+        'pages/smart_seo_schema/howto_tab.tpl',
+        'pages/smart_seo_schema/howto_content.tpl',
     ],
     'admin'      => [
         'pages/smart_seo_schema/smart_seo_schema_form.tpl',
