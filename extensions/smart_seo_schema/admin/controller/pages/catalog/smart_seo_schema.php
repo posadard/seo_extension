@@ -1059,19 +1059,22 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         $this->data['form']['fields']['enable_variants'] = $form->getFieldHtml(array(
             'type' => 'checkbox',
             'name' => 'enable_variants',
-            'value' => $this->data['schema_settings']['enable_variants'] ?? 1
+            'value' => 1,
+            'checked' => $this->data['schema_settings']['enable_variants'] ? true : false
         ));
 
         $this->data['form']['fields']['show_faq_tab_frontend'] = $form->getFieldHtml(array(
             'type' => 'checkbox',
             'name' => 'show_faq_tab_frontend',
-            'value' => $this->data['schema_settings']['show_faq_tab_frontend'] ?? 0
+            'value' => 1,
+            'checked' => $this->data['schema_settings']['show_faq_tab_frontend'] ? true : false
         ));
 
         $this->data['form']['fields']['show_howto_tab_frontend'] = $form->getFieldHtml(array(
             'type' => 'checkbox',
             'name' => 'show_howto_tab_frontend',
-            'value' => $this->data['schema_settings']['show_howto_tab_frontend'] ?? 0
+            'value' => 1,
+            'checked' => $this->data['schema_settings']['show_howto_tab_frontend'] ? true : false
         ));
     }
 
