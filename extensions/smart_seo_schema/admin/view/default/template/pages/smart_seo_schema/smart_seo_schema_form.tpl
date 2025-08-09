@@ -62,7 +62,7 @@
                         </div>
                     </div>
                     <div class="col-sm-3 col-xs-12">
-                        <button type="button" id="generate_description_ai" class="btn btn-success btn-block" onclick="generateDescriptionAI()">
+                        <button type="button" id="generate_description_ai" class="btn btn-success btn-block">
                             <i class="fa fa-magic"></i> Generate Description
                         </button>
                     </div>
@@ -109,7 +109,7 @@
                             placeholder="FAQ content for Schema.org FAQ markup..."><?php echo $schema_settings['faq_content'] ?? ''; ?></textarea>
                     </div>
                     <div class="col-sm-3 col-xs-12">
-                        <button type="button" id="generate_faq_ai" class="btn btn-success btn-block" onclick="generateFAQAI()">
+                        <button type="button" id="generate_faq_ai" class="btn btn-success btn-block">
                             <i class="fa fa-question-circle"></i> Generate FAQ
                         </button>
                     </div>
@@ -140,7 +140,7 @@
                             placeholder="HowTo instructions for Schema.org HowTo markup..."><?php echo $schema_settings['howto_content'] ?? ''; ?></textarea>
                     </div>
                     <div class="col-sm-3 col-xs-12">
-                        <button type="button" id="generate_howto_ai" class="btn btn-success btn-block" onclick="generateHowToAI()">
+                        <button type="button" id="generate_howto_ai" class="btn btn-success btn-block">
                             <i class="fa fa-list-ol"></i> Generate HowTo
                         </button>
                     </div>
@@ -193,7 +193,10 @@
                     </div>
                     <div class="col-sm-3 col-xs-12">
                         <div class="btn-group-vertical btn-block">
-                            <button type="button" id="validate_json" class="btn btn-warning" onclick="validateOthersContentJSON()">
+                            <button type="button" id="generate_additional_properties_ai" class="btn btn-success btn-block">
+                                <i class="fa fa-magic"></i> Generate Additional Properties
+                            </button>
+                            <button type="button" id="validate_json" class="btn btn-warning">
                                 <i class="fa fa-check-circle"></i> Validate JSON
                             </button>
                         </div>
@@ -228,7 +231,7 @@
 
     <div class="panel-footer col-xs-12">
         <div class="text-center">
-            <button class="btn btn-primary lock-on-click" id="save_button" onclick="return validateBeforeSave()">
+            <button class="btn btn-primary lock-on-click" id="save_button">
                 <i class="fa fa-save fa-fw"></i> <?php echo $form['submit']->text; ?>
             </button>
             <button class="btn btn-default" type="button" onclick="window.location='<?php echo $cancel; ?>'">
@@ -241,6 +244,7 @@
 
 </div>
 
+<!-- Modals -->
 <div class="modal fade" id="loading_modal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -283,57 +287,66 @@
                     
                     <div class="form-group">
                         <label for="review_author">Author:</label>
-                        <input type="text" class="form-control" id="review_author" name="author" required>
+                        <input type="text" class="form-control" id="review_author" name="author" required maxlength="64">
                     </div>
                     
                     <div class="form-group">
                         <label for="review_text">Review Text:</label>
                         <div class="input-group">
-                            <textarea class="form-control" id="review_text" name="text" rows="6" required></textarea>
+                            <textarea class="form-control" id="review_text" name="text" rows="6" required minlength="10" maxlength="2000"></textarea>
                             <span class="input-group-btn" style="vertical-align: top;">
                                 <button type="button" id="optimize_review_modal" class="btn btn-warning" 
-                                        onclick="optimizeReviewInModal()" 
                                         title="Optimize with AI">
                                     <i class="fa fa-magic"></i><br>Optimize
                                 </button>
                             </span>
+                        </div>
+                        <div class="help-block">
+                            <span id="review_char_count" class="pull-right">0/2000 characters</span>
+                            <span class="text-muted">Minimum 10 characters required</span>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label for="review_rating">Rating:</label>
                         <select class="form-control" id="review_rating" name="rating" required>
-                            <option value="1">1 Star</option>
-                            <option value="2">2 Stars</option>
-                            <option value="3">3 Stars</option>
-                            <option value="4">4 Stars</option>
-                            <option value="5">5 Stars</option>
+                            <option value="">Select rating...</option>
+                            <option value="1">⭐ 1 Star</option>
+                            <option value="2">⭐⭐ 2 Stars</option>
+                            <option value="3">⭐⭐⭐ 3 Stars</option>
+                            <option value="4">⭐⭐⭐⭐ 4 Stars</option>
+                            <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="review_verified" name="verified_purchase" value="1">
-                            Verified Purchase
-                        </label>
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" id="review_verified" name="verified_purchase" value="1">
+                                Verified Purchase
+                            </label>
+                        </div>
                     </div>
                     
                     <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="review_status" name="status" value="1">
-                            Active Status
-                        </label>
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" id="review_status" name="status" value="1" checked>
+                                Active Status
+                            </label>
+                        </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveReview()">Save Review</button>
+                <button type="button" class="btn btn-primary" id="save_review_btn">Save Review</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- CSS Styles -->
 <style>
 .highlight-success {
     border: 2px solid #5cb85c !important;
@@ -396,10 +409,15 @@
 .tab-option-section .help-block {
     margin-bottom: 0;
 }
+.btn-group-vertical .btn {
+    margin-bottom: 5px;
+}
 </style>
 
+<!-- JavaScript -->
 <script type="text/javascript">
 
+// Configuration
 var aiDescriptionSettings = {
     targetMin: 150,
     targetMax: 160,
@@ -411,25 +429,56 @@ var jsonValidationState = {
     lastValidated: ''
 };
 
+var appConfig = {
+    productId: <?php echo (int)($product_id ?? 0); ?>,
+    hasApiKey: <?php echo !empty($smart_seo_schema_groq_api_key) ? 'true' : 'false'; ?>,
+    urls: {
+        testConnection: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/testAIConnection", "&product_id=" . $product_id); ?>',
+        generateDescription: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateDescriptionContent", "&product_id=" . $product_id); ?>',
+        generateFAQ: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateFAQContent", "&product_id=" . $product_id); ?>',
+        generateHowTo: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateHowToContent", "&product_id=" . $product_id); ?>',
+        generateAdditionalProperties: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateAdditionalProperties", "&product_id=" . $product_id); ?>',
+        previewSchema: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/previewSchema", "&product_id=" . $product_id); ?>',
+        getVariants: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/getVariants", "&product_id=" . $product_id); ?>',
+        optimizeReview: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/optimizeReview", "&product_id=" . $product_id); ?>',
+        saveReview: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/saveReview", "&product_id=" . $product_id); ?>',
+        deleteReview: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/deleteReview", "&product_id=" . $product_id); ?>',
+        generateExampleReview: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateExampleReview", "&product_id=" . $product_id); ?>'
+    }
+};
+
+// Document Ready
 $(document).ready(function() {
     console.log('=== INICIALIZANDO SMART SEO SCHEMA ===');
     
+    initializeUI();
+    setupEventHandlers();
     checkAIStatus();
+});
+
+function initializeUI() {
     updateCharacterCounter();
+    updateReviewCharCounter();
     
+    if ($('#enable_variants').is(':checked')) {
+        loadVariantsPreview();
+    }
+    
+    updateTabOptionHighlighting();
+}
+
+function setupEventHandlers() {
+    // Form inputs
     $('#custom_description').on('input', updateCharacterCounter);
+    $('#review_text').on('input', updateReviewCharCounter);
     $('#others_content').on('input', function() {
-        // Reset validation state when content changes
         jsonValidationState.isValid = true;
         $('#json_save_blocker').hide();
         $('#json_validation_result').empty();
         updateSaveButtonState();
     });
     
-    if ($('#enable_variants').is(':checked')) {
-        loadVariantsPreview();
-    }
-    
+    // Checkboxes
     $('#enable_variants').change(function() {
         if ($(this).is(':checked')) {
             loadVariantsPreview();
@@ -437,17 +486,28 @@ $(document).ready(function() {
             $('#variants_preview').hide();
         }
     });
-
-    // Highlight frontend tab options when content is available
-    updateTabOptionHighlighting();
+    
+    // Content monitoring
     $('#faq_content, #howto_content').on('input', updateTabOptionHighlighting);
-});
+    
+    // Button handlers
+    $('#test_ai_connection').click(testAIConnection);
+    $('#preview_schema').click(previewSchema);
+    $('#generate_description_ai').click(generateDescriptionAI);
+    $('#generate_faq_ai').click(generateFAQAI);
+    $('#generate_howto_ai').click(generateHowToAI);
+    $('#generate_additional_properties_ai').click(generateAdditionalPropertiesAI);
+    $('#validate_json').click(validateOthersContentJSON);
+    $('#save_button').click(validateBeforeSave);
+    $('#save_review_btn').click(saveReview);
+    $('#optimize_review_modal').click(optimizeReviewInModal);
+}
 
 function updateTabOptionHighlighting() {
     var faqContent = $('#faq_content').val().trim();
     var howtoContent = $('#howto_content').val().trim();
     
-    // Show/highlight FAQ tab option
+    // FAQ tab option
     var $faqTabGroup = $('label[for="show_faq_tab_frontend"]').closest('.form-group');
     if (faqContent.length > 0) {
         $faqTabGroup.addClass('tab-option-section');
@@ -457,7 +517,7 @@ function updateTabOptionHighlighting() {
         $faqTabGroup.find('.help-block').html('<i class="fa fa-info-circle"></i> When enabled, FAQ content will appear as a tab on the product page');
     }
     
-    // Show/highlight HowTo tab option
+    // HowTo tab option
     var $howtoTabGroup = $('label[for="show_howto_tab_frontend"]').closest('.form-group');
     if (howtoContent.length > 0) {
         $howtoTabGroup.addClass('tab-option-section');
@@ -502,6 +562,22 @@ function updateCharacterCounter() {
     }
 }
 
+function updateReviewCharCounter() {
+    var text = $('#review_text').val();
+    var length = text.length;
+    var counter = $('#review_char_count');
+    
+    counter.text(length + '/2000 characters');
+    
+    if (length < 10) {
+        counter.removeClass('text-success text-warning').addClass('text-danger');
+    } else if (length > 1800) {
+        counter.removeClass('text-success text-danger').addClass('text-warning');
+    } else {
+        counter.removeClass('text-danger text-warning').addClass('text-success');
+    }
+}
+
 function updateSaveButtonState() {
     var saveButton = $('#save_button');
     
@@ -539,9 +615,7 @@ function validateBeforeSave() {
 }
 
 function checkAIStatus() {
-    var apiKey = '<?php echo addslashes($smart_seo_schema_groq_api_key); ?>';
-    
-    if (!apiKey || apiKey.length < 10) {
+    if (!appConfig.hasApiKey) {
         showAIStatus('warning', 'AI features require a valid Groq API key. Configure it in extension settings.');
         $('.btn-success[id*="generate_"]').prop('disabled', true);
     } else {
@@ -555,21 +629,46 @@ function showAIStatus(type, message) {
     $('#ai_status_message').text(message);
 }
 
-function generateDescriptionAI() {
-    var $button = $('#generate_description_ai');
-    var originalText = $button.html();
-    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
-    
-    $('#loading_message').text('Generating optimized description...');
+function showLoadingModal(message) {
+    $('#loading_message').text(message || 'Processing AI request...');
     $('#loading_modal').modal('show');
-    
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateDescriptionContent", "&product_id=" . $product_id); ?>',
+}
+
+function hideLoadingModal() {
+    $('#loading_modal').modal('hide');
+}
+
+function makeAjaxRequest(url, options) {
+    var defaults = {
         type: 'GET',
         dataType: 'json',
         timeout: 30000,
+        error: function(xhr, status, error) {
+            hideLoadingModal();
+            var errorMsg = 'Request failed: ';
+            if (status === 'timeout') {
+                errorMsg += 'Request timeout';
+            } else {
+                errorMsg += error;
+            }
+            error_alert(errorMsg);
+        }
+    };
+    
+    return $.ajax(url, $.extend(defaults, options));
+}
+
+// AI Generation Functions
+function generateDescriptionAI() {
+    var $button = $('#generate_description_ai');
+    var originalText = $button.html();
+    
+    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
+    showLoadingModal('Generating optimized description...');
+    
+    makeAjaxRequest(appConfig.urls.generateDescription, {
         success: function(response) {
-            $('#loading_modal').modal('hide');
+            hideLoadingModal();
             
             if (response.error) {
                 error_alert('Error generating description: ' + response.message);
@@ -590,10 +689,6 @@ function generateDescriptionAI() {
                 }, 5000);
             }
         },
-        error: function() {
-            $('#loading_modal').modal('hide');
-            error_alert('Failed to generate description. Please try again.');
-        },
         complete: function() {
             $button.prop('disabled', false).html(originalText);
         }
@@ -603,18 +698,13 @@ function generateDescriptionAI() {
 function generateFAQAI() {
     var $button = $('#generate_faq_ai');
     var originalText = $button.html();
+    
     $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
+    showLoadingModal('Generating FAQ content...');
     
-    $('#loading_message').text('Generating FAQ content...');
-    $('#loading_modal').modal('show');
-    
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateFAQContent", "&product_id=" . $product_id); ?>',
-        type: 'GET',
-        dataType: 'json',
-        timeout: 30000,
+    makeAjaxRequest(appConfig.urls.generateFAQ, {
         success: function(response) {
-            $('#loading_modal').modal('hide');
+            hideLoadingModal();
             
             if (response.error) {
                 error_alert('Error generating FAQ: ' + response.message);
@@ -628,10 +718,6 @@ function generateFAQAI() {
                 updateTabOptionHighlighting();
             }
         },
-        error: function() {
-            $('#loading_modal').modal('hide');
-            error_alert('Failed to generate FAQ. Please try again.');
-        },
         complete: function() {
             $button.prop('disabled', false).html(originalText);
         }
@@ -641,18 +727,13 @@ function generateFAQAI() {
 function generateHowToAI() {
     var $button = $('#generate_howto_ai');
     var originalText = $button.html();
+    
     $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
+    showLoadingModal('Generating HowTo instructions...');
     
-    $('#loading_message').text('Generating HowTo instructions...');
-    $('#loading_modal').modal('show');
-    
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateHowToContent", "&product_id=" . $product_id); ?>',
-        type: 'GET',
-        dataType: 'json',
-        timeout: 30000,
+    makeAjaxRequest(appConfig.urls.generateHowTo, {
         success: function(response) {
-            $('#loading_modal').modal('hide');
+            hideLoadingModal();
             
             if (response.error) {
                 error_alert('Error generating HowTo: ' + response.message);
@@ -666,9 +747,33 @@ function generateHowToAI() {
                 updateTabOptionHighlighting();
             }
         },
-        error: function() {
-            $('#loading_modal').modal('hide');
-            error_alert('Failed to generate HowTo. Please try again.');
+        complete: function() {
+            $button.prop('disabled', false).html(originalText);
+        }
+    });
+}
+
+function generateAdditionalPropertiesAI() {
+    var $button = $('#generate_additional_properties_ai');
+    var originalText = $button.html();
+    
+    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
+    showLoadingModal('Generating additional properties...');
+    
+    makeAjaxRequest(appConfig.urls.generateAdditionalProperties, {
+        success: function(response) {
+            hideLoadingModal();
+            
+            if (response.error) {
+                error_alert('Error generating additional properties: ' + response.message);
+            } else {
+                $('#others_content').val(response.content);
+                $('#others_content').addClass('highlight-success');
+                setTimeout(function() {
+                    $('#others_content').removeClass('highlight-success');
+                }, 3000);
+                success_alert('Additional properties generated successfully!');
+            }
         },
         complete: function() {
             $button.prop('disabled', false).html(originalText);
@@ -679,10 +784,7 @@ function generateHowToAI() {
 function testAIConnection() {
     $('#test_ai_connection').attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Testing...');
     
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/testAIConnection", "&product_id=" . $product_id); ?>',
-        type: 'GET',
-        dataType: 'json',
+    makeAjaxRequest(appConfig.urls.testConnection, {
         timeout: 15000,
         success: function(response) {
             if (response.error) {
@@ -693,17 +795,6 @@ function testAIConnection() {
                 success_alert(response.message);
             }
         },
-        error: function(xhr, status, error) {
-            var errorMsg = 'Connection test failed: ';
-            if (status === 'timeout') {
-                errorMsg += 'Request timeout';
-            } else {
-                errorMsg += error;
-            }
-            
-            showAIStatus('danger', errorMsg);
-            error_alert(errorMsg);
-        },
         complete: function() {
             $('#test_ai_connection').attr('disabled', false).html('<i class="fa fa-flask fa-lg"></i> <?php echo $button_test_ai_connection; ?>');
         }
@@ -713,10 +804,7 @@ function testAIConnection() {
 function previewSchema() {
     $('#preview_schema').attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
     
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/previewSchema", "&product_id=" . $product_id); ?>',
-        type: 'GET',
-        dataType: 'json',
+    makeAjaxRequest(appConfig.urls.previewSchema, {
         success: function(response) {
             if (response.error) {
                 error_alert(response.message);
@@ -729,9 +817,6 @@ function previewSchema() {
                 }, 500);
             }
         },
-        error: function() {
-            error_alert('Schema preview failed. Please try again.');
-        },
         complete: function() {
             $('#preview_schema').attr('disabled', false).html('<i class="fa fa-eye fa-lg"></i> <?php echo $button_preview_schema; ?>');
         }
@@ -739,10 +824,7 @@ function previewSchema() {
 }
 
 function loadVariantsPreview() {
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/getVariants", "&product_id=" . $product_id); ?>',
-        type: 'GET',
-        dataType: 'json',
+    makeAjaxRequest(appConfig.urls.getVariants, {
         success: function(response) {
             if (response.variants && response.variants.length > 0) {
                 var html = '<h5>Found ' + response.variants.length + ' variants:</h5><ul class="list-unstyled">';
@@ -806,6 +888,7 @@ function validateOthersContentJSON() {
     }
 }
 
+// Review Management Functions
 function optimizeReviewInModal() {
     var currentText = $('#review_text').val().trim();
     
@@ -814,33 +897,33 @@ function optimizeReviewInModal() {
         return;
     }
     
+    if (currentText.length < 10) {
+        error_alert('Review text must be at least 10 characters long.');
+        return;
+    }
+    
     var $button = $('#optimize_review_modal');
     var originalText = $button.html();
     $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i><br>Working...');
     
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/optimizeReview", "&product_id=" . $product_id); ?>',
+    makeAjaxRequest(appConfig.urls.optimizeReview, {
         type: 'POST',
         data: {
             review_id: $('#review_id').val() || 'new',
             review_text: currentText
         },
-        dataType: 'json',
-        timeout: 30000,
         success: function(response) {
             if (response.error) {
                 error_alert('Error optimizing review: ' + response.message);
             } else {
                 $('#review_text').val(response.optimized_text);
                 $('#review_text').addClass('highlight-success');
+                updateReviewCharCounter();
                 setTimeout(function() {
                     $('#review_text').removeClass('highlight-success');
                 }, 3000);
                 success_alert('Review optimized successfully!');
             }
-        },
-        error: function() {
-            error_alert('Failed to optimize review. Please try again.');
         },
         complete: function() {
             $button.prop('disabled', false).html(originalText);
@@ -854,6 +937,7 @@ function editReview(reviewId) {
         $('#review_form')[0].reset();
         $('#review_id').val('');
         $('#review_status').prop('checked', true);
+        updateReviewCharCounter();
     } else {
         $('#review_modal_title').text('Edit Review');
         $('#review_id').val(reviewId);
@@ -862,6 +946,7 @@ function editReview(reviewId) {
         $('#review_rating').val($('#review_rating_' + reviewId).data('rating'));
         $('#review_verified').prop('checked', $('#review_verified_' + reviewId).data('verified') == '1');
         $('#review_status').prop('checked', $('#review_status_' + reviewId).data('status') == '1');
+        updateReviewCharCounter();
     }
     
     $('#review_modal').modal('show');
@@ -871,48 +956,63 @@ function saveReview() {
     var formData = {
         review_id: $('#review_id').val(),
         product_id: $('#product_id_review').val(),
-        author: $('#review_author').val(),
-        text: $('#review_text').val(),
+        author: $('#review_author').val().trim(),
+        text: $('#review_text').val().trim(),
         rating: $('#review_rating').val(),
         verified_purchase: $('#review_verified').is(':checked') ? 1 : 0,
         status: $('#review_status').is(':checked') ? 1 : 0
     };
     
-    if (!formData.author || !formData.text || !formData.rating) {
-        error_alert('Please fill in all required fields.');
+    // Validation
+    if (!formData.author || formData.author.length < 2) {
+        error_alert('Author name must be at least 2 characters long.');
+        $('#review_author').focus();
         return;
     }
     
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/saveReview", "&product_id=" . $product_id); ?>',
+    if (!formData.text || formData.text.length < 10) {
+        error_alert('Review text must be at least 10 characters long.');
+        $('#review_text').focus();
+        return;
+    }
+    
+    if (!formData.rating || formData.rating < 1 || formData.rating > 5) {
+        error_alert('Please select a valid rating (1-5 stars).');
+        $('#review_rating').focus();
+        return;
+    }
+    
+    if (formData.text.length > 2000) {
+        error_alert('Review text cannot exceed 2000 characters.');
+        $('#review_text').focus();
+        return;
+    }
+    
+    makeAjaxRequest(appConfig.urls.saveReview, {
         type: 'POST',
         data: formData,
-        dataType: 'json',
         success: function(response) {
             if (response.error) {
                 error_alert('Error saving review: ' + response.message);
             } else {
                 $('#review_modal').modal('hide');
                 success_alert(response.message);
-                location.reload();
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
             }
-        },
-        error: function() {
-            error_alert('Failed to save review. Please try again.');
         }
     });
 }
 
 function deleteReview(reviewId) {
-    if (!confirm('Are you sure you want to delete this review?')) {
+    if (!confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
         return;
     }
     
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/deleteReview", "&product_id=" . $product_id); ?>',
+    makeAjaxRequest(appConfig.urls.deleteReview, {
         type: 'POST',
         data: { review_id: reviewId },
-        dataType: 'json',
         success: function(response) {
             if (response.error) {
                 error_alert('Error deleting review: ' + response.message);
@@ -922,9 +1022,6 @@ function deleteReview(reviewId) {
                     $(this).remove();
                 });
             }
-        },
-        error: function() {
-            error_alert('Failed to delete review. Please try again.');
         }
     });
 }
@@ -932,11 +1029,7 @@ function deleteReview(reviewId) {
 function generateExampleReview() {
     $('#generate_example_review').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating...');
     
-    $.ajax({
-        url: '<?php echo $this->html->getSecureURL("catalog/smart_seo_schema/generateExampleReview", "&product_id=" . $product_id); ?>',
-        type: 'GET',
-        dataType: 'json',
-        timeout: 30000,
+    makeAjaxRequest(appConfig.urls.generateExampleReview, {
         success: function(response) {
             if (response.error) {
                 error_alert('Error generating example review: ' + response.message);
@@ -950,19 +1043,14 @@ function generateExampleReview() {
                 $('#review_rating').val(review.rating);
                 $('#review_verified').prop('checked', review.verified_purchase == 1);
                 $('#review_status').prop('checked', review.status == 1);
+                updateReviewCharCounter();
                 $('#review_modal').modal('show');
             }
-        },
-        error: function() {
-            error_alert('Failed to generate example review. Please try again.');
         },
         complete: function() {
             $('#generate_example_review').prop('disabled', false).html('<i class="fa fa-star"></i> Generate Example Review');
         }
     });
 }
-
-$('#test_ai_connection').click(testAIConnection);
-$('#preview_schema').click(previewSchema);
 
 </script>
