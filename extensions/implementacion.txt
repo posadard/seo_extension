@@ -1,0 +1,59 @@
+Informe Detallado: Separación others_content y Automático
+Objetivo Principal
+Separar others_content (exclusivo para additionalProperty) del contenido automático (weight, dimensions, etc.) para mejor control y UX.
+Archivos a Modificar (Mínimos)
+1. core/smart_seo_schema.php - CRÍTICO
+Función: generateCompleteSchema()
+Cambios:
+
+Separar procesamiento de others_content (solo additionalProperty)
+Generar propiedades automáticas independientemente
+Combinar ambos en el schema final sin conflictos
+
+2. admin/controller/pages/catalog/smart_seo_schema.php - CRÍTICO
+Funciones a modificar:
+
+generateAdditionalPropertiesWithAI() - Solo generar additionalProperty
+validateAdditionalPropertyStructure() - Ya existe, ajustar validación
+saveSchemaSettings() - Mejorar validación del campo others_content
+
+3. admin/view/default/template/pages/smart_seo_schema/smart_seo_schema_form.tpl - UX
+Cambios mínimos:
+
+Cambiar label del campo others_content a "Additional Properties"
+Actualizar placeholder/help text
+Mantener validación existente
+
+Lo que NO se modifica
+
+Base de datos (estructura actual es suficiente)
+Otros templates
+Modelos storefront
+Sistema de instalación
+Configuración XML
+
+Resultado Esperado
+Antes:
+json{
+  "@type": "Product",
+  "0": {"@type": "PropertyValue", "name": "Weight"...},
+  "1": {"@type": "PropertyValue", "name": "Purity"...},
+  "weight": "automatically generated"
+}
+Después:
+json{
+  "@type": "Product",
+  "additionalProperty": [
+    {"@type": "PropertyValue", "name": "Purity", "value": "99%"},
+    {"@type": "PropertyValue", "name": "CAS", "value": "123-45-6"}
+  ],
+  "weight": {"@type": "QuantitativeValue", "value": "500", "unitCode": "GRM"}
+}
+Beneficios Inmediatos
+
+Schema.org compliance: Sin índices numéricos
+Separación limpia: others_content solo para custom properties
+UX mejorada: Campo más claro y específico
+Mantenimiento: Lógica separada y controlable
+
+Total: 3 archivos modificados - Cambios mínimos y focalizados.
