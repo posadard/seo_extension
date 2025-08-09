@@ -68,7 +68,7 @@ class ExtensionSmartSeoSchema extends Extension
     {
         /** @var ControllerPagesProductProduct $that */
         $that = $this->baseObject;
-
+        
         if (!$that->config->get('smart_seo_schema_status')) {
             return;
         }
@@ -78,65 +78,8 @@ class ExtensionSmartSeoSchema extends Extension
         $that->load->library('json');
         $that->view->assign('smart_seo_schema_data', AJson::encode($schema_data));
 
-        // Prepare Open Graph data
-        $og_data = $this->prepareOpenGraphData($that);
-        $that->view->assign('smart_seo_schema_og', $og_data);
-
         // Register frontend tabs if enabled
         $this->registerProductTabs($that);
-    }
-
-    private function prepareOpenGraphData($that)
-    {
-        $product_info = $that->data['product_info'];
-        $product_id = $product_info['product_id'];
-
-        $store_url = rtrim($that->config->get('config_ssl_url') ?: $that->config->get('config_url'), '/');
-        $product_url = $store_url . '/index.php?rt=product/product&product_id=' . $product_id;
-
-        $og = [
-            'og:title' => $product_info['name'],
-            'og:type'  => 'product',
-            'og:url'   => $product_url,
-        ];
-
-        $images = $this->getProductImages($that, $product_info);
-        if (!empty($images)) {
-            $og['og:image'] = $images[0];
-        }
-
-        if (!empty($product_info['meta_description'])) {
-            $og['og:description'] = $product_info['meta_description'];
-        }
-
-        if (!empty($product_info['price'])) {
-            $og['product:price:amount'] = number_format($product_info['price'], 2, '.', '');
-            $og['product:price:currency'] = $that->currency->getCode();
-        }
-
-        return $og;
-    }
-
-    private function registerProductTabs($that)
-    {
-        $that->loadModel('smart_seo_schema/smart_seo_schema_tabs');
-
-        $product_id = $that->request->get['product_id'];
-        if (empty($product_id)) {
-            $product_id = $that->request->get['key'];
-        }
-
-        if (!$product_id) {
-            return;
-        }
-
-        $schema_tabs = $that->model_smart_seo_schema_smart_seo_schema_tabs->getProductSchemaTabs((int) $product_id);
-
-        if (!$schema_tabs['faq'] && !$schema_tabs['howto']) {
-            return;
-        }
-
-        $this->injectTabsForCurrentTemplate($schema_tabs);
     }
 
     public function onControllerPagesProductProduct_InitData()
@@ -594,7 +537,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function getDefaultShippingDetails($that = null)
     {
-        // Si no tenemos acceso al controlador, usar configuraciÂ¨Â®n desde registry
+        // Si no tenemos acceso al controlador, usar configuraci¨®n desde registry
         if (!$that) {
             $config = $this->registry->get('config');
         } else {
@@ -632,7 +575,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function getDefaultReturnPolicy($that = null)
     {
-        // Si no tenemos acceso al controlador, usar configuraciÂ¨Â®n desde registry
+        // Si no tenemos acceso al controlador, usar configuraci¨®n desde registry
         if (!$that) {
             $config = $this->registry->get('config');
         } else {
