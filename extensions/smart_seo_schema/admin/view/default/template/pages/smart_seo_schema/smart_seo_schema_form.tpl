@@ -88,6 +88,8 @@
             </div>
         </div>
 
+      
+
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h4 class="panel-title">
@@ -160,21 +162,18 @@
 
             </div>
         </div>
-
-        <?php include('reviews_section.tpl'); ?>
-
-        <div class="panel panel-default">
+ <div class="panel panel-default">
             <div class="panel-heading">
                 <h4 class="panel-title">
-                    <i class="fa fa-code"></i> Additional Schema Properties
+                    <i class="fa fa-plus-circle"></i> Custom Product Properties
                 </h4>
             </div>
             <div class="panel-body">
                 
                 <div class="form-group">
                     <label class="control-label col-sm-3 col-xs-12" for="others_content">
-                        Additional Properties:<br>
-                        <span class="help">JSON for extra Schema.org properties</span>
+                        Custom Properties:<br>
+                        <span class="help">Additional PropertyValue objects for Schema.org</span>
                     </label>
                     <div class="col-sm-6 col-xs-12">
                         <textarea 
@@ -182,12 +181,19 @@
                             name="others_content" 
                             class="form-control large-field" 
                             rows="12" 
-                            placeholder='Enter valid JSON for additional properties...'><?php echo $schema_settings['others_content'] ?? ''; ?></textarea>
+                            placeholder='{"additionalProperty": [{"@type": "PropertyValue", "name": "Purity", "value": "99", "unitCode": "PERCENT"}]}'><?php echo $schema_settings['others_content'] ?? ''; ?></textarea>
                         <div class="help-block">
-                            <i class="fa fa-info-circle"></i> Weight and dimensions are generated automatically from product data.
+                            <i class="fa fa-info-circle"></i> 
+                            <strong>This field is only for custom PropertyValue objects.</strong>
                             <br>
+                            <strong>Auto-generated properties</strong> (weight, dimensions) are handled separately above.
+                            <br>
+                            <a href="https://schema.org/PropertyValue" target="_blank" class="text-primary">
+                                <i class="fa fa-external-link"></i> PropertyValue documentation
+                            </a>
+                            &nbsp;|&nbsp;
                             <a href="https://validator.schema.org/" target="_blank" class="text-primary">
-                                <i class="fa fa-external-link"></i> Need help? Test your schema at validator.schema.org
+                                <i class="fa fa-external-link"></i> Test your schema
                             </a>
                         </div>
                     </div>
@@ -197,18 +203,61 @@
                                 <i class="fa fa-magic"></i> Generate Additional Properties
                             </button>
                             <button type="button" id="validate_json" class="btn btn-warning">
-                                <i class="fa fa-check-circle"></i> Validate JSON
+                                <i class="fa fa-check-circle"></i> Validate Structure
                             </button>
                         </div>
                         <div id="json_validation_result" class="help-block"></div>
                         <div id="json_save_blocker" class="alert alert-danger" style="display: none; margin-top: 10px;">
-                            <i class="fa fa-exclamation-triangle"></i> Cannot save with invalid JSON
+                            <i class="fa fa-exclamation-triangle"></i> Cannot save with invalid structure
                         </div>
                     </div>
                 </div>
                 
+                <div class="alert alert-warning">
+                    <i class="fa fa-lightbulb-o"></i>
+                    <strong>Required format:</strong> Only additionalProperty arrays are accepted.
+                    <br>
+                    <strong>Example:</strong> <code>{"additionalProperty": [{"@type": "PropertyValue", "name": "CAS Number", "value": "123-45-6"}]}</code>
+                </div>
+                
             </div>
         </div>
+          <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4 class="panel-title">
+                    <i class="fa fa-database"></i> Automatic Properties
+                </h4>
+            </div>
+            <div class="panel-body">
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i>
+                    <strong>Auto-generated from product data:</strong>
+                    Weight, dimensions, price, availability, shipping details are handled automatically by the system.
+                </div>
+                
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h5><i class="fa fa-weight"></i> Weight & Dimensions</h5>
+                        <ul class="list-unstyled">
+                            <li><i class="fa fa-check text-success"></i> Product weight → <code>weight</code> (QuantitativeValue)</li>
+                            <li><i class="fa fa-check text-success"></i> Dimensions → <code>depth</code>, <code>width</code>, <code>height</code></li>
+                            <li><i class="fa fa-check text-success"></i> Standard unit codes (GRM, CMT, etc.)</li>
+                        </ul>
+                    </div>
+                    <div class="col-sm-6">
+                        <h5><i class="fa fa-shopping-cart"></i> Commerce Properties</h5>
+                        <ul class="list-unstyled">
+                            <li><i class="fa fa-check text-success"></i> Price & currency → <code>offers.price</code></li>
+                            <li><i class="fa fa-check text-success"></i> Stock status → <code>offers.availability</code></li>
+                            <li><i class="fa fa-check text-success"></i> Shipping details → <code>offers.shippingDetails</code></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php include('reviews_section.tpl'); ?>
+
+       
 
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -595,11 +644,33 @@ function validateBeforeSave() {
     
     if (othersContent !== '') {
         try {
-            JSON.parse(othersContent);
+            var parsed = JSON.parse(othersContent);
+            
+            // Validación específica: Solo permitir additionalProperty
+            if (!parsed.hasOwnProperty('additionalProperty')) {
+                jsonValidationState.isValid = false;
+                error_alert('Custom Properties field must contain only additionalProperty array. Please use the correct format.');
+                $('#others_content').addClass('highlight-error');
+                $('#json_validation_result').html('<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> Must contain additionalProperty array</span>');
+                $('#json_save_blocker').show();
+                updateSaveButtonState();
+                return false;
+            }
+            
+            if (!Array.isArray(parsed.additionalProperty)) {
+                jsonValidationState.isValid = false;
+                error_alert('additionalProperty must be an array of PropertyValue objects.');
+                $('#others_content').addClass('highlight-error');
+                $('#json_validation_result').html('<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> additionalProperty must be an array</span>');
+                $('#json_save_blocker').show();
+                updateSaveButtonState();
+                return false;
+            }
+            
             jsonValidationState.isValid = true;
         } catch (e) {
             jsonValidationState.isValid = false;
-            error_alert('Cannot save: Invalid JSON in Additional Properties field. Please fix the JSON syntax first.');
+            error_alert('Cannot save: Invalid JSON in Custom Properties field. Please fix the JSON syntax first.');
             $('#others_content').addClass('highlight-error');
             $('#json_validation_result').html('<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> Invalid JSON: ' + e.message + '</span>');
             $('#json_save_blocker').show();
@@ -853,7 +924,7 @@ function validateOthersContentJSON() {
     var resultDiv = $('#json_validation_result');
     
     if (jsonText === '') {
-        resultDiv.html('<span class="text-info"><i class="fa fa-info-circle"></i> JSON field is empty.</span>');
+        resultDiv.html('<span class="text-info"><i class="fa fa-info-circle"></i> Field is empty.</span>');
         jsonValidationState.isValid = true;
         $('#json_save_blocker').hide();
         updateSaveButtonState();
@@ -862,7 +933,48 @@ function validateOthersContentJSON() {
     
     try {
         var parsed = JSON.parse(jsonText);
-        resultDiv.html('<span class="text-success"><i class="fa fa-check-circle"></i> Valid JSON format!</span>');
+        
+        // Validación específica para additionalProperty
+        if (!parsed.hasOwnProperty('additionalProperty')) {
+            resultDiv.html('<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> Must contain additionalProperty array</span>');
+            $('#others_content').removeClass('highlight-success').addClass('highlight-error');
+            jsonValidationState.isValid = false;
+            $('#json_save_blocker').show();
+            updateSaveButtonState();
+            return;
+        }
+        
+        if (!Array.isArray(parsed.additionalProperty)) {
+            resultDiv.html('<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> additionalProperty must be an array</span>');
+            $('#others_content').removeClass('highlight-success').addClass('highlight-error');
+            jsonValidationState.isValid = false;
+            $('#json_save_blocker').show();
+            updateSaveButtonState();
+            return;
+        }
+        
+        // Validar PropertyValue objects
+        for (var i = 0; i < parsed.additionalProperty.length; i++) {
+            var prop = parsed.additionalProperty[i];
+            if (!prop['@type'] || prop['@type'] !== 'PropertyValue') {
+                resultDiv.html('<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> Item ' + i + ' missing @type: PropertyValue</span>');
+                $('#others_content').removeClass('highlight-success').addClass('highlight-error');
+                jsonValidationState.isValid = false;
+                $('#json_save_blocker').show();
+                updateSaveButtonState();
+                return;
+            }
+            if (!prop.name || !prop.value) {
+                resultDiv.html('<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> Item ' + i + ' missing name or value</span>');
+                $('#others_content').removeClass('highlight-success').addClass('highlight-error');
+                jsonValidationState.isValid = false;
+                $('#json_save_blocker').show();
+                updateSaveButtonState();
+                return;
+            }
+        }
+        
+        resultDiv.html('<span class="text-success"><i class="fa fa-check-circle"></i> Valid additionalProperty structure! (' + parsed.additionalProperty.length + ' properties)</span>');
         $('#others_content').removeClass('highlight-error').addClass('highlight-success');
         
         jsonValidationState.isValid = true;

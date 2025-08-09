@@ -300,7 +300,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         exit();
     }
 
-    // ✅ MÉTODO CORREGIDO: generateAdditionalProperties con validación mejorada
     public function generateAdditionalProperties()
     {
         if (ob_get_level()) {
@@ -336,8 +335,8 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             // Validar y contar propiedades generadas
             try {
                 $decoded = json_decode($content, true);
-                if (is_array($decoded)) {
-                    $json['property_count'] = count($decoded);
+                if (is_array($decoded) && isset($decoded['additionalProperty'])) {
+                    $json['property_count'] = count($decoded['additionalProperty']);
                     $this->logDebug("additionalProperty generado exitosamente - " . $json['property_count'] . " propiedades, " . strlen($content) . " caracteres");
                 }
             } catch (Exception $e) {
@@ -646,7 +645,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         exit();
     }
 
-    // ✅ NUEVO MÉTODO: Validación mejorada para additionalProperty
     public function validateAdditionalPropertyJSON()
     {
         if (ob_get_level()) {
@@ -790,10 +788,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         exit();
     }
 
-    /**
-     * Groq API con sistema de fallback de modelos
-     * Intenta múltiples modelos en caso de errores 500/502/503/timeout
-     */
     private function callGroqAPIWithFallback($api_key, $primary_model, $prompt, $max_tokens = null)
     {
         // Obtener modelos de fallback desde configuración
@@ -869,9 +863,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         ];
     }
     
-    /**
-     * Determina si un error es fatal (no recuperable con fallback) o temporal
-     */
     private function isFatalError($exception)
     {
         $message = $exception->getMessage();
@@ -895,7 +886,6 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return false;
     }
 
-    // ✅ NUEVO MÉTODO: Validación de estructura additionalProperty
     private function validateAdditionalPropertyStructure($additionalProperty)
     {
         if (!is_array($additionalProperty)) {
@@ -947,111 +937,119 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         
         return ['valid' => true];
     }
-private function cleanJsonContent($json_string)
-{
-    if (empty($json_string)) {
-        return '';
-    }
-    
-    // Múltiples niveles de decodificación HTML
-    $cleaned = $json_string;
-    $max_iterations = 3; // Máximo 3 iteraciones para evitar loops infinitos
-    $iteration = 0;
-    
-    while ($iteration < $max_iterations && 
-           (strpos($cleaned, '&quot;') !== false || 
-            strpos($cleaned, '&amp;') !== false || 
-            strpos($cleaned, '&#039;') !== false)) {
+
+    private function cleanJsonContent($json_string)
+    {
+        if (empty($json_string)) {
+            return '';
+        }
         
-        $cleaned = html_entity_decode($cleaned, ENT_QUOTES, 'UTF-8');
-        $iteration++;
+        // Múltiples niveles de decodificación HTML
+        $cleaned = $json_string;
+        $max_iterations = 3; // Máximo 3 iteraciones para evitar loops infinitos
+        $iteration = 0;
+        
+        while ($iteration < $max_iterations && 
+               (strpos($cleaned, '&quot;') !== false || 
+                strpos($cleaned, '&amp;') !== false || 
+                strpos($cleaned, '&#039;') !== false)) {
+            
+            $cleaned = html_entity_decode($cleaned, ENT_QUOTES, 'UTF-8');
+            $iteration++;
+        }
+        
+        return $cleaned;
     }
-    
-    return $cleaned;
-}
-    // ✅ MÉTODO CORREGIDO: generateAdditionalPropertiesWithAI mejorado
-  private function generateAdditionalPropertiesWithAI($product_info)
-{
-    $api_key = $this->config->get('smart_seo_schema_groq_api_key');
-    if (!$api_key) {
-        throw new Exception('No API key configured');
+
+    private function generateAdditionalPropertiesWithAI($product_info)
+    {
+        $api_key = $this->config->get('smart_seo_schema_groq_api_key');
+        if (!$api_key) {
+            throw new Exception('No API key configured');
+        }
+        
+        $existing_description = '';
+        if (!empty($product_info['description'])) {
+            $existing_description = strip_tags($product_info['description']);
+            $existing_description = preg_replace('/\s+/', ' ', trim($existing_description));
+        }
+        
+        $prompt = "Extract the most relevant technical and commercial product properties from the following product description. ";
+        $prompt .= "Create detailed PropertyValue objects with enhanced information.\n\n";
+        $prompt .= "Return ONLY a JSON object with this EXACT structure:\n";
+        $prompt .= "{\n";
+        $prompt .= '  "additionalProperty": [\n';
+        $prompt .= '    {\n';
+        $prompt .= '      "@type": "PropertyValue",\n';
+        $prompt .= '      "name": "Property Name",\n';
+        $prompt .= '      "value": "Property Value",\n';
+        $prompt .= '      "description": "Brief explanation",\n';
+        $prompt .= '      "unitCode": "UNIT"\n';
+        $prompt .= '    }\n';
+        $prompt .= '  ]\n';
+        $prompt .= '}\n\n';
+        
+        $prompt .= "IMPORTANT RULES:\n";
+        $prompt .= "- For percentages: use value as number (e.g., \"99\") and unitCode \"PERCENT\"\n";
+        $prompt .= "- For weights: use value as number with unitCode \"GRM\" or \"KGM\"\n";
+        $prompt .= "- For volumes: use value as number with unitCode \"MLT\" or \"LTR\"\n";
+        $prompt .= "- For identifiers (CAS, SKU): no unitCode needed\n";
+        $prompt .= "- Keep descriptions concise and informative\n\n";
+        
+        $prompt .= "Example format:\n";
+        $prompt .= "{\n";
+        $prompt .= '  "additionalProperty": [\n';
+        $prompt .= '    {\n';
+        $prompt .= '      "@type": "PropertyValue",\n';
+        $prompt .= '      "name": "Purity",\n';
+        $prompt .= '      "value": "99",\n';
+        $prompt .= '      "description": "typical analysis on dry basis",\n';
+        $prompt .= '      "unitCode": "PERCENT"\n';
+        $prompt .= '    },\n';
+        $prompt .= '    {\n';
+        $prompt .= '      "@type": "PropertyValue",\n';
+        $prompt .= '      "name": "CAS Number",\n';
+        $prompt .= '      "value": "6484-52-2",\n';
+        $prompt .= '      "description": "Chemical Abstracts Service registry number"\n';
+        $prompt .= '    }\n';
+        $prompt .= '  ]\n';
+        $prompt .= '}\n\n';
+        
+        $prompt .= "Product: " . $product_info['name'] . "\n";
+        $prompt .= "Model: " . $product_info['model'] . "\n";
+        if ($existing_description) {
+            $prompt .= "Description: " . substr($existing_description, 0, 500) . "\n";
+        }
+        $prompt .= "\nReturn ONLY the JSON object. No explanations:";
+        
+        $model = $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
+        $result = $this->callGroqAPIWithFallback($api_key, $model, $prompt, 600);
+        
+        if (!$result['success']) {
+            throw new Exception('Failed to generate additionalProperty: ' . $result['error']);
+        }
+        
+        $response = trim($result['content']);
+        
+        // Limpiar la respuesta para asegurar que sea JSON válido
+        $response = preg_replace('/^[^{]*/', '', $response); // Remover todo antes del primer {
+        $response = preg_replace('/[^}]*$/', '', $response); // Remover todo después del último }
+        
+        // Validar que es un objeto JSON válido con additionalProperty
+        $json_decoded = json_decode($response, true);
+        if (!isset($json_decoded['additionalProperty']) || !is_array($json_decoded['additionalProperty'])) {
+            throw new Exception('AI did not return valid additionalProperty structure. Response: ' . substr($response, 0, 200));
+        }
+        
+        // Validar estructura usando el método de validación
+        $validation_result = $this->validateAdditionalPropertyStructure($json_decoded['additionalProperty']);
+        if (!$validation_result['valid']) {
+            throw new Exception('Invalid additionalProperty structure: ' . $validation_result['error']);
+        }
+        
+        // Re-encode SIN htmlspecialchars para evitar HTML entities
+        return json_encode($json_decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
-    
-    $existing_description = '';
-    if (!empty($product_info['description'])) {
-        $existing_description = strip_tags($product_info['description']);
-        $existing_description = preg_replace('/\s+/', ' ', trim($existing_description));
-    }
-    
-    $prompt = "Extract the most relevant technical and commercial product properties from the following product description. ";
-    $prompt .= "Create detailed PropertyValue objects with enhanced information.\n\n";
-    $prompt .= "Return ONLY a JSON array (not an object) containing PropertyValue objects.\n";
-    $prompt .= "Each PropertyValue should have:\n";
-    $prompt .= "- @type: \"PropertyValue\" (required)\n";
-    $prompt .= "- name: Property name (required, string)\n";
-    $prompt .= "- value: Clean value as string or number (required)\n";
-    $prompt .= "- description: Brief explanation (optional, string)\n";
-    $prompt .= "- unitCode: Standard unit code when applicable (optional, string like PERCENT, GRM, MLT)\n\n";
-    
-    $prompt .= "IMPORTANT RULES:\n";
-    $prompt .= "- For percentages: use value as number (e.g., \"99\") and unitCode \"PERCENT\"\n";
-    $prompt .= "- For weights: use value as number with unitCode \"GRM\" or \"KGM\"\n";
-    $prompt .= "- For volumes: use value as number with unitCode \"MLT\" or \"LTR\"\n";
-    $prompt .= "- For identifiers (CAS, SKU): no unitCode needed\n";
-    $prompt .= "- Keep descriptions concise and informative\n\n";
-    
-    $prompt .= "Example format:\n";
-    $prompt .= "[\n";
-    $prompt .= "  {\n";
-    $prompt .= "    \"@type\": \"PropertyValue\",\n";
-    $prompt .= "    \"name\": \"Purity\",\n";
-    $prompt .= "    \"value\": \"99\",\n";
-    $prompt .= "    \"description\": \"typical analysis on dry basis\",\n";
-    $prompt .= "    \"unitCode\": \"PERCENT\"\n";
-    $prompt .= "  },\n";
-    $prompt .= "  {\n";
-    $prompt .= "    \"@type\": \"PropertyValue\",\n";
-    $prompt .= "    \"name\": \"CAS Number\",\n";
-    $prompt .= "    \"value\": \"6484-52-2\",\n";
-    $prompt .= "    \"description\": \"Chemical Abstracts Service registry number\"\n";
-    $prompt .= "  }\n";
-    $prompt .= "]\n\n";
-    
-    $prompt .= "Product: " . $product_info['name'] . "\n";
-    $prompt .= "Model: " . $product_info['model'] . "\n";
-    if ($existing_description) {
-        $prompt .= "Description: " . substr($existing_description, 0, 500) . "\n";
-    }
-    $prompt .= "\nReturn ONLY the JSON array. No explanations:";
-    
-    $model = $this->config->get('smart_seo_schema_groq_model') ?: 'llama-3.1-8b-instant';
-    $result = $this->callGroqAPIWithFallback($api_key, $model, $prompt, 600);
-    
-    if (!$result['success']) {
-        throw new Exception('Failed to generate additionalProperty: ' . $result['error']);
-    }
-    
-    $response = trim($result['content']);
-    
-    // Limpiar la respuesta para asegurar que sea JSON válido
-    $response = preg_replace('/^[^[]*/', '', $response); // Remover todo antes del primer [
-    $response = preg_replace('/[^\]]*$/', '', $response); // Remover todo después del último ]
-    
-    // Validar que es un array JSON válido
-    $json_decoded = json_decode($response, true);
-    if (!is_array($json_decoded)) {
-        throw new Exception('AI did not return a valid JSON array. Response: ' . substr($response, 0, 200));
-    }
-    
-    // Validar estructura usando el método de validación
-    $validation_result = $this->validateAdditionalPropertyStructure($json_decoded);
-    if (!$validation_result['valid']) {
-        throw new Exception('Invalid additionalProperty structure: ' . $validation_result['error']);
-    }
-    
-    // ✅ IMPORTANTE: Re-encode SIN htmlspecialchars para evitar HTML entities
-    return json_encode($json_decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-}
 
     private function generateDescriptionWithAI($product_info)
     {
@@ -1614,161 +1612,159 @@ private function cleanJsonContent($json_string)
         }
     }
 
-   private function saveSchemaSettings($product_id)
-{
-    $this->logDebug("=== GUARDANDO CONFIGURACIÓN SCHEMA ===");
-    $this->logDebug("Producto ID: " . $product_id);
-    $this->logDebug("POST data: " . print_r($this->request->post, true));
-    
-    try {
-        $query = $this->db->query("
-            SELECT id 
-            FROM " . DB_PREFIX . "seo_schema_content 
-            WHERE product_id = " . (int)$product_id . "
-            LIMIT 1
-        ");
-
-        // ✅ CORRECCIÓN: Procesar others_content para evitar doble codificación HTML
-        $others_content = trim($this->request->post['others_content'] ?? '');
+    private function saveSchemaSettings($product_id)
+    {
+        $this->logDebug("=== GUARDANDO CONFIGURACIÓN SCHEMA ===");
+        $this->logDebug("Producto ID: " . $product_id);
+        $this->logDebug("POST data: " . print_r($this->request->post, true));
         
-        // Validar y normalizar el JSON antes de guardarlo
-        if (!empty($others_content)) {
-            // Decodificar HTML entities si existen
-            $others_content = html_entity_decode($others_content, ENT_QUOTES, 'UTF-8');
-            
-            // Validar que sea JSON válido
-            $decoded = json_decode($others_content, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                // Re-codificar para asegurar formato consistente (sin HTML entities)
-                $others_content = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                $this->logDebug("others_content normalizado: " . substr($others_content, 0, 200) . "...");
-            } else {
-                $this->logDebug("Error JSON en others_content: " . json_last_error_msg());
-                throw new Exception("Invalid JSON format in others_content: " . json_last_error_msg());
-            }
-        }
+        try {
+            $query = $this->db->query("
+                SELECT id 
+                FROM " . DB_PREFIX . "seo_schema_content 
+                WHERE product_id = " . (int)$product_id . "
+                LIMIT 1
+            ");
 
-        $data = array(
-            'custom_description' => trim($this->request->post['custom_description'] ?? ''),
-            'faq_content' => trim($this->request->post['faq_content'] ?? ''),
-            'howto_content' => trim($this->request->post['howto_content'] ?? ''),
-            'review_content' => trim($this->request->post['review_content'] ?? ''),
-            'others_content' => $others_content, // ✅ Ya procesado arriba
-            'enable_variants' => isset($this->request->post['enable_variants']) ? 1 : 0,
-            'enable_faq' => !empty($this->request->post['faq_content']) ? 1 : 0,
-            'enable_howto' => !empty($this->request->post['howto_content']) ? 1 : 0,
-            'enable_review' => !empty($this->request->post['review_content']) ? 1 : 0,
-            'show_faq_tab_frontend' => isset($this->request->post['show_faq_tab_frontend']) ? 1 : 0,
-            'show_howto_tab_frontend' => isset($this->request->post['show_howto_tab_frontend']) ? 1 : 0
-        );
-
-        $this->logDebug("Datos procesados: " . print_r($data, true));
-
-        if ($query->num_rows) {
-            $this->logDebug("Actualizando registro existente...");
+            $others_content = trim($this->request->post['others_content'] ?? '');
             
-            $update_sql = "
-                UPDATE " . DB_PREFIX . "seo_schema_content 
-                SET 
-                    custom_description = '" . $this->db->escape($data['custom_description']) . "',
-                    faq_content = '" . $this->db->escape($data['faq_content']) . "',
-                    howto_content = '" . $this->db->escape($data['howto_content']) . "',
-                    review_content = '" . $this->db->escape($data['review_content']) . "',
-                    others_content = '" . $this->db->escape($data['others_content']) . "',
-                    enable_variants = " . (int)$data['enable_variants'] . ",
-                    enable_faq = " . (int)$data['enable_faq'] . ",
-                    enable_howto = " . (int)$data['enable_howto'] . ",
-                    enable_review = " . (int)$data['enable_review'] . ",
-                    show_faq_tab_frontend = " . (int)$data['show_faq_tab_frontend'] . ",
-                    show_howto_tab_frontend = " . (int)$data['show_howto_tab_frontend'] . ",
-                    updated_date = NOW()
-                WHERE product_id = " . (int)$product_id
-            ;
-            
-            $this->db->query($update_sql);
-            $this->logDebug("Registro actualizado exitosamente.");
-            
-        } else {
-            $this->logDebug("Creando nuevo registro...");
-            
-            $insert_sql = "
-                INSERT INTO " . DB_PREFIX . "seo_schema_content 
-                (
-                    product_id, 
-                    custom_description, 
-                    faq_content, 
-                    howto_content, 
-                    review_content,
-                    others_content,
-                    enable_variants,
-                    enable_faq,
-                    enable_howto,
-                    enable_review,
-                    show_faq_tab_frontend,
-                    show_howto_tab_frontend,
-                    created_date,
-                    updated_date
-                ) VALUES (
-                    " . (int)$product_id . ",
-                    '" . $this->db->escape($data['custom_description']) . "',
-                    '" . $this->db->escape($data['faq_content']) . "',
-                    '" . $this->db->escape($data['howto_content']) . "',
-                    '" . $this->db->escape($data['review_content']) . "',
-                    '" . $this->db->escape($data['others_content']) . "',
-                    " . (int)$data['enable_variants'] . ",
-                    " . (int)$data['enable_faq'] . ",
-                    " . (int)$data['enable_howto'] . ",
-                    " . (int)$data['enable_review'] . ",
-                    " . (int)$data['show_faq_tab_frontend'] . ",
-                    " . (int)$data['show_howto_tab_frontend'] . ",
-                    NOW(),
-                    NOW()
-                )
-            ";
-            
-            $this->db->query($insert_sql);
-            $this->logDebug("Nuevo registro creado exitosamente.");
-        }
-
-        // Verificación mejorada
-        $verify_query = $this->db->query("
-            SELECT 
-                LENGTH(custom_description) as desc_len,
-                LENGTH(faq_content) as faq_len,
-                LENGTH(howto_content) as howto_len,
-                LENGTH(review_content) as review_len,
-                LENGTH(others_content) as others_len,
-                show_faq_tab_frontend,
-                show_howto_tab_frontend,
-                updated_date,
-                others_content
-            FROM " . DB_PREFIX . "seo_schema_content 
-            WHERE product_id = " . (int)$product_id
-        );
-        
-        if ($verify_query->num_rows) {
-            $verification = $verify_query->row;
-            $this->logDebug("Verificación exitosa - Longitudes: desc={$verification['desc_len']}, faq={$verification['faq_len']}, howto={$verification['howto_len']}, review={$verification['review_len']}, others={$verification['others_len']}, show_faq_tab={$verification['show_faq_tab_frontend']}, show_howto_tab={$verification['show_howto_tab_frontend']}, updated={$verification['updated_date']}");
-            
-            // Verificar estructura de additionalProperty guardada
-            if (!empty($verification['others_content'])) {
-                $saved_others = json_decode($verification['others_content'], true);
-                if (isset($saved_others['additionalProperty']) && is_array($saved_others['additionalProperty'])) {
-                    $this->logDebug("✅ additionalProperty guardado correctamente como array con " . count($saved_others['additionalProperty']) . " elementos");
+            if (!empty($others_content)) {
+                $others_content = html_entity_decode($others_content, ENT_QUOTES, 'UTF-8');
+                
+                $decoded = json_decode($others_content, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    if (isset($decoded['additionalProperty'])) {
+                        $validation = $this->validateAdditionalPropertyStructure($decoded['additionalProperty']);
+                        if (!$validation['valid']) {
+                            throw new Exception("Invalid additionalProperty: " . $validation['error']);
+                        }
+                    }
+                    $others_content = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    $this->logDebug("others_content normalizado: " . substr($others_content, 0, 200) . "...");
                 } else {
-                    $this->logDebug("⚠️ additionalProperty no tiene estructura de array válida");
+                    $this->logDebug("Error JSON en others_content: " . json_last_error_msg());
+                    throw new Exception("Invalid JSON format in others_content: " . json_last_error_msg());
                 }
             }
+
+            $data = array(
+                'custom_description' => trim($this->request->post['custom_description'] ?? ''),
+                'faq_content' => trim($this->request->post['faq_content'] ?? ''),
+                'howto_content' => trim($this->request->post['howto_content'] ?? ''),
+                'review_content' => trim($this->request->post['review_content'] ?? ''),
+                'others_content' => $others_content,
+                'enable_variants' => isset($this->request->post['enable_variants']) ? 1 : 0,
+                'enable_faq' => !empty($this->request->post['faq_content']) ? 1 : 0,
+                'enable_howto' => !empty($this->request->post['howto_content']) ? 1 : 0,
+                'enable_review' => !empty($this->request->post['review_content']) ? 1 : 0,
+                'show_faq_tab_frontend' => isset($this->request->post['show_faq_tab_frontend']) ? 1 : 0,
+                'show_howto_tab_frontend' => isset($this->request->post['show_howto_tab_frontend']) ? 1 : 0
+            );
+
+            $this->logDebug("Datos procesados: " . print_r($data, true));
+
+            if ($query->num_rows) {
+                $this->logDebug("Actualizando registro existente...");
+                
+                $update_sql = "
+                    UPDATE " . DB_PREFIX . "seo_schema_content 
+                    SET 
+                        custom_description = '" . $this->db->escape($data['custom_description']) . "',
+                        faq_content = '" . $this->db->escape($data['faq_content']) . "',
+                        howto_content = '" . $this->db->escape($data['howto_content']) . "',
+                        review_content = '" . $this->db->escape($data['review_content']) . "',
+                        others_content = '" . $this->db->escape($data['others_content']) . "',
+                        enable_variants = " . (int)$data['enable_variants'] . ",
+                        enable_faq = " . (int)$data['enable_faq'] . ",
+                        enable_howto = " . (int)$data['enable_howto'] . ",
+                        enable_review = " . (int)$data['enable_review'] . ",
+                        show_faq_tab_frontend = " . (int)$data['show_faq_tab_frontend'] . ",
+                        show_howto_tab_frontend = " . (int)$data['show_howto_tab_frontend'] . ",
+                        updated_date = NOW()
+                    WHERE product_id = " . (int)$product_id
+                ;
+                
+                $this->db->query($update_sql);
+                $this->logDebug("Registro actualizado exitosamente.");
+                
+            } else {
+                $this->logDebug("Creando nuevo registro...");
+                
+                $insert_sql = "
+                    INSERT INTO " . DB_PREFIX . "seo_schema_content 
+                    (
+                        product_id, 
+                        custom_description, 
+                        faq_content, 
+                        howto_content, 
+                        review_content,
+                        others_content,
+                        enable_variants,
+                        enable_faq,
+                        enable_howto,
+                        enable_review,
+                        show_faq_tab_frontend,
+                        show_howto_tab_frontend,
+                        created_date,
+                        updated_date
+                    ) VALUES (
+                        " . (int)$product_id . ",
+                        '" . $this->db->escape($data['custom_description']) . "',
+                        '" . $this->db->escape($data['faq_content']) . "',
+                        '" . $this->db->escape($data['howto_content']) . "',
+                        '" . $this->db->escape($data['review_content']) . "',
+                        '" . $this->db->escape($data['others_content']) . "',
+                        " . (int)$data['enable_variants'] . ",
+                        " . (int)$data['enable_faq'] . ",
+                        " . (int)$data['enable_howto'] . ",
+                        " . (int)$data['enable_review'] . ",
+                        " . (int)$data['show_faq_tab_frontend'] . ",
+                        " . (int)$data['show_howto_tab_frontend'] . ",
+                        NOW(),
+                        NOW()
+                    )
+                ";
+                
+                $this->db->query($insert_sql);
+                $this->logDebug("Nuevo registro creado exitosamente.");
+            }
+
+            $verify_query = $this->db->query("
+                SELECT 
+                    LENGTH(custom_description) as desc_len,
+                    LENGTH(faq_content) as faq_len,
+                    LENGTH(howto_content) as howto_len,
+                    LENGTH(review_content) as review_len,
+                    LENGTH(others_content) as others_len,
+                    show_faq_tab_frontend,
+                    show_howto_tab_frontend,
+                    updated_date,
+                    others_content
+                FROM " . DB_PREFIX . "seo_schema_content 
+                WHERE product_id = " . (int)$product_id
+            );
+            
+            if ($verify_query->num_rows) {
+                $verification = $verify_query->row;
+                $this->logDebug("Verificación exitosa - Longitudes: desc={$verification['desc_len']}, faq={$verification['faq_len']}, howto={$verification['howto_len']}, review={$verification['review_len']}, others={$verification['others_len']}, show_faq_tab={$verification['show_faq_tab_frontend']}, show_howto_tab={$verification['show_howto_tab_frontend']}, updated={$verification['updated_date']}");
+                
+                if (!empty($verification['others_content'])) {
+                    $saved_others = json_decode($verification['others_content'], true);
+                    if (isset($saved_others['additionalProperty']) && is_array($saved_others['additionalProperty'])) {
+                        $this->logDebug("✅ additionalProperty guardado correctamente como array con " . count($saved_others['additionalProperty']) . " elementos");
+                    } else {
+                        $this->logDebug("⚠️ additionalProperty no tiene estructura de array válida");
+                    }
+                }
+            }
+
+        } catch (Exception $e) {
+            $this->logDebug("ERROR guardando configuración: " . $e->getMessage());
+            $this->logDebug("SQL Error Info: " . $this->db->error);
+            
+            throw new Exception("Error saving schema settings: " . $e->getMessage());
         }
-
-    } catch (Exception $e) {
-        $this->logDebug("ERROR guardando configuración: " . $e->getMessage());
-        $this->logDebug("SQL Error Info: " . $this->db->error);
-        
-        throw new Exception("Error saving schema settings: " . $e->getMessage());
     }
-}
-
 
     private function getProductReviews($product_id)
     {
@@ -1793,17 +1789,11 @@ private function cleanJsonContent($json_string)
         return $query->rows;
     }
 
-    /**
-     * Sistema de diversificación de reviews para evitar patrones repetitivos
-     * Implementa múltiples arquetipos de reviewer y variaciones naturales
-     */
     private function getReviewVariationProfile($product_info)
     {
-        // Crear semilla determinística basada en el producto para consistencia
         $seed = crc32($product_info['name'] . $product_info['model']);
         srand($seed);
         
-        // Seleccionar arquetipo de reviewer
         $archetypes = [
             'satisfied' => [
                 'tone' => 'positive',
@@ -1840,17 +1830,15 @@ private function cleanJsonContent($json_string)
         $archetype_keys = array_keys($archetypes);
         $selected_archetype = $archetypes[$archetype_keys[rand(0, count($archetype_keys) - 1)]];
         
-        // Variaciones naturales sin formateo especial
         $variations = [
-            'mentions_timeframe' => (rand(1, 3) == 1),  // 33% chance
-            'includes_specifics' => (rand(1, 2) == 1),  // 50% chance
-            'personal_context' => (rand(1, 4) == 1),    // 25% chance
-            'minor_issue' => (rand(1, 5) == 1),         // 20% chance
-            'recommends' => (rand(1, 2) == 1),          // 50% chance
-            'compares' => (rand(1, 4) == 1)             // 25% chance
+            'mentions_timeframe' => (rand(1, 3) == 1),
+            'includes_specifics' => (rand(1, 2) == 1),
+            'personal_context' => (rand(1, 4) == 1),
+            'minor_issue' => (rand(1, 5) == 1),
+            'recommends' => (rand(1, 2) == 1),
+            'compares' => (rand(1, 4) == 1)
         ];
         
-        // Determinar estructura de párrafos
         $paragraph_count = ($selected_archetype['structure'] === 'two_paragraph') ? 2 : 1;
         
         return [
@@ -1869,7 +1857,6 @@ private function cleanJsonContent($json_string)
             throw new Exception('No API key configured');
         }
         
-        // Obtener perfil de variación para mantener consistencia
         $profile = $this->getReviewVariationProfile($product_info);
         
         $prompt = $this->buildOptimizationPrompt($review_text, $product_info, $profile);
@@ -2000,7 +1987,6 @@ private function cleanJsonContent($json_string)
             $prompt .= "• Compare it to similar products you know\n";
         }
         
-        // Nombres simples y realistas
         $simple_names = [
             'Mike', 'Sarah', 'Dave', 'Lisa', 'Tom', 'Amy', 'Chris', 'Kim', 
             'Jake', 'Jen', 'Sam', 'Alex', 'Pat', 'Jordan', 'Casey', 'Taylor'
@@ -2024,7 +2010,6 @@ private function cleanJsonContent($json_string)
         if (!$review_data || !isset($review_data['author']) || !isset($review_data['text']) || !isset($review_data['rating'])) {
             $this->logDebug("Failed to parse JSON response: " . $clean_response);
             
-            // Fallback con variación
             $fallback_names = ['Verified Customer', 'Product User', 'Customer Review', 'Satisfied Buyer'];
             $fallback_texts = [
                 "Great product! The " . $product_name . " works exactly as described and meets all my expectations. Good build quality and reliable performance. Used it for several weeks now and very satisfied with the purchase. Would definitely recommend to others looking for this type of product.",
@@ -2042,16 +2027,13 @@ private function cleanJsonContent($json_string)
             return $fallback_data;
         }
         
-        // Validar y limpiar datos
         $review_data['rating'] = (int)$review_data['rating'];
         $review_data['verified_purchase'] = isset($review_data['verified_purchase']) ? (int)$review_data['verified_purchase'] : 1;
         $review_data['status'] = isset($review_data['status']) ? (int)$review_data['status'] : 1;
         
-        // Validar longitud del texto
         $text_length = strlen($review_data['text']);
         if ($text_length < 400 || $text_length > 1800) {
             $this->logDebug("Review text length out of range: " . $text_length . " characters");
-            // Usar fallback si está fuera del rango óptimo
             $fallback_data = array(
                 'author' => $review_data['author'],
                 'text' => $this->adjustReviewLength($review_data['text'], $product_name),
@@ -2070,7 +2052,6 @@ private function cleanJsonContent($json_string)
         $current_length = strlen($text);
         
         if ($current_length < 100) {
-            // Expandir texto corto
             $expansions = [
                 " The build quality feels solid and reliable.",
                 " Setup was straightforward and user-friendly.", 
@@ -2086,7 +2067,6 @@ private function cleanJsonContent($json_string)
                 }
             }
         } elseif ($current_length > 200) {
-            // Recortar texto largo manteniendo sentido
             $sentences = preg_split('/[.!?]+/', $text);
             $shortened = '';
             
@@ -2196,9 +2176,6 @@ private function cleanJsonContent($json_string)
         return !$this->error;
     }
 
-    /**
-     * Función original callGroqAPI modificada para soportar timeout personalizado
-     */
     private function callGroqAPI($api_key, $model, $prompt, $max_tokens = null, $timeout = null)
     {
         $url = 'https://api.groq.com/openai/v1/chat/completions';
@@ -2293,7 +2270,6 @@ private function cleanJsonContent($json_string)
             $error_details = json_decode($response, true);
         }
 
-        // Detectar errores recuperables para el sistema de fallback
         $is_server_error = ($http_code >= 500 && $http_code <= 503) || $http_code == 0;
         if ($is_server_error) {
             $this->logDebug("Error de servidor detectado (HTTP {$http_code}) - candidato para fallback");

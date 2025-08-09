@@ -294,40 +294,59 @@ class ExtensionSmartSeoSchema extends Extension
         return $this->generateCompleteSchema($mock_controller);
     }
 
-   private function generateCompleteSchema($that)
-{
-    $product_info = $that->data['product_info'];
-    $product_id = $product_info['product_id'];
+    private function generateCompleteSchema($that)
+    {
+        $product_info = $that->data['product_info'];
+        $product_id = $product_info['product_id'];
 
-    $saved_content = $this->getSavedSchemaContent($product_id);
-    $product_snippet = $this->generateProductSnippet($product_info, $that, $saved_content);
+        $saved_content = $this->getSavedSchemaContent($product_id);
+        $product_snippet = $this->generateProductSnippet($product_info, $that, $saved_content);
 
-    $variants = [];
-    if ($that->config->get('smart_seo_schema_enable_variants') && 
-        (!empty($saved_content['enable_variants']) || $saved_content === null)) {
-        $variants = $this->getProductVariants($product_info['product_id'], $that, $saved_content);
-        if (!empty($variants)) {
-            $product_snippet["hasVariant"] = $variants;
+        // 1. Generar propiedades automáticas del sistema
+        $automatic_properties = $this->generateSystemProperties($product_info, $that);
+        $product_snippet = array_merge($product_snippet, $automatic_properties);
+
+        $variants = [];
+        if ($that->config->get('smart_seo_schema_enable_variants') && 
+            (!empty($saved_content['enable_variants']) || $saved_content === null)) {
+            $variants = $this->getProductVariants($product_info['product_id'], $that, $saved_content);
+            if (!empty($variants)) {
+                $product_snippet["hasVariant"] = $variants;
+            }
         }
-    }
 
-    if ($that->config->get('smart_seo_schema_show_offer')) {
-        $offer = $this->getProductOffer($that, $product_info, $saved_content, $variants);
-        if ($offer) {
-            $product_snippet["offers"] = $offer;
+        if ($that->config->get('smart_seo_schema_show_offer')) {
+            $offer = $this->getProductOffer($that, $product_info, $saved_content, $variants);
+            if ($offer) {
+                $product_snippet["offers"] = $offer;
+            }
         }
-    }
 
-    $aggregateRating = $this->generateAggregateRating($that, $product_info);
-    if ($aggregateRating) {
-        $product_snippet["aggregateRating"] = $aggregateRating;
-    }
+        $aggregateRating = $this->generateAggregateRating($that, $product_info);
+        if ($aggregateRating) {
+            $product_snippet["aggregateRating"] = $aggregateRating;
+        }
 
-    // ✅ CORRECCIÓN MEJORADA: Manejo robusto de others_content con múltiples niveles de decodificación
-    if ($saved_content && !empty($saved_content['others_content'])) {
-        $others_content = $saved_content['others_content'];
+        // 2. Procesar SOLO additionalProperty de others_content
+        $custom_additional = $this->getCustomAdditionalProperties($saved_content);
+        if (!empty($custom_additional)) {
+            $product_snippet["additionalProperty"] = $custom_additional;
+        }
+
+        $additional_schemas = $this->generateAdditionalSchemas($product_info, $that, $saved_content);
         
-        // Aplicar múltiples niveles de decodificación si es necesario
+        return array_merge([$product_snippet], $additional_schemas);
+    }
+
+    private function getCustomAdditionalProperties($saved_content)
+    {
+        if (!$saved_content || empty($saved_content['others_content'])) {
+            return null;
+        }
+        
+        // Migrar datos antiguos si es necesario
+        $others_content = $this->migrateOldOthersContent($saved_content['others_content']);
+        
         $others_content = html_entity_decode($others_content, ENT_QUOTES, 'UTF-8');
         
         // Si todavía tiene HTML entities, decodificar una vez más
@@ -335,80 +354,184 @@ class ExtensionSmartSeoSchema extends Extension
             $others_content = html_entity_decode($others_content, ENT_QUOTES, 'UTF-8');
         }
         
-        // Log para debugging
-        if ($that->config->get('smart_seo_schema_debug_mode')) {
-            error_log("Smart SEO Schema - others_content después de decodificar: " . substr($others_content, 0, 200));
-        }
-        
-        // Validar JSON antes de procesarlo
         $others_data = json_decode($others_content, true);
-        $json_error = json_last_error();
         
-        if ($json_error === JSON_ERROR_NONE && is_array($others_data)) {
-            foreach ($others_data as $key => $value) {
-                if (!isset($product_snippet[$key]) && !empty($value)) {
-                    
-                    // ✅ MANEJO ESPECÍFICO MEJORADO PARA additionalProperty
-                    if ($key === 'additionalProperty') {
-                        if (is_array($value)) {
-                            // Verificar que cada elemento sea un PropertyValue válido
-                            $valid_properties = [];
-                            foreach ($value as $prop) {
-                                if (is_array($prop) && 
-                                    isset($prop['@type']) && $prop['@type'] === 'PropertyValue' &&
-                                    isset($prop['name']) && isset($prop['value'])) {
-                                    $valid_properties[] = $prop;
-                                }
-                            }
-                            
-                            if (!empty($valid_properties)) {
-                                $product_snippet[$key] = $valid_properties;
-                                
-                                // Log para verificar estructura
-                                if ($that->config->get('smart_seo_schema_debug_mode')) {
-                                    error_log("Smart SEO Schema - additionalProperty procesado: " . count($valid_properties) . " propiedades válidas");
-                                }
-                            }
-                        } elseif (is_string($value)) {
-                            // Si es una cadena JSON, decodificarla
-                            $decoded_value = json_decode($value, true);
-                            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded_value)) {
-                                $product_snippet[$key] = $decoded_value;
-                            }
-                        }
-                    } 
-                    // Otras propiedades que deben mantenerse como arrays para Schema.org
-                    elseif (in_array($key, ['hasVariant', 'offers', 'image', 'category', 'audience', 'award', 'review', 'mainEntity', 'step']) && is_array($value)) {
-                        $product_snippet[$key] = $value;
-                    } 
-                    // Propiedades normales
-                    else {
-                        $product_snippet[$key] = $value;
+        // SOLO procesar additionalProperty
+        if (is_array($others_data) && isset($others_data['additionalProperty'])) {
+            if (is_array($others_data['additionalProperty'])) {
+                // Verificar que cada elemento sea un PropertyValue válido
+                $valid_properties = [];
+                foreach ($others_data['additionalProperty'] as $prop) {
+                    if (is_array($prop) && 
+                        isset($prop['@type']) && $prop['@type'] === 'PropertyValue' &&
+                        isset($prop['name']) && isset($prop['value'])) {
+                        $valid_properties[] = $prop;
                     }
                 }
-            }
-        } else {
-            // Log del error JSON para debugging
-            if ($that->config->get('smart_seo_schema_debug_mode')) {
-                $error_messages = [
-                    JSON_ERROR_DEPTH => 'Maximum stack depth exceeded',
-                    JSON_ERROR_STATE_MISMATCH => 'Invalid or malformed JSON',
-                    JSON_ERROR_CTRL_CHAR => 'Control character error',
-                    JSON_ERROR_SYNTAX => 'Syntax error, malformed JSON',
-                    JSON_ERROR_UTF8 => 'Malformed UTF-8 characters'
-                ];
                 
-                $error_msg = $error_messages[$json_error] ?? 'Unknown JSON error';
-                error_log("Smart SEO Schema - JSON Parse Error in others_content: " . $error_msg);
-                error_log("Smart SEO Schema - others_content problemático: " . substr($others_content, 0, 500));
+                return !empty($valid_properties) ? $valid_properties : null;
             }
         }
+        
+        return null;
     }
 
-    $additional_schemas = $this->generateAdditionalSchemas($product_info, $that, $saved_content);
-    
-    return array_merge([$product_snippet], $additional_schemas);
-}
+    private function generateSystemProperties($product_info, $that)
+    {
+        $properties = [];
+        
+        // Weight como QuantitativeValue (estándar Schema.org)
+        if (!empty($product_info['weight']) && $product_info['weight'] > 0) {
+            $weight_unit = $this->getWeightUnit($product_info['weight_class_id'], $that);
+            $properties["weight"] = [
+                "@type" => "QuantitativeValue",
+                "value" => (string)$product_info['weight'],
+                "unitCode" => $this->getUnitCode($weight_unit)
+            ];
+        }
+        
+        // Dimensions estructuradas
+        if ($this->hasValidDimensions($product_info)) {
+            $length_unit = $this->getLengthUnit($product_info['length_class_id'], $that);
+            $unit_code = $this->getUnitCode($length_unit);
+            
+            if (!empty($product_info['length']) && $product_info['length'] > 0) {
+                $properties["depth"] = [
+                    "@type" => "QuantitativeValue", 
+                    "value" => (string)$product_info['length'],
+                    "unitCode" => $unit_code
+                ];
+            }
+            
+            if (!empty($product_info['width']) && $product_info['width'] > 0) {
+                $properties["width"] = [
+                    "@type" => "QuantitativeValue",
+                    "value" => (string)$product_info['width'], 
+                    "unitCode" => $unit_code
+                ];
+            }
+            
+            if (!empty($product_info['height']) && $product_info['height'] > 0) {
+                $properties["height"] = [
+                    "@type" => "QuantitativeValue",
+                    "value" => (string)$product_info['height'],
+                    "unitCode" => $unit_code
+                ];
+            }
+        }
+        
+        return $properties;
+    }
+
+    private function getUnitCode($unit_text)
+    {
+        $unit_map = [
+            'g' => 'GRM', 'gram' => 'GRM', 'grams' => 'GRM',
+            'kg' => 'KGM', 'kilogram' => 'KGM', 'kilograms' => 'KGM',
+            'cm' => 'CMT', 'centimeter' => 'CMT', 'centimeters' => 'CMT',
+            'm' => 'MTR', 'meter' => 'MTR', 'meters' => 'MTR',
+            'mm' => 'MMT', 'millimeter' => 'MMT', 'millimeters' => 'MMT',
+            'in' => 'INH', 'inch' => 'INH', 'inches' => 'INH'
+        ];
+        
+        return $unit_map[strtolower(trim($unit_text))] ?? $unit_text;
+    }
+
+    private function hasValidDimensions($product_info)
+    {
+        return (!empty($product_info['length']) && $product_info['length'] > 0) ||
+               (!empty($product_info['width']) && $product_info['width'] > 0) ||
+               (!empty($product_info['height']) && $product_info['height'] > 0);
+    }
+
+    private function getWeightUnit($weight_class_id, $that)
+    {
+        if (empty($weight_class_id)) {
+            return 'kg';
+        }
+        
+        $db = $that->db;
+        $language_id = $this->getAdminDefaultLanguageId($that);
+        
+        $query = $db->query("
+            SELECT unit 
+            FROM " . DB_PREFIX . "weight_class_descriptions 
+            WHERE weight_class_id = " . (int)$weight_class_id . " 
+            AND language_id = " . (int)$language_id . "
+            LIMIT 1
+        ");
+        
+        if ($query->num_rows) {
+            return trim($query->row['unit']);
+        }
+        
+        return 'kg';
+    }
+
+    private function getLengthUnit($length_class_id, $that)
+    {
+        if (empty($length_class_id)) {
+            return 'cm';
+        }
+        
+        $db = $that->db;
+        $language_id = $this->getAdminDefaultLanguageId($that);
+        
+        $query = $db->query("
+            SELECT unit 
+            FROM " . DB_PREFIX . "length_class_descriptions 
+            WHERE length_class_id = " . (int)$length_class_id . " 
+            AND language_id = " . (int)$language_id . "
+            LIMIT 1
+        ");
+        
+        if ($query->num_rows) {
+            return trim($query->row['unit']);
+        }
+        
+        return 'cm';
+    }
+
+    private function migrateOldOthersContent($others_content)
+    {
+        $decoded = json_decode($others_content, true);
+        
+        if (!is_array($decoded)) {
+            return $others_content;
+        }
+        
+        // Detectar formato antiguo (claves numéricas)
+        $has_numeric_keys = false;
+        $old_properties = [];
+        
+        foreach ($decoded as $key => $value) {
+            if (is_numeric($key) && is_array($value) && isset($value['@type']) && $value['@type'] === 'PropertyValue') {
+                $has_numeric_keys = true;
+                $old_properties[] = $value;
+            }
+        }
+        
+        if ($has_numeric_keys) {
+            // Migrar a nuevo formato
+            $migrated = ['additionalProperty' => $old_properties];
+            
+            // Preservar otras propiedades no numéricas
+            foreach ($decoded as $key => $value) {
+                if (!is_numeric($key)) {
+                    $migrated[$key] = $value;
+                }
+            }
+            
+            // Log de migración
+            if ($this->registry->get('config')->get('smart_seo_schema_debug_mode')) {
+                error_log("Smart SEO Schema - Migrated old format: " . count($old_properties) . " properties");
+            }
+            
+            return json_encode($migrated, JSON_UNESCAPED_UNICODE);
+        }
+        
+        return $others_content;
+    }
 
     private function getSavedSchemaContent($product_id)
     {
