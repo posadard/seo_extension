@@ -78,6 +78,70 @@ class ExtensionSmartSeoSchema extends Extension
         $that->load->library('json');
         $that->view->assign('smart_seo_schema_data', AJson::encode($schema_data));
 
+        // Assign product fields for Open Graph meta tags
+        if (isset($that->data['product_info'])) {
+            $product_info = $that->data['product_info'];
+            $og_name = $product_info['name'] ?? '';
+            // Always use the custom_description from seo_schema_content for Open Graph description
+            $og_description = '';
+            // Try to get the custom_description from the schema content table
+            $custom_description = '';
+            $db = $this->registry->get('db');
+            $product_id = $product_info['product_id'] ?? 0;
+            if ($product_id) {
+                $query = $db->query("SELECT custom_description FROM " . DB_PREFIX . "seo_schema_content WHERE product_id = '" . (int)$product_id . "' LIMIT 1");
+                if ($query->num_rows && !empty($query->row['custom_description'])) {
+                    $custom_description = $query->row['custom_description'];
+                }
+            }
+            $og_description = $custom_description;
+            // Use the same logic as schema.org for og:image
+            $og_image = '';
+            if (method_exists($this, 'getProductImages')) {
+                $images = $this->getProductImages($that, $product_info);
+                if (!empty($images) && is_array($images)) {
+                    $og_image = $images[0];
+                }
+            }
+
+            // og:url: build from url_aliases table if available (SEO-friendly), else fallback
+            $og_url = '';
+            $config = $this->registry->get('config');
+            $store_url = rtrim($config->get('config_ssl_url') ?: $config->get('config_url'), '/');
+            if (!empty($product_info['product_id'])) {
+                $db = $this->registry->get('db');
+                $product_id = (int)$product_info['product_id'];
+                $seo_query = "product_id=" . $product_id;
+                $seo_keyword = '';
+                $query = $db->query("SELECT keyword FROM " . DB_PREFIX . "url_aliases WHERE query = '" . $db->escape($seo_query) . "' AND language_id = 1 LIMIT 1");
+                if ($query->num_rows && !empty($query->row['keyword'])) {
+                    $seo_keyword = $query->row['keyword'];
+                }
+                if ($seo_keyword) {
+                    $og_url = $store_url . '/' . ltrim($seo_keyword, '/');
+                } else {
+                    $og_url = $store_url . '/index.php?rt=product/product&product_id=' . $product_id;
+                }
+            }
+            $og_brand = $product_info['brand'] ?? '';
+            $og_sku = $product_info['sku'] ?? '';
+            $og_mpn = $product_info['model'] ?? '';
+            $og_category = $product_info['category'] ?? '';
+            $that->view->assign('og_name', $og_name);
+            $that->view->assign('og_description', $og_description);
+            $that->view->assign('og_image', $og_image);
+            $that->view->assign('og_brand', $og_brand);
+            $that->view->assign('og_sku', $og_sku);
+            $that->view->assign('og_mpn', $og_mpn);
+            $that->view->assign('og_category', $og_category);
+            $that->view->assign('og_url', $og_url);
+            // Twitter Card tags (summary_large_image)
+            $that->view->assign('twitter_card', 'summary_large_image');
+            $that->view->assign('twitter_title', $og_name);
+            $that->view->assign('twitter_description', $og_description);
+            $that->view->assign('twitter_image', $og_image);
+        }
+
         // Register frontend tabs if enabled
         $this->registerProductTabs($that);
     }
@@ -537,7 +601,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function getDefaultShippingDetails($that = null)
     {
-        // Si no tenemos acceso al controlador, usar configuraci¨®n desde registry
+        // Si no tenemos acceso al controlador, usar configuraciï¿½ï¿½n desde registry
         if (!$that) {
             $config = $this->registry->get('config');
         } else {
@@ -575,7 +639,7 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function getDefaultReturnPolicy($that = null)
     {
-        // Si no tenemos acceso al controlador, usar configuraci¨®n desde registry
+        // Si no tenemos acceso al controlador, usar configuraciï¿½ï¿½n desde registry
         if (!$that) {
             $config = $this->registry->get('config');
         } else {
