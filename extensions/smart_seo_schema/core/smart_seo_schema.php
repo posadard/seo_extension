@@ -310,9 +310,7 @@ class ExtensionSmartSeoSchema extends Extension
         if ($that->config->get('smart_seo_schema_enable_variants') && 
             (!empty($saved_content['enable_variants']) || $saved_content === null)) {
             $variants = $this->getProductVariants($product_info['product_id'], $that, $saved_content);
-            if (!empty($variants)) {
-                $product_snippet["hasVariant"] = $variants;
-            }
+            // Las variantes se incluyen como esquemas separados, no como propiedades del producto principal
         }
 
         if ($that->config->get('smart_seo_schema_show_offer')) {
@@ -335,7 +333,14 @@ class ExtensionSmartSeoSchema extends Extension
 
         $additional_schemas = $this->generateAdditionalSchemas($product_info, $that, $saved_content);
         
-        return array_merge([$product_snippet], $additional_schemas);
+        // Agregar variantes como esquemas separados si existen
+        $all_schemas = [$product_snippet];
+        if (!empty($variants)) {
+            $all_schemas[] = $variants;
+        }
+        $all_schemas = array_merge($all_schemas, $additional_schemas);
+        
+        return $all_schemas;
     }
 
     private function getCustomAdditionalProperties($saved_content)
@@ -612,10 +617,6 @@ class ExtensionSmartSeoSchema extends Extension
             $product_snippet["mpn"] = $product_info['model'];
         }
 
-        if (!empty($product_info['sku'])) {
-            $product_snippet["productGroupID"] = $product_info['sku'];
-        }
-
         $brand = $this->getProductBrand($that, $product_info);
         if (!empty($brand)) {
             $product_snippet["brand"] = [
@@ -757,6 +758,14 @@ class ExtensionSmartSeoSchema extends Extension
         $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $default_return_policy;
         $price_valid_until = date('Y-m-d', strtotime('+1 year'));
 
+        // Crear ProductGroup para las variantes
+        $product_group = [
+            "@type" => "ProductGroup",
+            "name" => $product_name . " Product Group",
+            "description" => "Product group for " . $product_name . " with different variants",
+            "hasVariant" => []
+        ];
+
         $variants = [];
         foreach ($query->rows as $row) {
             $variant_price = $this->calculateVariantPrice($base_price, $row['price'], $row['prefix']);
@@ -769,6 +778,10 @@ class ExtensionSmartSeoSchema extends Extension
                 "sku"   => $row['sku'] ?: ($main_sku . "-" . $row['product_option_value_id']),
                 "image" => $main_image,
                 "description" => $variant_description,
+                "isVariantOf" => [
+                    "@type" => "ProductGroup",
+                    "name" => $product_name . " Product Group"
+                ],
                 "offers" => [
                     "@type"        => "Offer",
                     "price"        => number_format($variant_price, 2, '.', ''),
@@ -788,9 +801,10 @@ class ExtensionSmartSeoSchema extends Extension
             }
 
             $variants[] = $variant;
+            $product_group["hasVariant"][] = $variant;
         }
 
-        return $variants;
+        return $product_group;
     }
 
     private function getDefaultShippingDetails($that = null)
@@ -960,9 +974,10 @@ class ExtensionSmartSeoSchema extends Extension
         $currency = $that->currency->getCode();
         $availability = $this->getProductAvailability($that);
 
-        if ($base_price == 0 && !empty($variants)) {
+        // Si hay variantes y es un ProductGroup, extraer precios de las variantes
+        if ($base_price == 0 && !empty($variants) && isset($variants['hasVariant'])) {
             $variant_prices = [];
-            foreach ($variants as $variant) {
+            foreach ($variants['hasVariant'] as $variant) {
                 if (isset($variant['offers']['price'])) {
                     $variant_prices[] = (float)$variant['offers']['price'];
                 }
@@ -986,21 +1001,7 @@ class ExtensionSmartSeoSchema extends Extension
             "hasMerchantReturnPolicy" => $return_policy
         ];
 
-        if (!empty($variants)) {
-            $variant_prices = [];
-            foreach ($variants as $variant) {
-                if (isset($variant['offers']['price'])) {
-                    $variant_prices[] = (float)$variant['offers']['price'];
-                }
-            }
-            
-            if (!empty($variant_prices) && count($variant_prices) > 1) {
-                $max_price = max($variant_prices);
-                if ($max_price > $base_price) {
-                    $offer["highPrice"] = number_format($max_price, 2, '.', '');
-                }
-            }
-        }
+        // Remover highPrice ya que no es una propiedad válida de Schema.org
 
         return $offer;
     }
