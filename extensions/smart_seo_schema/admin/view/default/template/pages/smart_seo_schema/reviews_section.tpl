@@ -56,8 +56,10 @@
                                            data-rating="<?php echo $review['rating']; ?>">
                                     <input type="hidden" id="review_verified_<?php echo $review['review_id']; ?>" 
                                            data-verified="<?php echo $review['verified_purchase']; ?>">
-                                    <input type="hidden" id="review_status_<?php echo $review['review_id']; ?>" 
-                                           data-status="<?php echo $review['status']; ?>">
+                     <input type="hidden" id="review_status_<?php echo $review['review_id']; ?>" 
+                         data-status="<?php echo $review['status']; ?>">
+                     <input type="hidden" id="review_date_<?php echo $review['review_id']; ?>" 
+                         value="<?php echo htmlspecialchars(date('Y-m-d', strtotime($review['date_added']))); ?>">
                                     
                                     <?php if ($review['verified_purchase']): ?>
                                         <br><span class="label label-success label-xs">

@@ -494,6 +494,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             $rating = (int)$this->request->post['rating'];
             $verified_purchase = isset($this->request->post['verified_purchase']) ? 1 : 0;
             $status = isset($this->request->post['status']) ? 1 : 0;
+            $date_added = isset($this->request->post['date_added']) && $this->request->post['date_added'] ? $this->request->post['date_added'] : null;
             
             if (!$product_id || !$author || !$text || !$rating) {
                 throw new Exception('Missing required fields');
@@ -504,10 +505,10 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
             }
             
             if ($review_id) {
-                $this->updateReview($review_id, $author, $text, $rating, $verified_purchase, $status);
+                $this->updateReview($review_id, $author, $text, $rating, $verified_purchase, $status, $date_added);
                 $message = 'Review updated successfully';
             } else {
-                $this->createReview($product_id, $author, $text, $rating, $verified_purchase, $status);
+                $this->createReview($product_id, $author, $text, $rating, $verified_purchase, $status, $date_added);
                 $message = 'Review created successfully';
             }
             
@@ -2085,8 +2086,9 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
         return $text;
     }
 
-    private function createReview($product_id, $author, $text, $rating, $verified_purchase, $status)
+    private function createReview($product_id, $author, $text, $rating, $verified_purchase, $status, $date_added = null)
     {
+        $date_sql = $date_added ? ("'" . $this->db->escape($date_added) . "'") : "NOW()";
         $this->db->query("
             INSERT INTO " . DB_PREFIX . "reviews 
             (product_id, customer_id, author, text, rating, verified_purchase, status, date_added, date_modified) 
@@ -2098,14 +2100,16 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 " . (int)$rating . ",
                 " . (int)$verified_purchase . ",
                 " . (int)$status . ",
-                NOW(),
-                NOW()
+                $date_sql,
+                $date_sql
             )
         ");
     }
 
-    private function updateReview($review_id, $author, $text, $rating, $verified_purchase, $status)
+    private function updateReview($review_id, $author, $text, $rating, $verified_purchase, $status, $date_added = null)
     {
+        $date_sql = $date_added ? ("'" . $this->db->escape($date_added) . "'") : null;
+        $set_date = $date_sql ? (", date_added = $date_sql ") : "";
         $this->db->query("
             UPDATE " . DB_PREFIX . "reviews 
             SET 
@@ -2114,7 +2118,7 @@ class ControllerPagesCatalogSmartSeoSchema extends AController
                 rating = " . (int)$rating . ",
                 verified_purchase = " . (int)$verified_purchase . ",
                 status = " . (int)$status . ",
-                date_modified = NOW()
+                date_modified = NOW()$set_date
             WHERE review_id = " . (int)$review_id
         );
     }

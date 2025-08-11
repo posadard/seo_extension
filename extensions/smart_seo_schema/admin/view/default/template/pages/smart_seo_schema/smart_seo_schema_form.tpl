@@ -385,6 +385,11 @@
                             </label>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label for="review_date">Review Date:</label>
+                        <input type="date" class="form-control" id="review_date" name="date_added" style="border:2px solid red;background:#ffeaea;">
+                        <small class="help-block">Set the date of the review (for imported reviews, e.g. from Amazon)</small>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -1049,6 +1054,7 @@ function editReview(reviewId) {
         $('#review_form')[0].reset();
         $('#review_id').val('');
         $('#review_status').prop('checked', true);
+        $('#review_date').val('');
         updateReviewCharCounter();
     } else {
         $('#review_modal_title').text('Edit Review');
@@ -1058,6 +1064,9 @@ function editReview(reviewId) {
         $('#review_rating').val($('#review_rating_' + reviewId).data('rating'));
         $('#review_verified').prop('checked', $('#review_verified_' + reviewId).data('verified') == '1');
         $('#review_status').prop('checked', $('#review_status_' + reviewId).data('status') == '1');
+        // Set review date if available
+        var reviewDate = $('#review_date_' + reviewId).val();
+        $('#review_date').val(reviewDate ? reviewDate : '');
         updateReviewCharCounter();
     }
     
@@ -1072,7 +1081,8 @@ function saveReview() {
         text: $('#review_text').val().trim(),
         rating: $('#review_rating').val(),
         verified_purchase: $('#review_verified').is(':checked') ? 1 : 0,
-        status: $('#review_status').is(':checked') ? 1 : 0
+        status: $('#review_status').is(':checked') ? 1 : 0,
+        date_added: $('#review_date').val()
     };
     
     // Validation

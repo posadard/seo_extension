@@ -306,23 +306,53 @@ class ExtensionSmartSeoSchema extends Extension
         $automatic_properties = $this->generateSystemProperties($product_info, $that);
         $product_snippet = array_merge($product_snippet, $automatic_properties);
 
-        $variants = [];
-        if ($that->config->get('smart_seo_schema_enable_variants') && 
-            (!empty($saved_content['enable_variants']) || $saved_content === null)) {
-            $variants = $this->getProductVariants($product_info['product_id'], $that, $saved_content);
-            // Las variantes se incluyen como esquemas separados, no como propiedades del producto principal
-        }
+        // Lógica adaptativa: detectar si el producto tiene opciones
+        $product_options = $this->getProductOptions($product_info['product_id'], $that);
+        $has_options = !empty($product_options);
 
         if ($that->config->get('smart_seo_schema_show_offer')) {
-            $offer = $this->getProductOffer($that, $product_info, $saved_content, $variants);
-            if ($offer) {
-                $product_snippet["offers"] = $offer;
+            if ($has_options && $that->config->get('smart_seo_schema_enable_variants') && 
+                (!empty($saved_content['enable_variants']) || $saved_content === null)) {
+                // Producto CON opciones: generar múltiples ofertas basadas en opciones
+                $offers = $this->getMultipleProductOffers($product_info['product_id'], $that, $saved_content, $product_options);
+                if (!empty($offers)) {
+                    $product_snippet["offers"] = $offers;
+                }
+            } else {
+                // Producto SIN opciones: generar una sola oferta simple
+                $offer = $this->getSingleProductOffer($that, $product_info, $saved_content);
+                if ($offer) {
+                    $product_snippet["offers"] = $offer;
+                }
             }
         }
 
+        // Solo incluir aggregateRating y review si existen datos reales
         $aggregateRating = $this->generateAggregateRating($that, $product_info);
         if ($aggregateRating) {
             $product_snippet["aggregateRating"] = $aggregateRating;
+        }
+
+        // Incluir review solo si hay contenido real
+        $review = null;
+        if ($saved_content && !empty($saved_content['review_content'])) {
+            $review = $this->parseReviewContent($saved_content['review_content'], $product_info['name']);
+        } else {
+            // Buscar en la base de datos si hay reviews reales
+            $db = $this->registry->get('db');
+            $query = $db->query("SELECT * FROM " . DB_PREFIX . "reviews WHERE product_id = " . (int)$product_id . " AND status = 1 LIMIT 1");
+            if ($query->num_rows) {
+                $row = $query->row;
+                $review = [
+                    "@type" => "Review",
+                    "author" => ["@type" => "Person", "name" => $row['author']],
+                    "reviewRating" => ["@type" => "Rating", "ratingValue" => (string)$row['rating'], "bestRating" => "5"],
+                    "reviewBody" => $row['text']
+                ];
+            }
+        }
+        if ($review) {
+            $product_snippet["review"] = $review;
         }
 
         // 2. Procesar SOLO additionalProperty de others_content
@@ -331,13 +361,18 @@ class ExtensionSmartSeoSchema extends Extension
             $product_snippet["additionalProperty"] = $custom_additional;
         }
 
-        $additional_schemas = $this->generateAdditionalSchemas($product_info, $that, $saved_content);
-        
-        // Agregar variantes como esquemas separados si existen
-        $all_schemas = [$product_snippet];
-        if (!empty($variants)) {
-            $all_schemas[] = $variants;
+        // Solo incluir schemas adicionales que no sean Review
+        $additional_schemas = [];
+        $schemas = $this->generateAdditionalSchemas($product_info, $that, $saved_content);
+        foreach ($schemas as $schema) {
+            if (isset($schema['@type']) && $schema['@type'] === 'Review') {
+                continue; // No incluir Review suelto
+            }
+            $additional_schemas[] = $schema;
         }
+
+        // Estructura final: siempre un Product principal + schemas adicionales
+        $all_schemas = [$product_snippet];
         $all_schemas = array_merge($all_schemas, $additional_schemas);
         
         return $all_schemas;
@@ -348,37 +383,65 @@ class ExtensionSmartSeoSchema extends Extension
         if (!$saved_content || empty($saved_content['others_content'])) {
             return null;
         }
-        
+
         // Migrar datos antiguos si es necesario
         $others_content = $this->migrateOldOthersContent($saved_content['others_content']);
-        
         $others_content = html_entity_decode($others_content, ENT_QUOTES, 'UTF-8');
-        
-        // Si todavía tiene HTML entities, decodificar una vez más
         if (strpos($others_content, '&quot;') !== false || strpos($others_content, '&amp;') !== false) {
             $others_content = html_entity_decode($others_content, ENT_QUOTES, 'UTF-8');
         }
-        
+
         $others_data = json_decode($others_content, true);
-        
-        // SOLO procesar additionalProperty
-        if (is_array($others_data) && isset($others_data['additionalProperty'])) {
-            if (is_array($others_data['additionalProperty'])) {
-                // Verificar que cada elemento sea un PropertyValue válido
-                $valid_properties = [];
-                foreach ($others_data['additionalProperty'] as $prop) {
-                    if (is_array($prop) && 
-                        isset($prop['@type']) && $prop['@type'] === 'PropertyValue' &&
-                        isset($prop['name']) && isset($prop['value'])) {
-                        $valid_properties[] = $prop;
-                    }
-                }
-                
-                return !empty($valid_properties) ? $valid_properties : null;
+        // Sanitizar y normalizar additionalProperty
+        $sanitized = $this->sanitizeAdditionalProperty($others_data);
+        return !empty($sanitized) ? $sanitized : null;
+    }
+
+    /**
+     * Sanitiza y normaliza la estructura de additionalProperty para tolerar errores comunes y permitir edición.
+     * Devuelve solo los PropertyValue válidos, pero si hay errores, intenta corregirlos o los ignora para no bloquear al usuario.
+     */
+    private function sanitizeAdditionalProperty($others_data)
+    {
+        if (!is_array($others_data) || !isset($others_data['additionalProperty'])) {
+            return null;
+        }
+        $props = $others_data['additionalProperty'];
+        if (!is_array($props)) {
+            // Si viene como objeto único, intentar envolverlo en array
+            if (is_array($props) && isset($props['@type']) && $props['@type'] === 'PropertyValue') {
+                $props = [$props];
+            } else {
+                return null;
             }
         }
-        
-        return null;
+        $valid_properties = [];
+        foreach ($props as $prop) {
+            // Intentar corregir errores comunes
+            if (!is_array($prop)) {
+                continue;
+            }
+            // Si falta @type, agregarlo
+            if (!isset($prop['@type'])) {
+                $prop['@type'] = 'PropertyValue';
+            }
+            // Si falta name o value, intentar inferir o dejar vacío
+            if (!isset($prop['name'])) {
+                $prop['name'] = '';
+            }
+            if (!isset($prop['value'])) {
+                $prop['value'] = '';
+            }
+            // Solo aceptar si tiene al menos name y value no vacíos
+            if (trim($prop['name']) !== '' && trim($prop['value']) !== '') {
+                $valid_properties[] = [
+                    '@type' => 'PropertyValue',
+                    'name' => $prop['name'],
+                    'value' => $prop['value']
+                ];
+            }
+        }
+        return !empty($valid_properties) ? $valid_properties : null;
     }
 
     private function generateSystemProperties($product_info, $that)
@@ -433,10 +496,13 @@ class ExtensionSmartSeoSchema extends Extension
         $unit_map = [
             'g' => 'GRM', 'gram' => 'GRM', 'grams' => 'GRM',
             'kg' => 'KGM', 'kilogram' => 'KGM', 'kilograms' => 'KGM',
+            'lb' => 'LBR', 'lbs' => 'LBR', 'pound' => 'LBR', 'pounds' => 'LBR',
+            'oz' => 'ONZ', 'ounce' => 'ONZ', 'ounces' => 'ONZ',
             'cm' => 'CMT', 'centimeter' => 'CMT', 'centimeters' => 'CMT',
             'm' => 'MTR', 'meter' => 'MTR', 'meters' => 'MTR',
             'mm' => 'MMT', 'millimeter' => 'MMT', 'millimeters' => 'MMT',
-            'in' => 'INH', 'inch' => 'INH', 'inches' => 'INH'
+            'in' => 'INH', 'inch' => 'INH', 'inches' => 'INH',
+            'ft' => 'FOT', 'foot' => 'FOT', 'feet' => 'FOT'
         ];
         
         return $unit_map[strtolower(trim($unit_text))] ?? $unit_text;
@@ -585,9 +651,13 @@ class ExtensionSmartSeoSchema extends Extension
 
     private function generateProductSnippet($product_info, $that, $saved_content = null)
     {
+        $product_url = $this->getProductUrl($product_info['product_id'], $that);
+        
         $product_snippet = [
             "@context" => "https://schema.org",
-            "@type"    => "Product"
+            "@type"    => "Product",
+            "@id"      => $product_url . "#product",
+            "url"      => $product_url
         ];
 
         $product_snippet["name"] = $product_info['name'];
@@ -696,6 +766,140 @@ class ExtensionSmartSeoSchema extends Extension
         }
 
         return null;
+    }
+
+    private function getProductUrl($product_id, $that)
+    {
+        $config = $that->config;
+        $db = $that->db;
+        
+        $store_url = rtrim($config->get('config_ssl_url') ?: $config->get('config_url'), '/');
+        $seo_query = "product_id=" . (int)$product_id;
+        $seo_keyword = '';
+        
+        $query = $db->query("SELECT keyword FROM " . DB_PREFIX . "url_aliases WHERE query = '" . $db->escape($seo_query) . "' AND language_id = 1 LIMIT 1");
+        if ($query->num_rows && !empty($query->row['keyword'])) {
+            $seo_keyword = $query->row['keyword'];
+        }
+        
+        if ($seo_keyword) {
+            return $store_url . '/' . ltrim($seo_keyword, '/');
+        } else {
+            return $store_url . '/index.php?rt=product/product&product_id=' . (int)$product_id;
+        }
+    }
+
+    private function getProductOptions($product_id, $that)
+    {
+        $db = $that->db;
+        $language_id = $this->getAdminDefaultLanguageId($that);
+
+        $sql = "
+            SELECT 
+                pov.product_option_value_id,
+                pov.sku,
+                pov.price,
+                pov.prefix,
+                pov.quantity,
+                COALESCE(povd.name, CONCAT('Option ', pov.product_option_value_id)) as option_name
+            FROM " . DB_PREFIX . "product_option_values pov
+            LEFT JOIN " . DB_PREFIX . "product_option_value_descriptions povd 
+                ON pov.product_option_value_id = povd.product_option_value_id 
+                AND povd.language_id = " . (int)$language_id . "
+            WHERE pov.product_id = " . (int)$product_id . "
+            ORDER BY pov.product_option_value_id
+        ";
+
+        $query = $db->query($sql);
+        return $query->rows;
+    }
+
+    private function getMultipleProductOffers($product_id, $that, $saved_content = null, $product_options = [])
+    {
+        $db = $that->db;
+        $language_id = $this->getAdminDefaultLanguageId($that);
+
+        // Obtener datos base del producto
+        $base_product_query = $db->query("
+            SELECT p.price, p.sku, p.manufacturer_id, pd.name 
+            FROM " . DB_PREFIX . "products p
+            LEFT JOIN " . DB_PREFIX . "product_descriptions pd ON p.product_id = pd.product_id 
+            WHERE p.product_id = " . (int)$product_id . " AND pd.language_id = " . (int)$language_id . "
+            LIMIT 1
+        ");
+        
+        if (!$base_product_query->num_rows) {
+            return [];
+        }
+        
+        $base_price = $base_product_query->row['price'] ?? 0;
+        $currency = $that->currency->getCode();
+        $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $this->getDefaultShippingDetails($that);
+        $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $this->getDefaultReturnPolicy($that);
+        $price_valid_until = date('Y-m-d', strtotime('+1 year'));
+        $product_url = $this->getProductUrl($product_id, $that);
+
+        $offers = [];
+        $prices = [];
+        
+        foreach ($product_options as $option) {
+            $option_price = $this->calculateVariantPrice($base_price, $option['price'], $option['prefix']);
+            $availability = $this->getVariantAvailability($option['quantity']);
+            $prices[] = $option_price;
+            
+            $offer = [
+                "@type" => "Offer",
+                "name" => $option['option_name'],
+                "price" => number_format($option_price, 2, '.', ''),
+                "priceCurrency" => $currency,
+                "priceValidUntil" => $price_valid_until,
+                "availability" => $availability
+            ];
+            
+            $offers[] = $offer;
+        }
+
+        // Envolver en AggregateOffer
+        if (count($offers) > 1) {
+            $low_price = min($prices);
+            $high_price = max($prices);
+            
+            return [
+                "@type" => "AggregateOffer",
+                "url" => $product_url,
+                "lowPrice" => number_format($low_price, 2, '.', ''),
+                "highPrice" => number_format($high_price, 2, '.', ''),
+                "priceCurrency" => $currency,
+                "offerCount" => count($offers),
+                "shippingDetails" => $shipping_details,
+                "hasMerchantReturnPolicy" => $return_policy,
+                "offers" => $offers
+            ];
+        }
+
+        return $offers;
+    }
+
+    private function getSingleProductOffer($that, $product_info, $saved_content = null)
+    {
+        $base_price = (float)$product_info['price'];
+        $currency = $that->currency->getCode();
+        $availability = $this->getProductAvailability($that);
+        $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $this->getDefaultShippingDetails($that);
+        $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $this->getDefaultReturnPolicy($that);
+        $price_valid_until = date('Y-m-d', strtotime('+1 year'));
+        $product_url = $this->getProductUrl($product_info['product_id'], $that);
+
+        return [
+            "@type" => "Offer",
+            "price" => number_format($base_price, 2, '.', ''),
+            "priceCurrency" => $currency,
+            "priceValidUntil" => $price_valid_until,
+            "availability" => $availability,
+            "url" => $product_url,
+            "shippingDetails" => $shipping_details,
+            "hasMerchantReturnPolicy" => $return_policy
+        ];
     }
 
     private function getProductVariants($product_id, $that, $saved_content = null)
@@ -951,7 +1155,7 @@ class ExtensionSmartSeoSchema extends Extension
                     "ratingValue" => number_format($avg_rating, 1),
                     "reviewCount" => $total_reviews,
                     "bestRating"  => (string)$best_rating,
-                    "worstRating" => (string)$worst_rating
+                    "worstRating" => "1"
                 ];
             }
         } catch (Exception $e) {
@@ -962,48 +1166,6 @@ class ExtensionSmartSeoSchema extends Extension
         }
 
         return null;
-    }
-
-    private function getProductOffer($that, $product_info, $saved_content = null, $variants = [])
-    {
-        if (!$that->config->get('smart_seo_schema_show_offer')) {
-            return null;
-        }
-
-        $base_price = (float)$product_info['price'];
-        $currency = $that->currency->getCode();
-        $availability = $this->getProductAvailability($that);
-
-        // Si hay variantes y es un ProductGroup, extraer precios de las variantes
-        if ($base_price == 0 && !empty($variants) && isset($variants['hasVariant'])) {
-            $variant_prices = [];
-            foreach ($variants['hasVariant'] as $variant) {
-                if (isset($variant['offers']['price'])) {
-                    $variant_prices[] = (float)$variant['offers']['price'];
-                }
-            }
-            if (!empty($variant_prices)) {
-                $base_price = min($variant_prices);
-            }
-        }
-
-        $shipping_details = $this->getShippingDetailsFromOthers($saved_content) ?? $this->getDefaultShippingDetails($that);
-        $return_policy = $this->getReturnPolicyFromOthers($saved_content) ?? $this->getDefaultReturnPolicy($that);
-        $price_valid_until = date('Y-m-d', strtotime('+1 year'));
-
-        $offer = [
-            "@type"        => "Offer",
-            "price"        => number_format($base_price, 2, '.', ''),
-            "priceCurrency" => $currency,
-            "priceValidUntil" => $price_valid_until,
-            "availability" => $availability,
-            "shippingDetails" => $shipping_details,
-            "hasMerchantReturnPolicy" => $return_policy
-        ];
-
-        // Remover highPrice ya que no es una propiedad válida de Schema.org
-
-        return $offer;
     }
 
     private function getProductAvailability($that)
@@ -1263,10 +1425,13 @@ class ExtensionSmartSeoSchema extends Extension
             $org_name = 'Online Store';
         }
         
+        $org_url = rtrim($config->get('config_ssl_url') ?: $config->get('config_url'), '/');
+        
         return [
             "@type" => "Organization",
+            "@id" => $org_url . "/#org",
             "name" => $org_name,
-            "url" => $config->get('config_url')
+            "url" => $org_url
         ];
     }
 
@@ -1350,15 +1515,14 @@ class ExtensionSmartSeoSchema extends Extension
     {
         switch ($prefix) {
             case '%':
-                return $basePrice * (1 + $variantPrice);
+                return $basePrice * (1 + ($variantPrice / 100));
             case '$':
-                return $basePrice + $variantPrice;
             case '+':
                 return $basePrice + $variantPrice;
             case '-':
                 return $basePrice - $variantPrice;
             default:
-                return $basePrice;
+                return $basePrice + $variantPrice;
         }
     }
 
